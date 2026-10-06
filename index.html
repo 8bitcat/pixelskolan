@@ -1,0 +1,49 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pixelskolan</title>
+<meta name="description" content="Pixelskolan – lär dig det man ska kunna i lågstadiet i Snabbfilens pixelstad.">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-title" content="Pixelskolan">
+<meta name="theme-color" content="#100e15">
+<link rel="stylesheet" href="sf/css/style.css">
+<link rel="stylesheet" href="editor.css">
+<link rel="stylesheet" href="skola.css">
+<style>
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+html, body { margin: 0; background: #100e15; }
+body { min-height: 100dvh; padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
+  background: repeating-conic-gradient(#100e15 0 25%, #151221 0 50%) 0 0 / 8px 8px; -webkit-text-size-adjust: 100%; }
+/* spelet så stort det går utan att bli högre än skärmen (16:9 + ramen) */
+.app { width: min(1180px, 100%, calc((100dvh - 64px) * 16 / 9 + 16px)); margin: 0 auto; }
+.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 6px; }
+.top h1 { margin: 0; font: var(--f3) var(--head); color: var(--gold); letter-spacing: 2px; text-transform: uppercase; line-height: 1; }
+.top a { font: var(--f1) var(--font); color: #cfc7ba; text-decoration: underline; }
+.sf .frame { border-width: 3px; }
+.sf #sk-below { background: var(--paper); border: 4px solid var(--ink); box-shadow: 6px 6px 0 #000; padding: 8px 12px; margin-top: 10px; }
+.sf #sk-below p { font-size: var(--f2); }
+</style>
+</head>
+<body>
+<div class="sf" id="sf">
+  <div class="app">
+    <div class="top"><h1>Pixelskolan</h1><a href="plan.html">Om Pixelskolan och planen</a></div>
+    <div class="frame" id="frame">
+      <div class="stage" id="stage">
+        <canvas id="room" width="384" height="216" role="img" aria-label="Spelbart klassrum ritat med Snabbfilens egen motor: tavla, fröken, klasskompisar i skolbänkarna, en ledig bänk och en blå dörr till butiken."></canvas>
+        <div id="sk-pill"><span class="w" id="sk-where">KLASSRUM</span><span class="sk-star" aria-hidden="true"></span><b id="sk-stars">0</b><span class="kr" id="sk-kr">0 kr på fredag</span></div>
+        <div id="skolpanel" class="dlg" hidden></div>
+        <div id="decor-panel" hidden></div>
+      </div>
+    </div>
+    <div id="sk-below"></div>
+  </div>
+  <div id="modal" class="hidden"></div>
+  <div id="toasts"></div>
+</div>
+<script type="module" src="skola.js"></script>
+</body>
+</html>

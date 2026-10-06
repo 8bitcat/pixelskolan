@@ -1,0 +1,48 @@
+@charset "UTF-8";
+/* figurskaparens tillägg (kopia av injectStyle i sf/js/core/avatar.js) */
+.sf .dlg-avatar .av-tabs { grid-template-columns: repeat(auto-fill, minmax(96px, 1fr)); gap: 4px; }
+.sf .dlg-avatar .av-tab { flex-direction: row; justify-content: center; gap: 4px; padding: 3px 4px 2px; font-size: var(--f1); }
+.sf .dlg-avatar .av-tab i { font-size: var(--f1); }
+.sf .dlg-avatar .av-sub { font: var(--f1) var(--head); font-weight: 400; text-transform: uppercase; letter-spacing: .8px; color: var(--muted); margin: 4px 0 5px; }
+.sf .dlg-avatar .av-tile i[data-c] { display: block; width: 60px; height: 60px; background: #ece4d5; }
+.sf .dlg-avatar .av-tiles.tall .av-tile i[data-c] { width: 48px; height: 82px; background: none; }
+.sf .dlg-avatar .av-more { font-size: var(--f2); line-height: 1; color: var(--muted); margin: -2px 0 8px; }
+.sf .dlg-avatar .av-sw.av-std { background: repeating-linear-gradient(45deg, #fff 0 4px, #dcd6cc 4px 8px); font: var(--f1)/26px var(--head); color: var(--ink); text-align: center; }
+/* täta rutnät: bara bilder (namnet står i rubriken, i verktygstipset och läses upp) */
+.sf .dlg-avatar .av-sec h4 { display: flex; align-items: baseline; gap: 8px; min-width: 0; margin: 8px 0 5px; }
+.sf .dlg-avatar .av-now { font: var(--f2) var(--font); line-height: 1.05; text-transform: none; letter-spacing: 0; color: var(--ink); background: #fff4c7;
+  border: 2px solid var(--ink); padding: 0 6px; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.sf .dlg-avatar .av-now.peek { background: #fff; border-style: dashed; }
+.sf .dlg-avatar .av-tiles.bare { grid-template-columns: repeat(auto-fill, minmax(var(--tw, 68px), 1fr)); gap: 5px; margin-bottom: 6px; }
+.sf .dlg-avatar .av-tiles.bare .av-tile { padding: 2px; }
+.sf .dlg-avatar .av-tiles.bare .av-tile span { display: none; }
+.sf .dlg-avatar .av-tiles .av-tile.on::after { top: -6px; right: -6px; width: 16px; height: 16px; font-size: var(--f1); line-height: 13px; z-index: 1; }
+.sf .dlg-avatar .av-tile .lk { position: absolute; top: -6px; left: -6px; right: auto; width: 16px; height: 16px; font-size: var(--f1); line-height: 14px; font-style: normal;
+  text-align: center; background: #fff; border: 2px solid var(--ink); box-sizing: border-box; z-index: 1; }
+.sf .dlg-avatar .av-tile.av-notown { border-style: dashed; }
+/* grupper: knappar som filtrerar rutnätet, en grupp i taget */
+.sf .dlg-avatar .av-chips { position: relative; display: flex; flex-wrap: wrap; gap: 4px; margin: 0 0 6px; }
+.sf .dlg-avatar .av-chip { font: var(--f1) var(--font); line-height: 1; color: var(--ink); background: var(--paper2); border: 2px solid var(--ink); box-shadow: 1px 1px 0 var(--ink);
+  padding: 2px 6px 1px; cursor: pointer; white-space: nowrap; flex: none; }
+.sf .dlg-avatar .av-chip b { font-weight: 400; color: var(--muted); margin-left: 4px; }
+.sf .dlg-avatar .av-chip.has { background: #fff4c7; }
+.sf .dlg-avatar .av-chip.has::before { content: "✓ "; color: var(--green2); }
+.sf .dlg-avatar .av-chip.on { background: var(--gold); transform: translate(1px, 1px); box-shadow: none; }
+.sf .dlg-avatar .av-chip.on b { color: var(--ink); }
+.sf .dlg-avatar .av-chip:hover:not(.on) { background: #fffbe8; }
+.sf .dlg-avatar .av-chip:focus-visible { outline: 3px solid var(--blue); outline-offset: 1px; }
+.sf .dlg-avatar .av-panel .av-sws { gap: 5px; }
+.sf .dlg-avatar .av-panel .av-sw { width: 28px; height: 28px; }
+.sf .dlg-avatar .av-panel .av-own b { font-size: var(--f2); }
+@media (max-width: 639px) {
+  .sf .dlg-avatar .av-tabs { grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 3px; }
+  .sf .dlg-avatar .av-tab { font-size: var(--f1); padding: 1px 2px 0; }
+  .sf .dlg-avatar .av-tab i { font-size: var(--f1); }
+  .sf .dlg-avatar .av-chips { flex-wrap: nowrap; overflow-x: auto; overflow-y: hidden; padding-bottom: 4px; scrollbar-width: thin; }
+  .sf .dlg-avatar .av-chip { font-size: var(--f1); }
+  .sf .dlg-avatar .av-now { font-size: var(--f1); }
+  .sf .dlg-avatar .av-panel .av-sw { width: 30px; height: 30px; }
+}
+@media (max-height: 540px) and (min-width: 640px) {
+  .sf .dlg-avatar .av-tabs { grid-template-columns: repeat(auto-fill, minmax(54px, 1fr)); gap: 3px; } /* bara ikoner här */
+}

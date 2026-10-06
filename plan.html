@@ -1,0 +1,426 @@
+<!doctype html>
+<html lang="sv">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Pixelskolan – planen</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Atkinson+Hyperlegible:ital,wght@0,400;0,700;1,400&family=Pixelify+Sans:wght@400;600;700&display=swap">
+<link rel="stylesheet" href="sf/css/style.css">
+<link rel="stylesheet" href="editor.css">
+<style>
+/* Layout: ett skrivhäfte. En spalt på linjerat papper med röd marginallinje; klassrummet överst i spelets
+   mörka pixelram, tavlan (provet) som det enda inramade objektet mitt på sidan. */
+:root {
+  --paper: #f8fafd; --rule: #e1e9f5; --margin: #e48a8f;
+  --ink: #17151a; --ink-soft: #4b5260; --line: #d3dce8; --surface: #ffffff;
+  --board: #2c4a3c; --board-hi: #365a49; --chalk: #f1efe6; --chalk-soft: #c3cec6; --wood: #7a5636;
+  --gold: #e8b230; --gold-ink: #7d5800; --ok: #2f8f46; --no: #c9323a;
+  --note: #fff3b0; --note-ink: #463a00;
+  --a1-bg: #e3ecf9; --a1-fg: #2a4a80; --a2-bg: #fbeec4; --a2-fg: #6a4b00; --a3-bg: #dcefe1; --a3-fg: #24623a;
+  --frame-a: #100e15; --frame-b: #151221;
+  --f-display: 'Pixelify Sans', 'Courier New', monospace;
+  --f-body: 'Atkinson Hyperlegible', 'Segoe UI', system-ui, sans-serif;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) {
+    --paper: #111519; --rule: #182027; --margin: #7c3a40;
+    --ink: #ecebe6; --ink-soft: #a7afba; --line: #29333c; --surface: #171d22;
+    --board: #1f3a2e; --board-hi: #28473a; --chalk: #f1efe6; --chalk-soft: #b4c2b8; --wood: #5a3e26;
+    --gold: #f0c04a; --gold-ink: #f0c04a; --ok: #45b964; --no: #e0555c;
+    --note: #37321b; --note-ink: #f3e7a8;
+    --a1-bg: #1d2a3d; --a1-fg: #a9c4ee; --a2-bg: #3a3016; --a2-fg: #f0c860; --a3-bg: #1b3125; --a3-fg: #93d3a6;
+    color-scheme: dark;
+  }
+}
+:root[data-theme="dark"] {
+  --paper: #111519; --rule: #182027; --margin: #7c3a40;
+  --ink: #ecebe6; --ink-soft: #a7afba; --line: #29333c; --surface: #171d22;
+  --board: #1f3a2e; --board-hi: #28473a; --chalk: #f1efe6; --chalk-soft: #b4c2b8; --wood: #5a3e26;
+  --gold: #f0c04a; --gold-ink: #f0c04a; --ok: #45b964; --no: #e0555c;
+  --note: #37321b; --note-ink: #f3e7a8;
+  --a1-bg: #1d2a3d; --a1-fg: #a9c4ee; --a2-bg: #3a3016; --a2-fg: #f0c860; --a3-bg: #1b3125; --a3-fg: #93d3a6;
+  color-scheme: dark;
+}
+
+* { box-sizing: border-box; }
+[hidden] { display: none !important; }
+body {
+  background-color: var(--paper);
+  background-image: linear-gradient(var(--rule) 1px, transparent 1px);
+  background-size: 100% 28px;
+  color: var(--ink);
+  font: 17px/1.6 var(--f-body);
+  font-variant-ligatures: none;
+  padding-inline: 16px;
+}
+button, input { font-variant-ligatures: none; }
+.sheet { position: relative; max-width: 760px; margin: 0 auto; padding-block: 40px 72px; }
+.sheet::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: -22px; width: 2px;
+  background: var(--margin); opacity: .6;
+}
+@media (max-width: 820px) { .sheet::before { left: -9px; width: 1px; } }
+
+h1, h2 { font-family: var(--f-display); text-wrap: balance; letter-spacing: .01em; }
+h1 { font-size: clamp(2.8rem, 8vw, 4.6rem); line-height: 1; margin: 6px 0 18px; font-weight: 700; }
+h2 { font-size: 1.75rem; line-height: 1.15; margin: 0 0 12px; font-weight: 600; }
+h3 { font-size: 1.05rem; margin: 0 0 8px; letter-spacing: .02em; }
+p { margin: 0 0 12px; max-width: 65ch; }
+.eyebrow { font: 600 .82rem/1 var(--f-display); text-transform: uppercase; letter-spacing: .1em; color: var(--ink-soft); margin: 0; }
+.lede { font-size: 1.15rem; line-height: 1.55; color: var(--ink); max-width: 60ch; }
+.muted { color: var(--ink-soft); }
+section { margin-top: 56px; }
+a { color: inherit; }
+
+/* ---------- klassrummet ---------- */
+.scene { margin: 28px 0 0; position: relative; left: 50%; width: min(840px, calc(100vw - 32px)); transform: translateX(-50%); }
+.scene figcaption { margin-left: calc((100% - min(760px, 100%)) / 2); }
+.frame {
+  background: repeating-conic-gradient(var(--frame-a) 0 25%, var(--frame-b) 0 50%) 0 0 / 8px 8px;
+  border: 2px solid #000; padding: 8px; display: flex; justify-content: center; overflow: hidden;
+}
+.frame canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; max-width: 100%; }
+figcaption { font-size: .92rem; color: var(--ink-soft); margin-top: 10px; max-width: 65ch; }
+figcaption b { color: var(--ink); font-weight: 700; }
+
+/* ---------- lektionen steg för steg ---------- */
+.steps { list-style: none; padding: 0; margin: 18px 0 0; display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 14px; counter-reset: st; }
+.steps li { counter-increment: st; display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.steps li::before {
+  content: counter(st); font: 700 1.05rem/1 var(--f-display); width: 32px; height: 32px; display: grid; place-items: center;
+  background: var(--gold); color: #2a1c00; border-radius: 50%;
+}
+.steps b { font-size: 1rem; line-height: 1.3; }
+.steps span { font-size: .92rem; line-height: 1.45; color: var(--ink-soft); }
+@media (max-width: 680px) {
+  .steps { grid-template-columns: 1fr; gap: 12px; }
+  .steps li { display: grid; grid-template-columns: 32px 1fr; column-gap: 12px; row-gap: 2px; }
+  .steps li::before { grid-row: span 2; }
+}
+
+/* ---------- spelrutan: allt inuti .sf får Snabbfilens egna stilar (sf/css/style.css) ---------- */
+.sf .stage { position: relative; container-type: inline-size; max-width: 100%; }
+.sf .stage canvas { display: block; touch-action: manipulation; }
+.sf #sk-pill { position: absolute; top: 1.6%; left: 1.2%; z-index: 4; display: flex; align-items: center; gap: 8px; background: var(--ink); color: var(--gold); border: 3px solid #000; padding: 3px 8px; font-size: var(--f1); line-height: 1; pointer-events: none; }
+.sf #sk-pill .w { color: #fff; letter-spacing: 1px; }
+.sf #sk-pill .kr { color: #cfc7ba; }
+.sf .sk-star { display: inline-block; width: 1em; height: 1em; background: var(--gold); clip-path: polygon(50% 0, 61% 35%, 98% 35%, 68% 57%, 79% 91%, 50% 70%, 21% 91%, 32% 57%, 2% 35%, 39% 35%); vertical-align: -.1em; }
+.sf #skolpanel.dlg { position: absolute; left: 2%; right: 2%; bottom: 3%; width: auto; max-height: 54%; box-shadow: 6px 6px 0 var(--ink); z-index: 5; }
+.sf #skolpanel .dlg-head { padding: 5px 10px; }
+.sf #skolpanel .dlg-head h2 { font-size: var(--f2); }
+.sf #skolpanel .dlg-body { padding: 8px 10px 10px; display: flex; flex-direction: column; gap: 7px; }
+.sf .sp-row { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.sf .sp-spacer { flex: 1 1 auto; }
+.sf .sp-topic { font-size: var(--f1); color: var(--muted); margin-left: 4px; }
+.sf .sp-answers .btn { font-size: var(--f2); text-align: left; }
+.sf .sp-answers .btn small { display: block; font-size: var(--f1); opacity: .8; margin-top: 3px; }
+.sf .sp-fb { margin: 0; min-height: 1.1em; font-size: var(--f1); line-height: 1.25; }
+.sf .sp-fb b.ok { color: var(--green); }
+.sf .sp-fb b.no { color: var(--red2); }
+.sf .sp-dots { margin-left: auto; display: inline-flex; gap: 4px; }
+.sf .sp-dots i { width: 12px; height: 12px; border: 2px solid #fff; }
+.sf .sp-dots i.cur { background: rgba(255, 255, 255, .45); }
+.sf .sp-dots i.star { background: var(--gold); }
+.sf .sp-dots i.ok { background: var(--green2); }
+.sf .stage #decor-panel { position: absolute; right: 1.5%; top: 12%; bottom: auto; width: 32%; max-height: 72%; z-index: 5; }
+.sf .stage #decor-panel .dp-foot small { font-size: var(--f1); color: var(--muted); }
+.sf .dp-item canvas { max-width: 48px; max-height: 40px; width: auto; height: auto; }
+@container (max-width: 600px) {
+  .sf #skolpanel.dlg { position: static; margin-top: 8px; max-height: none; }
+  .sf .stage #decor-panel { position: static; width: auto; margin-top: 8px; }
+  .sf #sk-pill { font-size: 10px; padding: 2px 5px; border-width: 2px; }
+  .sf #sk-pill .kr { display: none; }
+}
+.sf #sk-below { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 12px; }
+.sf #sk-below p { flex: 1 1 340px; margin: 0; font-size: var(--f2); line-height: 1.05; color: var(--ink); }
+.sf .sk-bbtns { display: flex; flex-wrap: wrap; gap: 8px; }
+.sf .sk-big { font-size: var(--f3); line-height: 1; margin: 0 0 6px; }
+.sf .who p { margin: 0 0 6px; font-size: var(--f2); line-height: 1.05; }
+.sf .who .sp { color: var(--muted); font-size: var(--f1); }
+.sf .who canvas.sk-furn { width: auto; height: auto; background: #d8cdb8; padding: 6px; image-rendering: pixelated; }
+.sf .sk-list { display: flex; flex-wrap: wrap; gap: 8px; }
+.sf .sk-lbl { font: var(--f2) var(--head); color: var(--red); text-transform: uppercase; letter-spacing: 1px; margin: 12px 0 6px; }
+.sf .sk-class { display: grid; grid-template-columns: repeat(auto-fill, minmax(112px, 1fr)); gap: 8px; }
+.sf .sk-kid { display: flex; flex-direction: column; align-items: center; gap: 5px; background: #fff; border: 3px solid var(--ink); padding: 6px; min-width: 0; }
+.sf .sk-por canvas { display: block; width: 60px; height: 72px; border: 3px solid var(--ink); image-rendering: pixelated; }
+.sf .sk-kid input { font: var(--f2) var(--font); width: 100%; text-align: center; border: 3px solid var(--ink); background: #fffbe8; padding: 2px 4px; min-width: 0; }
+.sf .sk-btns { display: flex; gap: 4px; flex-wrap: wrap; justify-content: center; }
+.sf .dlg-body > .sp { color: var(--muted); font-size: var(--f2); line-height: 1.05; margin: 0 0 4px; }
+.sf .sk-klass { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; margin: 0 0 10px; }
+.sf .sk-klass input { font: var(--f3) var(--font); width: 4.6em; text-align: center; text-transform: uppercase; border: 3px solid var(--ink); background: #fffbe8; color: var(--ink); padding: 2px 6px; }
+.sf .sk-klass .sp { flex: 1 1 260px; color: var(--muted); font-size: var(--f2); line-height: 1.05; }
+.sf .sk-lbl:first-child { margin-top: 0; }
+.sf, .sf button, .sf canvas { touch-action: manipulation; }
+
+/* ---------- momenten ---------- */
+.subject { margin-top: 26px; }
+.subject h3 { font: 600 1.2rem/1.2 var(--f-display); letter-spacing: .03em; }
+.tbl { overflow-x: auto; }
+table { width: 100%; border-collapse: collapse; font-size: .95rem; line-height: 1.45; background: var(--surface); }
+th { text-align: left; font: 600 .72rem/1.2 var(--f-display); text-transform: uppercase; letter-spacing: .08em; color: var(--ink-soft); padding: 9px 10px; border-bottom: 2px solid var(--line); }
+td { padding: 9px 10px; border-bottom: 1px solid var(--line); vertical-align: top; }
+td:first-child { font-weight: 700; width: 36%; }
+td:last-child, th:last-child { width: 1%; white-space: nowrap; }
+.lvl { display: inline-block; font: 600 .74rem/1 var(--f-display); padding: 4px 7px; border-radius: 999px; }
+.a1 { background: var(--a1-bg); color: var(--a1-fg); }
+.a2 { background: var(--a2-bg); color: var(--a2-fg); }
+.a3 { background: var(--a3-bg); color: var(--a3-fg); }
+.legend { display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-size: .88rem; color: var(--ink-soft); margin-top: 6px; }
+.note {
+  position: relative; margin-top: 28px; background: var(--note); color: var(--note-ink);
+  padding: 18px 20px 16px; border-radius: 2px; box-shadow: 0 2px 0 rgba(0,0,0,.08);
+}
+.note::before { content: ""; position: absolute; top: -6px; left: 50%; width: 12px; height: 12px; margin-left: -6px; border-radius: 50%; background: #c9323a; box-shadow: inset -2px -2px 0 rgba(0,0,0,.25); }
+.note-h { font: 600 1.05rem/1.2 var(--f-display); margin-bottom: 6px; }
+.note p:last-child { margin-bottom: 0; }
+
+/* ---------- belöningar ---------- */
+.two { display: grid; grid-template-columns: 1fr 1fr; gap: 28px; margin-top: 18px; }
+.two > div { min-width: 0; }
+.two h3 { font: 600 .8rem/1.2 var(--f-display); text-transform: uppercase; letter-spacing: .1em; color: var(--ink-soft); padding-bottom: 8px; border-bottom: 2px solid var(--line); }
+.two h3.new { color: var(--gold-ink); border-color: var(--gold); }
+.plain { list-style: none; padding: 0; margin: 0; }
+.plain li { padding: 9px 0; border-bottom: 1px solid var(--line); font-size: .96rem; line-height: 1.45; }
+.plain li b { display: block; }
+.plain li span { color: var(--ink-soft); }
+@media (max-width: 640px) { .two { grid-template-columns: 1fr; } }
+
+/* ---------- så fastnar det ---------- */
+.principles { list-style: none; padding: 0; margin: 14px 0 0; display: grid; grid-template-columns: 1fr 1fr; gap: 0 28px; }
+.principles li { padding: 11px 0; border-bottom: 1px solid var(--line); font-size: .96rem; line-height: 1.5; min-width: 0; }
+.principles b { display: block; font-size: 1rem; }
+@media (max-width: 640px) { .principles { grid-template-columns: 1fr; } }
+.modes { display: grid; grid-template-columns: 1fr 1fr; gap: 14px; margin-top: 14px; }
+.modes div { border: 2px solid var(--line); border-radius: 6px; padding: 14px 16px; background: var(--surface); min-width: 0; }
+.modes b { font: 600 1.05rem/1.2 var(--f-display); display: block; margin-bottom: 4px; }
+.modes span { font-size: .94rem; color: var(--ink-soft); }
+@media (max-width: 560px) { .modes { grid-template-columns: 1fr; } }
+
+/* ---------- släppordning ---------- */
+.timeline { list-style: none; padding: 0; margin: 18px 0 0; border-left: 2px solid var(--line); }
+.timeline li { position: relative; padding: 0 0 22px 22px; }
+.timeline li::before { content: ""; position: absolute; left: -7px; top: 6px; width: 12px; height: 12px; background: var(--paper); border: 2px solid var(--gold); border-radius: 50%; }
+.timeline li:first-child::before { background: var(--gold); }
+.ver { font: 600 .85rem/1 var(--f-display); color: var(--gold-ink); letter-spacing: .05em; font-variant-numeric: tabular-nums; }
+.timeline h3 { margin: 4px 0 4px; font-size: 1.05rem; }
+.timeline p { font-size: .95rem; color: var(--ink-soft); margin: 0; }
+
+/* ---------- frågor ---------- */
+.asks { padding-left: 1.4em; margin: 14px 0 0; }
+.asks li { margin-bottom: 14px; padding-left: 4px; }
+.asks b { display: block; }
+.asks span { color: var(--ink-soft); font-size: .96rem; }
+footer { margin-top: 56px; padding-top: 14px; border-top: 1px solid var(--line); font-size: .86rem; color: var(--ink-soft); }
+</style>
+</head>
+<body>
+
+<main class="sheet">
+  <header>
+    <p class="eyebrow">Snabbfilen · förslag till nästa kapitel</p>
+    <h1>Pixelskolan</h1>
+    <p class="lede">En lågstadieskola mitt i Pixelstaden. Man går dit med sin egen figur, sätter sig i en ledig bänk och tränar det man ska kunna i tvåan. Stjärnorna från lektionerna handlar man för i skolans stjärnbutik, och veckopengen räcker till kläder, frisören och möbler i resten av staden.</p>
+  </header>
+
+  <figure class="scene">
+    <div class="sf" id="sf">
+      <div class="frame" id="frame">
+        <div class="stage" id="stage">
+          <canvas id="room" width="384" height="216" role="img" aria-label="Spelbart klassrum 2B ritat med Snabbfilens egen motor: tavla, fröken, klasskompisar i skolbänkarna, en ledig bänk och en blå dörr till stjärnbutiken."></canvas>
+          <div id="sk-pill"><span class="w" id="sk-where">KLASSRUM 2B</span><span class="sk-star" aria-hidden="true"></span><b id="sk-stars">0</b><span class="kr" id="sk-kr">0 kr på fredag</span></div>
+          <div id="skolpanel" class="dlg" hidden></div>
+          <div id="decor-panel" hidden></div>
+        </div>
+      </div>
+      <div id="sk-below"></div>
+      <div id="modal" class="hidden"></div>
+      <div id="toasts"></div>
+    </div>
+    <figcaption><b>Prova hela kedjan:</b> gör din figur i spelets egen figurskapare, döp din klass, sätt dig och gör en lektion, gå till stjärnbutiken på rasten och gå sedan hem och ställ ut det du köpt. Figurerna, möblerna, typsnitten och dialogrutorna kommer direkt från Snabbfilen. Allt sparas i den här webbläsaren.</figcaption>
+  </figure>
+
+  <section id="lektion">
+    <h2>Så går en lektion till</h2>
+    <ol class="steps">
+      <li><b>Gå till skolan</b><span>Skolan är ett hus i staden som alla andra. Den är öppen dagtid i spelet.</span></li>
+      <li><b>Sätt dig i en ledig bänk</b><span>Läraren hälsar och föreslår vad du ska träna, utifrån det som var svårt förra gången.</span></li>
+      <li><b>Träna i fem minuter</b><span>Uppgifterna kommer upp på tavlan. Läraren kan läsa upp dem.</span></li>
+      <li><b>Få stjärnor</b><span>En till tre per lektion. Man får alltid minst en för att man försökte.</span></li>
+      <li><b>Rast och handla</b><span>Efter fem uppgifter blir det rast. Då kan du gå till stjärnbutiken, eller göra en lektion till.</span></li>
+    </ol>
+  </section>
+
+  <section id="handla">
+    <h2>Rast och stjärnbutiken</h2>
+    <p>Man skickas inte in i affären när man har samlat ett visst antal stjärnor. Snabbfilen är en öppen värld där man går dit man vill, så stjärnbutiken fungerar som alla andra butiker i staden.</p>
+    <ol class="flow">
+      <li><b>Fem uppgifter, sedan rast</b>Läraren räknar ihop stjärnorna: en för att man försökte, en till för minst tre rätt på första försöket och en till för alla fem.</li>
+      <li><b>Dörren lyser</b>Den blå dörren bredvid fröken blinkar. Bakom den ligger stjärnbutiken. Man går dit när man vill, eller gör en lektion till.</li>
+      <li><b>Stjärnorna är skolans pengar</b>De räcker bara i stjärnbutiken. Där finns keps, glittriga gympaskor, skolväska och klasströja, och skrivbord, jordglob, bokhylla och griffeltavla.</li>
+      <li><b>Veckopengen är stadens pengar</b>Varje lektion ger också 10 kr som kommer på fredagen. De går att handla för i klädaffären, hos frisören och i möbelvaruhusen.</li>
+      <li><b>Kläder på direkt, möbler hem</b>Kläderna syns på figuren med en gång och hamnar i garderoben. Möblerna hamnar i förrådet hemma, och man ställer ut dem i sitt rum.</li>
+    </ol>
+  </section>
+
+  <section id="moment">
+    <h2>Det här tränar vi i tvåan</h2>
+    <p>Listan följer läroplanen för lågstadiet (Lgr22, centralt innehåll för åk 1–3). Varje moment har en nivå, så den som går i ettan eller trean också har något att göra. Tvåan är startnivån. Mittenkolumnen visar hur momentet tränas i spelet, ofta med något som redan finns i staden.</p>
+    <div class="legend"><span class="lvl a1">Åk 1</span> repetition <span class="lvl a2">Åk 2</span> startnivå <span class="lvl a3">Åk 3</span> nästa steg</div>
+
+    <div class="subject">
+      <h3>Matte</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>Moment</th><th>Så tränar man det i spelet</th><th>Nivå</th></tr></thead>
+        <tbody>
+          <tr><td>Tiokompisar och tvillingar</td><td>Memory med kort på bänken</td><td><span class="lvl a1">Åk 1–2</span></td></tr>
+          <tr><td>Plus och minus 0–20</td><td>Snabbrunda på tavlan, utan fingrarna</td><td><span class="lvl a2">Åk 2</span></td></tr>
+          <tr><td>Talen till 100 och 1000</td><td>Packa äpplen i tiolådor och hundralådor, som i fruktjobbet</td><td><span class="lvl a2">Åk 2–3</span></td></tr>
+          <tr><td>Plus och minus till 100</td><td>Hoppa på tallinjen som är målad på skolgården</td><td><span class="lvl a2">Åk 2</span></td></tr>
+          <tr><td>Dubbelt och hälften, udda och jämnt</td><td>Ställ klasskompisarna i par inför rasten</td><td><span class="lvl a2">Åk 2</span></td></tr>
+          <tr><td>Gångertabellerna 2, 5 och 10</td><td>Duka borden i matsalen i lika stora grupper. 3- och 4-tabellen kommer på nästa nivå</td><td><span class="lvl a2">Åk 2–3</span></td></tr>
+          <tr><td>Dela lika</td><td>Dela godispåsen mellan kompisarna</td><td><span class="lvl a2">Åk 2</span></td></tr>
+          <tr><td>Klockan: hel, halv, kvart över, kvart i</td><td>Ställ visarna på klassrumsklockan och läs av den digitala</td><td><span class="lvl a2">Åk 2</span></td></tr>
+          <tr><td>Pengar och växel</td><td>Skolkiosken: betala och räkna ut växeln själv</td><td><span class="lvl a2">Åk 2</span></td></tr>
+          <tr><td>Mäta: cm, m, kg, liter</td><td>Mät möblerna hemma med måttbandet i Möblera-läget</td><td><span class="lvl a3">Åk 2–3</span></td></tr>
+          <tr><td>Former och kroppar</td><td>Skattjakt efter kuber, klot och cylindrar i staden</td><td><span class="lvl a1">Åk 1–2</span></td></tr>
+          <tr><td>Tabeller och stapeldiagram</td><td>Rösta om skolmaten och läs av diagrammet</td><td><span class="lvl a3">Åk 2–3</span></td></tr>
+          <tr><td>Hälften, tredjedel, fjärdedel</td><td>Dela pizzor (pizzeriajobbet finns redan)</td><td><span class="lvl a3">Åk 2–3</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="subject">
+      <h3>Svenska</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>Moment</th><th>Så tränar man det i spelet</th><th>Nivå</th></tr></thead>
+        <tbody>
+          <tr><td>Långa och korta vokaler</td><td>Lyssna och välj rätt ord: glas eller glass?</td><td><span class="lvl a2">Åk 2</span></td></tr>
+          <tr><td>Alfabetisk ordning</td><td>Ställ böckerna rätt i skolbiblioteket</td><td><span class="lvl a1">Åk 1–2</span></td></tr>
+          <tr><td>Stavning: ng, nk, sj-, tj- och j-ljud</td><td>Ordet läses upp och man bygger det av bokstavsklossar</td><td><span class="lvl a2">Åk 2</span></td></tr>
+          <tr><td>Dubbelteckning (katt, glass, hoppa)</td><td>Samma klossar, med kort eller lång vokal som ledtråd</td><td><span class="lvl a2">Åk 2</span></td></tr>
+          <tr><td>Stor bokstav, punkt och frågetecken</td><td>Rätta lärarens lapp på anslagstavlan</td><td><span class="lvl a1">Åk 1–2</span></td></tr>
+          <tr><td>Substantiv, verb och adjektiv</td><td>Sorteringsbandet: orden åker förbi och ska ner i rätt låda, som frukten i fruktjobbet</td><td><span class="lvl a3">Åk 2–3</span></td></tr>
+          <tr><td>Motsatsord, rim och sammansatta ord</td><td>Para ihop kort: fot + boll = fotboll</td><td><span class="lvl a1">Åk 1–2</span></td></tr>
+          <tr><td>Läsförståelse</td><td>Korta berättelser om Pixelstaden med frågor efteråt</td><td><span class="lvl a2">Åk 2</span></td></tr>
+          <tr><td>Skriva meningar och berättelser</td><td>Bygg meningar av ordkort, sedan en berättelse med början, mitten och slut</td><td><span class="lvl a3">Åk 2–3</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="subject">
+      <h3>Engelska</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>Moment</th><th>Så tränar man det i spelet</th><th>Nivå</th></tr></thead>
+        <tbody>
+          <tr><td>Färger och siffror 1–20</td><td>På tavlan och i klädaffären: <i>Can I have the red one?</i></td><td><span class="lvl a1">Åk 1–2</span></td></tr>
+          <tr><td>Djur</td><td>Djuraffären och djuren på landet</td><td><span class="lvl a1">Åk 1–2</span></td></tr>
+          <tr><td>Kläder och kroppen</td><td>Garderoben hemma säger vad du har på dig på engelska</td><td><span class="lvl a2">Åk 2</span></td></tr>
+          <tr><td>Mat</td><td>Beställ i Burgarbaren</td><td><span class="lvl a2">Åk 2</span></td></tr>
+          <tr><td>Veckodagar och hälsningsfraser</td><td>Läraren börjar varje lektion på engelska</td><td><span class="lvl a2">Åk 2</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <div class="subject">
+      <h3>NO och SO, som utflykter</h3>
+      <div class="tbl"><table>
+        <thead><tr><th>Moment</th><th>Så tränar man det i spelet</th><th>Nivå</th></tr></thead>
+        <tbody>
+          <tr><td>Årstider och månader</td><td>Kalendern i klassrummet följer spelets dagar</td><td><span class="lvl a1">Åk 1–2</span></td></tr>
+          <tr><td>Djur och natur</td><td>Utflykt till landet och gården</td><td><span class="lvl a2">Åk 1–3</span></td></tr>
+          <tr><td>Trafikregler</td><td>Cykelprov på skolgården med cykeln från garaget</td><td><span class="lvl a2">Åk 2</span></td></tr>
+          <tr><td>Kroppen och hälsa</td><td>Studiebesök på vårdcentralen</td><td><span class="lvl a3">Åk 2–3</span></td></tr>
+        </tbody>
+      </table></div>
+    </div>
+
+    <aside class="note">
+      <p class="note-h">Edessas spel</p>
+      <p>Jag hittade det inte i spelmappen, på GitHub, i Drive eller bland hämtade filer, så listan ovan bygger på läroplanen. Momenten ligger som data i spelet. När jag får se Edessas spel byter jag in hennes moment och ordning, och resten av skolan fungerar likadant.</p>
+    </aside>
+  </section>
+
+  <section id="belongar">
+    <h2>Stjärnorna blir kläder och möbler</h2>
+    <p>Att styla sin figur och möblera hemma finns redan i Snabbfilen. Skolan blir ett nytt sätt att tjäna ihop till det, också för den som inte vill jobba i spelet.</p>
+    <div class="two">
+      <div>
+        <h3>Finns redan</h3>
+        <ul class="plain">
+          <li><b>Garderoben hemma</b><span>Byt mellan kläderna du köpt när du vill.</span></li>
+          <li><b>Klädaffären, skobutiken och accessoarerna</b><span>Varje plagg visas på en docka så man ser vad man köper.</span></li>
+          <li><b>Frisören</b><span>Klippning och hårfärg i stolen framför spegeln.</span></li>
+          <li><b>Möblera-läget</b><span>Flytta, vrid och sälj möbler i varje rum.</span></li>
+          <li><b>IKEA-varuhuset och Möbeljätten</b><span>Hundratals möbler i olika färger.</span></li>
+          <li><b>Bostäderna, trädgården och djuren</b><span>Från husvagnen till villan.</span></li>
+        </ul>
+      </div>
+      <div>
+        <h3 class="new">Nytt med skolan</h3>
+        <ul class="plain">
+          <li><b>Veckopeng</b><span>Varje lektion ger 10 kr som kommer på fredagen och går att handla för överallt i staden.</span></li>
+          <li><b>Stjärnbutiken i skolan</b><span>Keps, gympaskor, skolväska och klasströja, plus skrivbord, jordglob, bokhylla och griffeltavla. Betalas med stjärnor och finns bara där.</span></li>
+          <li><b>Egen klass</b><span>Man döper fröken och klasskompisarna, och de pratar med en och säger ens namn.</span></li>
+          <li><b>Klistermärksalbum</b><span>Ett klistermärke för varje moment man klarar.</span></li>
+          <li><b>Diplomväggen</b><span>Klockmästare, Gångerproffs och Stavningsstjärna blir tavlor att hänga upp hemma.</span></li>
+          <li><b>Spela som barn</b><span>Figurskaparen får ett val för barnfigur. Barnfigurerna finns redan bland invånarna, så det handlar mest om att öppna valet och se över vilka plagg som passar.</span></li>
+        </ul>
+      </div>
+    </div>
+  </section>
+
+  <section id="larande">
+    <h2>Så fastnar det</h2>
+    <ul class="principles">
+      <li><b>Korta pass</b>En lektion är fem minuter. Sedan går man ut i staden igen.</li>
+      <li><b>Nivån följer barnet</b>Tre rätt i rad ger svårare uppgifter. Två fel ger lättare, och läraren visar hur.</li>
+      <li><b>Det svåra kommer tillbaka</b>Uppgifter man missat dyker upp igen senare samma dag och nästa dag, som repetitionen i Nihongo Quest.</li>
+      <li><b>Allt kan läsas upp</b>Den som läser långsamt ska ändå kunna göra matte och engelska.</li>
+      <li><b>Inga minuspoäng</b>Fel svar kostar ingenting. Man får en ledtråd och försöker igen.</li>
+      <li><b>Veckans läxa</b>En förälder skriver in veckans stavningsord eller glosor från veckobrevet, och läraren tar med dem i lektionerna.</li>
+      <li><b>Föräldravyn</b>Visar vilka moment som sitter och vilka som behöver mer träning.</li>
+      <li><b>Läxläget i staden</b>Ett val där staden också tränar: kassan räknar inte ut växeln åt dig, klockan visas med visare och klädaffären pratar engelska.</li>
+    </ul>
+  </section>
+
+  <section id="kompisar">
+    <h2>Klasskompisar online</h2>
+    <p>Spelet visar redan kollegor som jobbar på samma ställe. Med samma teknik blir de klasskompisar: två barn i samma klassrum ser varandra i bänkarna och kan välja ett av två lägen.</p>
+    <div class="modes">
+      <div><b>Tävla vid tavlan</b><span>Samma uppgift till båda. Den som svarar rätt först får stjärnan.</span></div>
+      <div><b>Hjälp varandra</b><span>Den ena läser upp, den andra svarar, och båda får stjärnor.</span></div>
+    </div>
+  </section>
+
+  <section id="slapp">
+    <h2>Släppordning</h2>
+    <p>Varje steg släpps för sig och går igenom samma röktest som resten av spelet.</p>
+    <ol class="timeline">
+      <li><span class="ver">0.85.0</span><h3>Pixelskolan öppnar</h3><p>Skolhuset i staden med klassrum 2B, en egen fröken och namngivna klasskompisar som pratar. Lektioner med fem uppgifter, rasten och stjärnbutiken med de första kläderna och möblerna. Första momenten: tiokompisar, plus och minus 0–20, dubbelt och hälften.</p></li>
+      <li><span class="ver">0.86.0</span><h3>Mer matte</h3><p>Talen till 1000 med tiolådor, tallinjen på skolgården, gångertabellerna 2, 5 och 10, dela lika, klockan och skolkiosken med växel.</p></li>
+      <li><span class="ver">0.87.0</span><h3>Svenska</h3><p>Skolbiblioteket med alfabetisk ordning, stavning med uppläsning, sorteringsbandet för ordklasser, meningar och läsförståelse.</p></li>
+      <li><span class="ver">0.88.0</span><h3>Fler varor och barnfiguren</h3><p>Fler skolkläder och möbler, klistermärksalbumet, diplomväggen och valet att spela som barn.</p></li>
+      <li><span class="ver">0.89.0</span><h3>Engelska och utflykter</h3><p>Engelska i klassrummet och i staden, utflykter till landet och cykelprov på skolgården.</p></li>
+      <li><span class="ver">0.90.0</span><h3>Veckans läxa och föräldravyn</h3><p>Skriv in veckans ord, se vad som sitter och slå på läxläget i staden.</p></li>
+      <li><span class="ver">0.91.0</span><h3>Klasskompisar</h3><p>Tävla vid tavlan och hjälp varandra online.</p></li>
+    </ol>
+  </section>
+
+  <section id="fragor">
+    <h2>Det här behöver jag veta</h2>
+    <ol class="asks">
+      <li><b>Var finns Edessas spel?</b><span>Namn, länk eller några skärmbilder räcker. Jag letade i spelmappen, på GitHub, i Drive och bland hämtade filer.</span></li>
+      <li><b>Vem ska spela, och på vilken nivå?</b><span>Jag har satt tvåan som startnivå och låtit nivåerna gå från ettan till trean. Ska olika barn kunna börja på olika nivå?</span></li>
+      <li><b>In i Snabbfilen eller en egen version?</b><span>Jag föreslår in i Snabbfilen: samma värld, samma figur, och kompisarna syns. En egen barnversion går också, men då delar barnen inte stad med resten.</span></li>
+      <li><b>Två sorters pengar, eller en?</b><span>Jag har delat upp det: stjärnor handlar man för i stjärnbutiken och veckopengen går till resten av staden. Vill du hellre ha en enda valuta?</span></li>
+    </ol>
+  </section>
+
+  <footer>Förslag den 5 oktober 2026, uppdaterat den 6 oktober. Utgår från Snabbfilen 0.84.1 och läroplanen Lgr22.</footer>
+</main>
+
+<script type="module" src="skola.js"></script>
+</body>
+</html>
