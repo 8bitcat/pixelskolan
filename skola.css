@@ -57,5 +57,15 @@
 .sf .sk-klass input { font: var(--f3) var(--font); width: 4.6em; text-align: center; text-transform: uppercase; border: 3px solid var(--ink); background: #fffbe8; color: var(--ink); padding: 2px 6px; }
 .sf .sk-klass .sp { flex: 1 1 260px; color: var(--muted); font-size: var(--f2); line-height: 1.05; }
 .sf .sk-lbl:first-child { margin-top: 0; }
+/* Gånger: tabellvalet, sifferknapparna i huvudräkningen och försöken A–F */
+.sf .sp-tab .btn-small { min-width: 2.2em; }
+.sf .sp-light { color: #f4e6c8; margin-left: auto; font-size: var(--f1); }
+.sf .dr-q { font: var(--f3) var(--font); }
+.sf .dr-typed { font: var(--f3) var(--font); min-width: 3.2em; text-align: center; background: #fffbe8; border: 3px solid var(--ink); padding: 0 6px; }
+.sf .sp-pad { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
+.sf .sp-pad .btn { font-size: var(--f2); padding: 6px 0; }
+.sf .sk-hist { border-collapse: collapse; margin: 8px 0; font-size: var(--f2); }
+.sf .sk-hist th, .sf .sk-hist td { border: 2px solid var(--ink); padding: 2px 8px; text-align: left; }
+.sf .sk-hist th { background: var(--paper2); font-weight: 400; }
 .sf, .sf button, .sf canvas { touch-action: manipulation; }
 
