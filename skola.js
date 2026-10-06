@@ -1,6 +1,7 @@
 // Pixelskolan – spelbar skiss byggd på Snabbfilens egen motor: figurerna (people.js), pennan och
 // typsnitten (floor-pix.js), figurskaparen (avatar.js), dialogerna (ui.js) och möbelatlasen
 // (interior.png + frames.js). Pratbubblan och namnskylten är walkable.js-versionerna utan ljud.
+import './iso.js';   // FÖRST: egen lagring, så att skolan aldrig skriver i Snabbfilens figur eller sparfil
 import { drawPerson, makeLookRich, portrait, SHOPKEEPER } from './sf/js/core/people.js';
 import { Pix, SMALL, BIG, ctxText, textW, text as pixText, mix, mul, hash, bayer, css } from './sf/js/core/floor-pix.js';
 import { openModal, closeModal, esc } from './sf/js/core/ui.js';
