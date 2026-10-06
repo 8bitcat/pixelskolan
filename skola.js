@@ -11,6 +11,7 @@ import { openModal, closeModal, esc, toast } from './sf/js/core/ui.js';
 import { openAvatarEditor, saveAvatar, cleanLook, cleanAvatar, avatarTagColors, MARKER_COLORS, setAvatarWardrobe } from './sf/js/core/avatar.js';
 import { FRAMES } from './sf/js/data/frames.js';
 import { Game, fmt } from './sf/js/game.js';
+import { LEVELS as UPP, setContext, numOpts } from './uppgifter.js';
 import { toggleMute, isMuted } from './sf/js/core/sound.js';
 import { musicTick } from './sf/js/core/music.js';
 import { SLOTS, wornItem } from './sf/js/data/wardrobe.js';
@@ -88,22 +89,23 @@ let ME = null, CLASS = [], TEACHER = null, STARS = 0, LESSONS = 0, PLACED = [], 
 const G = Game.load();
 const KR_PER_STJARNA = 100;
 const ownedIds = () => G.ownedWardrobeIds();
-const D = { tab: 'matte', tabell: 5, hist: {}, lvl: { matte: 1, ganger: 1, klocka: 1, svenska: 1 }, streak: 0, miss: 0, q: null, tried: false, solved: false, locked: false, last: '', rast: false };
+const LVL0 = { matte: 1, ganger: 5, klocka: 1, svenska: 1, engelska: 1, no: 1 };
+const D = { tab: 'matte', tabell: 5, hist: {}, best: {}, lvl: { ...LVL0 }, streak: 0, miss: 0, q: null, tried: false, solved: false, locked: false, last: '', rast: false };
 // klassens namn som man skriver in själv (2B, 3A …): versaler, siffror och bokstäver, högst fyra tecken
 const cleanKlass = (v) => String(v || '').toUpperCase().replace(/[^0-9A-ZÅÄÖ]/g, '').slice(0, 4);
 const gradeOf = (k) => { const m = /^\d/.exec(k); return m ? +m[0] : 0; };
 function fresh() {
   ME = null; CLASS = DEF_NAMES.map((n) => newAv(n, kidLook())); TEACHER = newAv('Fröken Maja', TEACHER_LOOK()); KLASS = '2B';
-  STARS = 0; LESSONS = 0; PLACED = []; D.lvl = { matte: 1, ganger: 1, klocka: 1, svenska: 1 }; D.tabell = 5; D.hist = {}; D.rast = false;
+  STARS = 0; LESSONS = 0; PLACED = []; D.lvl = { ...LVL0 }; D.tabell = 5; D.hist = {}; D.best = {}; D.rast = false;
 }
-function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ME, CLASS, TEACHER, STARS, LESSONS, PLACED, KLASS, lvl: D.lvl, tabell: D.tabell, hist: D.hist })); } catch { /* lagring avstängd */ } G.save(); }
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ME, CLASS, TEACHER, STARS, LESSONS, PLACED, KLASS, lvl: D.lvl, tabell: D.tabell, hist: D.hist, best: D.best })); } catch { /* lagring avstängd */ } G.save(); }
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
     if (!s || !s.ME || !s.ME.name) return false;
     ME = cleanAvatar(s.ME); CLASS = (s.CLASS || []).map(cleanAvatar); TEACHER = cleanAvatar(s.TEACHER);
     if (CLASS.length !== 7) return false;
-    ({ STARS = 0, LESSONS = 0, PLACED = [] } = s); if (s.lvl) D.lvl = { ganger: 1, ...s.lvl }; D.tabell = Math.max(1, Math.min(5, s.tabell | 0 || 5)); D.hist = s.hist && typeof s.hist === 'object' ? s.hist : {}; KLASS = cleanKlass(s.KLASS) || '2B';
+    ({ STARS = 0, LESSONS = 0, PLACED = [] } = s); D.lvl = { ...LVL0, ...(s.lvl || {}) }; D.best = s.best && typeof s.best === 'object' ? s.best : {}; D.tabell = Math.max(1, Math.min(5, s.tabell | 0 || 5)); D.hist = s.hist && typeof s.hist === 'object' ? s.hist : {}; KLASS = cleanKlass(s.KLASS) || '2B';
     PLACED = (Array.isArray(PLACED) ? PLACED : []).filter((p) => p && typeof p.k === 'string');   // (stjärnbutikens gamla möbler följer inte med)
     return true;
   } catch { return false; }
@@ -355,12 +357,13 @@ function paintHome() {
 // ================= scenerna =================
 const BG = { klass: paintClass(), hem: paintHome() };   // (gallerians våningar målas när de behövs: galleriaBG)
 const LABEL = { klass: 'KLASSRUM', galleria: 'GALLERIA', hem: 'DITT RUM' };
+const START_LVL = { 1: { matte: 1, ganger: 2, klocka: 1, svenska: 1, engelska: 1, no: 1 }, 2: { matte: 3, ganger: 2, klocka: 2, svenska: 3, engelska: 1, no: 1 }, 3: { matte: 7, ganger: 5, klocka: 3, svenska: 7, engelska: 2, no: 2 }, 4: { matte: 9, ganger: 6, klocka: 4, svenska: 11, engelska: 4, no: 3 } };
 const sceneW = (sc) => (sc === 'galleria' ? FL().w : W);
 // nytt klassnamn: dörrskylten är målad i klassrummets bakgrund, så den målas om
 function setKlass(v) {
   const k = cleanKlass(v); if (!k || k === KLASS) return;
   const g0 = gradeOf(KLASS), g = gradeOf(k); KLASS = k;
-  if (g && g !== g0) { const l = Math.max(1, Math.min(3, g - 1)); D.lvl = { matte: l, ganger: l, klocka: l, svenska: l }; }   // åk 1–2 börjar på nivå 1, åk 3 på nivå 2, åk 4+ på nivå 3
+  if (g && g !== g0) D.lvl = { ...START_LVL[Math.min(4, g)] };   // startnivåerna efter årskursen (man kan alltid välja själv under Nivåer)
   BG.klass = paintClass(); updatePill(); save();
 }
 // möbler från Möbeljätten i ditt rum: { k, v, c, x, y } (x = vänsterkant, y = fotlinje; väggsaker hänger på väggen)
@@ -499,7 +502,7 @@ function drawArrow(t) {
   [[-1, 3], [-1, 3], [-3, 7], [-2, 5], [-1, 3], [0, 1]].forEach(([dx, w2], i) => fill(x + dx, ay + i, w2, 1, i < 2 ? '#ffe27a' : '#ffd23f'));
 }
 // ---------- närbilden: tavlan i stort ----------
-const CHALK = { ...BIG, '×': { rows: ['.....', '.....', '#...#', '.#.#.', '..#..', '.#.#.', '#...#'], up: [], w: 5 }, '·': { rows: ['..', '..', '..', '##', '##', '..', '..'], up: [], w: 2 } };
+const CHALK = { ...BIG, '×': { rows: ['.....', '.....', '#...#', '.#.#.', '..#..', '.#.#.', '#...#'], up: [], w: 5 }, '·': { rows: ['..', '..', '..', '##', '##', '..', '..'], up: [], w: 2 }, '_': { rows: ['....', '....', '....', '....', '....', '....', '####'], up: [], w: 4 }, '−': BIG['-'] };
 const CW = '#e8ece4', CBL = '#a8d8f0', CY = '#f8e878', CG = '#8fe0a2';
 let cuVis = 124, pillB = 15;
 function measureVis(reset) {   // lektionsrutans överkant i bildens pixlar (rutan under bilden ⇒ hela höjden)
@@ -539,14 +542,29 @@ function chalkClose(b) {
   ch(q.topic, b.x0 + 9, ty, 1, CBL);
   if (D.solved) ch('RÄTT!', b.x1 - 9 - textW(CHALK, 'RÄTT!'), b.y0 + 7, 1, CG);
   const top = ty + 15, bot = b.y1 - 6, mid = (top + bot) >> 1;
-  if (D.tab === 'matte') {
-    const pr = (D.solved ? q.prompt.replace('?', String(q.ans)) : q.prompt).replace(/−/g, '-');
-    const tf = q.visual && q.visual.frame !== undefined, cs = Math.max(9, Math.min(18, Math.floor((bot - top - 4) / 2.4)));
-    const fw = tf ? cs * 5 + 1 : 0, k = k2(pr, bw - 24 - (tf ? fw + 20 : 0));
-    ch(pr, b.x0 + 12, mid - ((7 * k) >> 1), k, D.solved ? CY : CW);
-    if (tf) tenFrame(b.x1 - 12 - fw, mid - cs, cs, q.visual.frame);
-  } else if (D.tab === 'ganger') {
-    const v = q.visual || {}, pr = D.solved ? q.prompt.replace('?', String(q.ans)) : q.prompt;
+  const v = q.visual || {};
+  if (v.clock) {   // klockan: urtavlan till höger
+    const R = Math.max(20, Math.min(60, Math.floor((bh - 10) / 2))), cx = b.x1 - 16 - R, cy = b.y0 + (bh >> 1), tw = cx - R - 16 - (b.x0 + 12);
+    const qs = q.question || 'VAD ÄR KLOCKAN?', k = k2(qs, tw);
+    ch(qs, b.x0 + 12, top + 2, k);
+    if (D.solved) { const a = q.ans.toUpperCase(); ch(a, b.x0 + 12, top + 2 + 7 * k + 9, k2(a, tw), CY); }
+    clockFace(cx, cy, R, v.clock);
+  } else if (q.board) {   // text på tavlan (svenska, engelska, NO/SO, de nya matteuppgifterna) + ev. bild till höger
+    const R = Math.max(18, Math.min(56, Math.floor((bh - 12) / 2)));
+    const rw = v.shape ? 2 * R + 10 : v.pie ? 2 * R : v.chart ? Math.min(170, Math.floor(bw * 0.45)) : 0;
+    const tw = bw - 24 - (rw ? rw + 14 : 0), x = b.x0 + 12, B = q.board;
+    let y = top + 1;
+    if (B.big) { const k = k2(B.big, tw); ch(B.big, x, y, k, CW); y += 7 * k + 7; }
+    const rows = []; for (const ln of B.lines || []) rows.push(...wrapChalk(ln, tw));
+    const lh = rows.length > 4 ? 9 : 11;
+    for (const r of rows) { ch(r, x, y, 1, CW); y += lh; }
+    if (D.solved && B.after) for (const r of wrapChalk(B.after, tw)) { y += 2; ch(r, x, y, 1, CY); y += lh; }
+    const vx = b.x1 - 14 - rw, vy = b.y0 + 6, vh = bh - 12;
+    if (v.shape) chalkShape(vx + (rw >> 1), b.y0 + (bh >> 1) + 2, R, v.shape);
+    if (v.pie) chalkPie(vx + R, b.y0 + (bh >> 1) + 2, R - 2, v.pie[0], v.pie[1]);
+    if (v.chart) chalkChart(vx, Math.max(vy, ty - 2), rw, vh - Math.max(0, ty - 2 - vy), v.chart);
+  } else if (v.groups || v.crab) {   // gånger: guldmynten eller krabban
+    const pr = D.solved ? q.prompt.replace('?', String(q.ans)) : q.prompt;
     if (v.groups) {   // upprepad addition: grupperna med guldmynt + additionen och multiplikationen
       const n = v.groups, perRow = Math.min(n, 10), cw = 15;
       for (let i = 0; i < n; i++) coinBox(b.x0 + 12 + (i % perRow) * cw, top + 1 + Math.floor(i / perRow) * cw, v.t);
@@ -556,19 +574,65 @@ function chalkClose(b) {
     } else {
       const k = k2(pr, bw - 70);
       ch(pr, b.x0 + 12, mid - ((7 * k) >> 1), k, D.solved ? CY : CW);
-      if (v.crab) { crab(b.x1 - 44, mid - 10); if (!D.solved) ch('?', b.x1 - 50, mid - 18, 1, CY); }
+      crab(b.x1 - 44, mid - 10); if (!D.solved) ch('?', b.x1 - 50, mid - 18, 1, CY);
     }
-  } else if (D.tab === 'klocka') {
-    const R = Math.max(20, Math.min(60, Math.floor((bh - 10) / 2))), cx = b.x1 - 16 - R, cy = b.y0 + (bh >> 1), tw = cx - R - 16 - (b.x0 + 12);
-    const qs = 'VAD ÄR KLOCKAN?', k = k2(qs, tw);
-    ch(qs, b.x0 + 12, top + 2, k);
-    if (D.solved) { const a = q.ans.toUpperCase(); ch(a, b.x0 + 12, top + 2 + 7 * k + 9, k2(a, tw), CY); }
-    clockFace(cx, cy, R, q.visual.clock);
-  } else {
-    const w = q.visual.word, k = k2(w, bw - 24);
-    ch(w, b.x0 + 12, top + 2, k);
-    ch(D.solved ? CLS[q.ans].label : 'VILKEN ORDKLASS?', b.x0 + 12, top + 2 + 7 * k + 9, 1, D.solved ? CY : CW);
+  } else {   // räkneuppgift i stor krita (+ tiorutan)
+    const pr = (D.solved ? q.prompt.replace('?', String(q.ans)) : q.prompt).replace(/−/g, '-');
+    const tf = v.frame !== undefined, cs = Math.max(9, Math.min(18, Math.floor((bot - top - 4) / 2.4)));
+    const fw = tf ? cs * 5 + 1 : 0, k = k2(pr, bw - 24 - (tf ? fw + 20 : 0));
+    ch(pr, b.x0 + 12, mid - ((7 * k) >> 1), k, D.solved ? CY : CW);
+    if (tf) tenFrame(b.x1 - 12 - fw, mid - cs, cs, v.frame);
   }
+}
+// radbryt kritan (stora typsnittet) på ord så att raden får plats i bredden w
+function wrapChalk(text, w) {
+  const out = []; let line = '';
+  for (const word of String(text).split(' ')) { const t = line ? line + ' ' + word : word; if (line && textW(CHALK, t) > w) { out.push(line); line = word; } else line = t; }
+  if (line) out.push(line);
+  return out;
+}
+// kritlinjer: rak linje, ellips (kontur, valfritt bara övre/nedre halvan, streckad)
+function cLine(x0, y0, x1, y1, col = CW) { const n = Math.max(Math.abs(x1 - x0), Math.abs(y1 - y0)) || 1; for (let i = 0; i <= n; i++) fill(Math.round(x0 + (x1 - x0) * i / n), Math.round(y0 + (y1 - y0) * i / n), 1, 1, col); }
+function cEll(cx, cy, rx, ry, col = CW, part = 'all', dash = false) {
+  const n = Math.max(24, Math.round((rx + ry) * 3));
+  for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2, y = Math.sin(a); if (part === 'top' && y > 0.01) continue; if (part === 'bottom' && y < -0.01) continue; if (dash && (i >> 1) % 2) continue; fill(Math.round(cx + Math.cos(a) * rx), Math.round(cy + y * ry), 1, 1, col); }
+}
+function chalkShape(cx, cy, R, f) {   // former och kroppar i krita
+  const s = Math.round(R * 0.9), h = s >> 1;
+  const rect = (x, y, w, hh) => { cLine(x, y, x + w, y); cLine(x + w, y, x + w, y + hh); cLine(x + w, y + hh, x, y + hh); cLine(x, y + hh, x, y); };
+  if (f === 'kvadrat') rect(cx - h, cy - h, s, s);
+  else if (f === 'rektangel') rect(cx - s, cy - (h >> 1) - 4, 2 * s, h + 8);
+  else if (f === 'triangel') { cLine(cx, cy - h - 4, cx + h + 6, cy + h); cLine(cx + h + 6, cy + h, cx - h - 6, cy + h); cLine(cx - h - 6, cy + h, cx, cy - h - 4); }
+  else if (f === 'cirkel') cEll(cx, cy, h + 4, h + 4);
+  else if (f === 'kub' || f === 'rätblock') {
+    const w = f === 'kub' ? s - 6 : s + 10, hh = f === 'kub' ? s - 6 : h + 2, d = Math.round(s * 0.3), x = cx - (w >> 1) - (d >> 1), y = cy - (hh >> 1) + (d >> 1);
+    rect(x, y, w, hh); rect(x + d, y - d, w, hh);
+    cLine(x, y, x + d, y - d); cLine(x + w, y, x + w + d, y - d); cLine(x + w, y + hh, x + w + d, y + hh - d); cLine(x, y + hh, x + d, y + hh - d, '#9fb2a6');
+  } else if (f === 'klot') { cEll(cx, cy, h + 6, h + 6); cEll(cx, cy, h + 6, 4, '#9fb2a6', 'all', true); fill(cx - 5, cy - h + 2, 3, 2, '#ffffff'); }
+  else if (f === 'cylinder') { const rx = h, ry = Math.max(3, h >> 2), top = cy - h, bot = cy + h; cEll(cx, top, rx, ry); cEll(cx, bot, rx, ry, CW, 'bottom'); cEll(cx, bot, rx, ry, '#9fb2a6', 'top', true); cLine(cx - rx, top, cx - rx, bot); cLine(cx + rx, top, cx + rx, bot); }
+  else if (f === 'kon') { const rx = h + 2, ry = Math.max(3, h >> 2), bot = cy + h; cEll(cx, bot, rx, ry, CW, 'bottom'); cEll(cx, bot, rx, ry, '#9fb2a6', 'top', true); cLine(cx, cy - h - 4, cx - rx, bot); cLine(cx, cy - h - 4, cx + rx, bot); }
+  else if (f === 'pyramid') { const bx = cx - h - 4, by = cy + h - 2, w = s + 4, d = Math.round(s * 0.3), ax = cx + 2, ay = cy - h - 6; cLine(bx, by, bx + w, by); cLine(bx + w, by, bx + w + d, by - d); cLine(bx + d, by - d, bx + w + d, by - d, '#9fb2a6'); cLine(bx, by, bx + d, by - d, '#9fb2a6'); cLine(ax, ay, bx, by); cLine(ax, ay, bx + w, by); cLine(ax, ay, bx + w + d, by - d); cLine(ax, ay, bx + d, by - d, '#9fb2a6'); }
+}
+function chalkPie(cx, cy, r, n, k) {   // en pizza i n lika bitar, k av dem gula
+  for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) {
+    const d = Math.hypot(x, y); if (d > r) continue;
+    let a = Math.atan2(x, -y); if (a < 0) a += Math.PI * 2;
+    const part = Math.floor(a / (Math.PI * 2) * n);
+    if (part < k && d < r - 1) fill(cx + x, cy + y, 1, 1, (x + y) & 1 ? '#f8e878' : '#f0d050');
+  }
+  cEll(cx, cy, r, r);
+  for (let i = 0; i < n; i++) { const a = i / n * Math.PI * 2; cLine(cx, cy, Math.round(cx + Math.sin(a) * r), Math.round(cy - Math.cos(a) * r)); }
+}
+function chalkChart(x, y, w, h, bars) {   // stapeldiagram med skala 0–8 och namnen under staplarna
+  const max = 8, ax = x + 12, ay = y + h - 10, top = y + 4, ph = ay - top, step = ph / max;
+  cLine(ax, top, ax, ay); cLine(ax, ay, x + w, ay);
+  for (let v = 0; v <= max; v += 2) { const yy = Math.round(ay - v * step); ctxText(ctx, SMALL, String(v), x + 2, yy - 2, '#9fb2a6'); if (v) for (let xx = ax + 2; xx < x + w; xx += 3) fill(xx, yy, 1, 1, 'rgba(232,236,228,0.25)'); }
+  const bw = Math.floor((w - 18) / bars.length);
+  bars.forEach(([name, val], i) => {
+    const bx = ax + 4 + i * bw, bh = Math.round(val * step), col = ['#f8e878', '#8fe0a2', '#a8d8f0', '#f0a8c0'][i % 4];
+    fill(bx, ay - bh, bw - 6, bh, col); fill(bx, ay - bh, bw - 6, 1, '#ffffff');
+    ctxText(ctx, SMALL, name.slice(0, Math.max(3, Math.floor((bw - 2) / 4))), bx - 1, ay + 3, CW);
+  });
 }
 // pratbubblorna i remsan under tavlan, i samma ordning som klassen sitter (fröken till höger)
 const cuAnchor = (key) => (key === 't' ? W - 46 : key[0] === 'k' ? 56 + (KIDSEATS[+key.slice(1)][1] - 92) * 1.5 : W >> 1);
@@ -673,16 +737,17 @@ function fit() {
 
 // ================= lektionen: rutan i spelbilden =================
 const panel = $('skolpanel');
-const TABS = [['matte', 'Matte'], ['ganger', 'Gånger'], ['klocka', 'Klockan'], ['svenska', 'Svenska']];
-const TABNAME = { matte: 'MATTE', ganger: 'GÅNGER', klocka: 'KLOCKAN', svenska: 'SVENSKA' };
+const TABS = [['matte', 'Matte'], ['ganger', 'Gånger'], ['klocka', 'Klockan'], ['svenska', 'Svenska'], ['engelska', 'Engelska'], ['no', 'NO/SO']];
+const TABNAME = { matte: 'MATTE', ganger: 'GÅNGER', klocka: 'KLOCKAN', svenska: 'SVENSKA', engelska: 'ENGELSKA', no: 'NO OCH SO' };
 let LES = { results: [] };
 function lessonPanel() {
   const q = D.q, n = LES.results.length;
   const dots = [0, 1, 2, 3, 4].map((i) => `<i class="${i < n ? LES.results[i] : i === n ? 'cur' : ''}"></i>`).join('');
-  panel.innerHTML = `<div class="dlg-head"><h2>${esc(TABS.find((x) => x[0] === D.tab)[1])} · nivå ${D.lvl[D.tab]}</h2><span class="sp-dots" aria-label="Uppgift ${Math.min(n + 1, 5)} av 5">${dots}</span></div>
+  const { i: li, lv } = levelOf(D.tab), best = (D.best[D.tab] || {})[li] | 0;
+  panel.innerHTML = `<div class="dlg-head"><h2>${esc(TABS.find((x) => x[0] === D.tab)[1])} · ${li}. ${esc(lv.name)} ${starsHtml(best)}</h2><span class="sp-dots" aria-label="Uppgift ${Math.min(n + 1, 5)} av 5">${dots}</span></div>
     <div class="dlg-body">
-      <div class="sp-row">${TABS.map(([k, l]) => `<button type="button" class="btn btn-small${D.tab === k ? ' btn-gold' : ''}" data-tab="${k}">${l}</button>`).join('')}<span class="sp-topic">${esc(q.topic)}</span><span class="sp-spacer"></span>${'speechSynthesis' in window ? '<button type="button" class="btn btn-small" data-sp="say">Läs upp</button>' : ''}<button type="button" class="btn btn-small" data-sp="stand">Res dig</button></div>
-      ${D.tab === 'ganger' ? `<div class="sp-row sp-tab"><span class="sp-topic">Tabell</span>${[1, 2, 3, 4, 5].map((n) => `<button type="button" class="btn btn-small${D.tabell === n ? ' btn-gold' : ''}" data-tabell="${n}">${n}</button>`).join('')}<span class="sp-spacer"></span><button type="button" class="btn btn-small" data-mode="drill">⏱ Huvudräkning</button><button type="button" class="btn btn-small" data-mode="secret">🏴‍☠️ Hemligt meddelande</button></div>` : ''}
+      <div class="sp-row">${TABS.map(([k, l]) => `<button type="button" class="btn btn-small${D.tab === k ? ' btn-gold' : ''}" data-tab="${k}">${l}</button>`).join('')}<span class="sp-topic">${esc(q.topic)}</span><span class="sp-spacer"></span><button type="button" class="btn btn-small btn-gold" data-sp="levels">🎯 Nivåer</button>${'speechSynthesis' in window ? '<button type="button" class="btn btn-small" data-sp="say">Läs upp</button>' : ''}<button type="button" class="btn btn-small" data-sp="stand">Res dig</button></div>
+      ${D.tab === 'ganger' ? `<div class="sp-row sp-tab"><span class="sp-topic">Tabell ${D.tabell}:</span><button type="button" class="btn btn-small" data-mode="drill">⏱ Huvudräkning</button><button type="button" class="btn btn-small" data-mode="secret">🏴‍☠️ Hemligt meddelande</button></div>` : ''}
       <div class="sp-row sp-answers">${q.opts.map((o, i) => `<button type="button" class="btn" data-ans="${i}">${esc(o.label)}${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</button>`).join('')}</div>
       <p class="sp-fb" aria-live="polite"></p>
     </div>`;
@@ -693,13 +758,13 @@ panel.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   if (b.dataset.tab) { D.tab = b.dataset.tab; D.streak = 0; D.miss = 0; newQ(); teacherSay(`NU TAR VI ${TABNAME[D.tab]}!`); }
   else if (b.dataset.ans !== undefined) answer(b, D.q.opts[+b.dataset.ans].value);
-  else if (b.dataset.tabell) { D.tabell = +b.dataset.tabell; save(); newQ(); teacherSay(`NU TRÄNAR VI ${D.tabell}:ANS TABELL!`); }
   else if (b.dataset.mode === 'drill') startDrill();
   else if (b.dataset.mode === 'secret') startSecret();
   else if (b.dataset.pad) drillKey(b.dataset.pad);
   else if (b.dataset.sec !== undefined) secretAnswer(b, +b.dataset.sec);
   else if (b.dataset.sp === 'quit') { MODE = 'lesson'; DRILL = null; SECRET = null; newQ(); teacherSay('VI TAR DET EN ANNAN GÅNG, {P}.'); }
-  else if (b.dataset.sp === 'say') speak(MODE === 'secret' ? `${SECRET.q.k} gånger ${SECRET.t}` : D.q.say);
+  else if (b.dataset.sp === 'say') { if (MODE === 'secret') speak(`${SECRET.q.k} gånger ${SECRET.t}`); else speak(D.q.say, D.q.lang); }
+  else if (b.dataset.sp === 'levels') levelsDialog();
   else if (b.dataset.sp === 'stand') { standUp(); teacherSay('VI SES SNART, {P}!'); }
 });
 function goSit() { if (P.scene !== 'klass' || P.seated || !ME) return; walkTo(SEAT.ax, SEAT.ay, () => { if (near(SEAT.ax, SEAT.ay)) sitDown(); }); }
@@ -707,8 +772,10 @@ function sitDown() { P.seated = true; P.path = []; D.rast = false; doorGlow = LE
 function standUp() { if (!P.seated) return; MODE = 'lesson'; DRILL = null; SECRET = null; P.seated = false; P.x = SEAT.ax; P.y = SEAT.ay; P.dir = 'down'; panel.hidden = true; fadeT = performance.now(); renderBelow(); }
 function newQ() {
   let q, n = 0;
-  do { q = GEN[D.tab](D.lvl[D.tab]); n++; } while ((q.prompt + JSON.stringify(q.visual || {})) === D.last && n < 8);
-  D.last = q.prompt + JSON.stringify(q.visual || {}); D.q = q; D.tried = false; D.solved = false; D.locked = false;
+  const { lv } = levelOf(D.tab); if (D.tab === 'ganger') D.tabell = lv.t || 5;
+  const sig = (x) => (x.prompt || '') + JSON.stringify(x.board || '') + JSON.stringify(x.visual || {}) + x.ans;
+  do { q = lv.gen(); n++; } while (sig(q) === D.last && n < 8);
+  D.last = sig(q); D.q = q; D.tried = false; D.solved = false; D.locked = false;
   if (P.seated) { if (MODE === 'lesson') lessonPanel(); else modePanel(); }
 }
 function answer(btn, val) {
@@ -719,7 +786,6 @@ function answer(btn, val) {
     LES.results.push(D.tried ? 'ok' : 'star');
     if (!D.tried) D.streak++; else D.streak = 0;
     D.miss = 0;
-    if (D.streak >= 3 && D.lvl[D.tab] < 3) { D.lvl[D.tab]++; D.streak = 0; extra = ' Nivå upp!'; line = 'NIVÅ UPP! NU BLIR DET SVÅRARE.'; }
     feedback(D.tried ? 'Rätt nu!' : 'Rätt på första försöket!', D.q.done + extra, 'ok'); teacherSay(line);
     const dots = panel.querySelectorAll('.sp-dots i'), n = LES.results.length; if (dots[n - 1]) dots[n - 1].className = LES.results[n - 1];
     if (Math.random() < 0.35) setTimeout(() => kidSay(rnd(0, 2), pick(CHEER)), 500);
@@ -727,7 +793,6 @@ function answer(btn, val) {
   } else {
     btn.classList.add('btn-red'); btn.disabled = true; D.tried = true; D.streak = 0; D.miss++;
     let line = 'NÄSTAN! LÄS LEDTRÅDEN.', extra = '';
-    if (D.miss >= 2 && D.lvl[D.tab] > 1) { D.lvl[D.tab]--; D.miss = 0; extra = ' Nästa uppgift blir lite lättare.'; line = 'VI TAR DET LITE LÄTTARE EN STUND.'; }
     feedback('Inte riktigt.', D.q.hint + extra, 'no'); teacherSay(line);
   }
 }
@@ -735,13 +800,16 @@ const starIco = '<span class="sk-star" aria-label="stjärnor"></span>';
 function endLesson() {
   const firstTry = LES.results.filter((r) => r === 'star').length, earned = 1 + (firstTry >= 3 ? 1 : 0) + (firstTry === 5 ? 1 : 0);
   const kr = earned * KR_PER_STJARNA;
+  const { L, i: li } = levelOf(D.tab), bk = (D.best[D.tab] ||= {}), better = earned > (bk[li] | 0);
+  bk[li] = Math.max(bk[li] | 0, earned);
   STARS += earned; G.money += kr; LESSONS++; D.rast = true; doorGlow = true; save(); updatePill();
   loadShops().catch(() => {});
   panel.hidden = true;
   teacherSay(`RAST! DU FICK ${earned} ${earned > 1 ? 'STJÄRNOR' : 'STJÄRNA'}, {P}.`);
   setTimeout(() => kidSay(rnd(0, 2), pick(RAST_LINES)), 1200);
-  openModal('🔔 Rast!', `<div class="who"><div class="sk-face"></div><div><p class="sk-big">${firstTry} av 5 rätt på första försöket.</p><p>Du fick <b>${earned} ${starIco}</b> och varje stjärna blir ${KR_PER_STJARNA} kr: <b>${fmt(kr)}</b> i plånboken. Nu har du ${fmt(G.money)}.</p><p class="sp">Galleria Stjärnan ligger bakom den blå dörren bredvid ${esc(TEACHER.name)}: kläder, skor, leksaker och möbler på tre våningar.</p></div></div>`, [
+  openModal('🔔 Rast!', `<div class="who"><div class="sk-face"></div><div><p class="sk-big">${firstTry} av 5 rätt på första försöket.</p><p>Du fick <b>${earned} ${starIco}</b> och varje stjärna blir ${KR_PER_STJARNA} kr: <b>${fmt(kr)}</b> i plånboken. Nu har du ${fmt(G.money)}.</p><p>Nivå ${li}, ${esc(L[li - 1].name)}: ${starsHtml(bk[li])}${better ? ' <b>Nytt rekord!</b>' : ''}</p><p class="sp">Galleria Stjärnan ligger bakom den blå dörren bredvid ${esc(TEACHER.name)}: kläder, skor, leksaker och möbler på tre våningar.</p></div></div>`, [
     { label: 'En lektion till', onClick: () => { closeModal(); D.rast = false; LES = { results: [] }; newQ(); teacherSay('EN LEKTION TILL? VAD BRA, {P}!'); } },
+    ...(li < L.length ? [{ label: `Nästa nivå: ${L[li].name}`, onClick: () => { closeModal(); D.rast = false; D.lvl[D.tab] = li + 1; save(); LES = { results: [] }; newQ(); teacherSay(`NIVÅ ${li + 1}: ${L[li].name.toUpperCase()}!`); } }] : []),
     { label: 'Gå till gallerian', cls: 'btn-go', onClick: () => { closeModal(); standUp(); goGalleria(); } },
   ]);
   const face = document.querySelector('#modal .sk-face'); if (face) face.append(portrait(myLook(), '#d8cdb8'));
@@ -1240,43 +1308,10 @@ $('sk-below').addEventListener('click', (e) => {
   else if (a === 'reset') { if (!confirm('Börja om från början? Din figur, klass och allt du köpt försvinner.')) return; try { localStorage.removeItem(SAVE_KEY); } catch { /* lagring avstängd */ } fresh(); doorGlow = false; goScene('klass', null); renderBelow(); startCreator(); }
 });
 
-// ================= uppgifterna =================
-function numOpts(ans, spread) { const set = new Set([ans]); for (const v of shuffle([ans + 1, ans - 1, ans + 2, ans - 2, ans + spread, ans - spread, ans + 10])) { if (set.size >= 4) break; if (v >= 0) set.add(v); } return shuffle([...set]).map((v) => ({ label: String(v), value: v })); }
-function genMatte(l) {
-  if (l === 1) { const a = rnd(1, 9); return { topic: 'TIOKOMPISAR', prompt: `${a} + ? = 10`, say: `${a} plus hur mycket blir tio?`, ans: 10 - a, opts: numOpts(10 - a, 3), visual: { frame: a }, hint: `Titta på tavlan: ${a} rutor är fyllda. Hur många är tomma?`, done: `${a} och ${10 - a} är tiokompisar.` }; }
-  if (l === 2) {
-    if (Math.random() < 0.5) { const a = rnd(6, 9), b = rnd(11 - a, 9), up = 10 - a; return { topic: 'PLUS ÖVER TIOTALET', prompt: `${a} + ${b} = ?`, say: `${a} plus ${b}`, ans: a + b, opts: numOpts(a + b, 2), hint: `Ta dig till tio först: ${a} + ${up} = 10. Sedan ${b - up} till.`, done: `${a} + ${up} = 10, och 10 + ${b - up} = ${a + b}.` }; }
-    const a = rnd(11, 18), down = a - 10, b = rnd(down + 1, 9);
-    return { topic: 'MINUS ÖVER TIOTALET', prompt: `${a} − ${b} = ?`, say: `${a} minus ${b}`, ans: a - b, opts: numOpts(a - b, 2), hint: `Gå ner till tio först: ${a} − ${down} = 10. Sedan ${b - down} till.`, done: `${a} − ${down} = 10, och 10 − ${b - down} = ${a - b}.` };
-  }
-  const t = pick([2, 5, 10]), n = rnd(2, 10), seq = Array.from({ length: Math.min(n, 3) }, (_, i) => t * (i + 1)).join(', ');
-  return { topic: `${t}-TABELLEN`, prompt: `${n} · ${t} = ?`, say: `${n} gånger ${t}`, ans: n * t, opts: numOpts(n * t, t), hint: `Räkna ${t}-skutt: ${seq} … tills du har tagit ${n} skutt.`, done: `${n} skutt på ${t} blir ${n * t}.` };
-}
-const HW = ['tolv', 'ett', 'två', 'tre', 'fyra', 'fem', 'sex', 'sju', 'åtta', 'nio', 'tio', 'elva'];
-const hw = (h) => HW[((h % 12) + 12) % 12];
-function phrase(h, m) { const c = hw(h), n = hw(h + 1); return { 0: `klockan ${c}`, 5: `fem över ${c}`, 10: `tio över ${c}`, 15: `kvart över ${c}`, 20: `tjugo över ${c}`, 25: `fem i halv ${n}`, 30: `halv ${n}`, 35: `fem över halv ${n}`, 40: `tjugo i ${n}`, 45: `kvart i ${n}`, 50: `tio i ${n}`, 55: `fem i ${n}` }[m]; }
-function genKlocka(l) {
-  const mins = l === 1 ? [0, 30] : l === 2 ? [0, 15, 30, 45] : [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
-  const h = rnd(1, 12), m = pick(mins), right = phrase(h, m);
-  const pairs = m === 0 ? [[h, 30], [h - 1, 30], [h + 1, 0]] : [[h - 1, m], [h, (60 - m) % 60], [h + 1, m], [h, (m + 30) % 60]];
-  const wrong = []; for (const [a, b] of pairs) { const p = phrase(a, b); if (p !== right && !wrong.includes(p)) wrong.push(p); if (wrong.length === 2) break; }
-  const am = h % 12, hint = m === 0 ? 'Den långa visaren pekar rakt upp på tolv. Då är det hel timme, och den korta visaren visar vilken.' : m === 30 ? `Halv betyder halvvägs till nästa timme. Den korta visaren står mellan ${hw(h)} och ${hw(h + 1)}.` : m === 15 ? 'Den långa visaren pekar på tre. Kvart över betyder en kvart efter hel timme.' : m === 45 ? 'Den långa visaren pekar på nio. Kvart i betyder en kvart kvar till nästa hela timme.' : 'Räkna femminuterssteg från tolvan med den långa visaren. Den korta visaren visar timmen.';
-  return { topic: l === 1 ? 'HEL OCH HALV' : l === 2 ? 'KVART ÖVER OCH KVART I' : 'FEM MINUTER I TAGET', prompt: 'Vad är klockan?', say: 'Vad är klockan?', ans: right, opts: shuffle([right, ...wrong]).map((p) => ({ label: p, value: p })), visual: { clock: [h, m] }, hint, done: `Det är ${right}, alltså ${pad(am)}:${pad(m)} eller ${pad(am + 12)}:${pad(m)}.` };
-}
-const ETT = ['äpple', 'hus'];
-const WORDS = {
-  1: { N: ['hund', 'katt', 'boll', 'bok', 'hus', 'cykel', 'äpple', 'glass'], V: ['springer', 'hoppar', 'äter', 'sover', 'läser', 'simmar', 'dansar', 'sjunger'] },
-  2: { N: ['hund', 'katt', 'boll', 'bok', 'hus', 'cykel', 'äpple', 'glass'], V: ['springer', 'hoppar', 'äter', 'sover', 'läser', 'simmar', 'dansar', 'sjunger'], A: ['glad', 'stor', 'liten', 'snabb', 'röd', 'mjuk', 'kall', 'rolig'] },
-  3: { N: ['fotboll', 'skolgård', 'frukost', 'regnbåge', 'kompis'], V: ['tänker', 'cyklar', 'väntar', 'klättrar', 'skrattar'], A: ['försiktig', 'nyfiken', 'blöt', 'modig', 'trött'] },
-};
-const CLS = { N: { label: 'Substantiv', sub: 'en eller ett …' }, V: { label: 'Verb', sub: 'jag …' }, A: { label: 'Adjektiv', sub: 'hur något är' } };
-function genSvenska(l) {
-  const set = WORDS[l], keys = Object.keys(set), cls = pick(keys), w = pick(set[cls]);
-  const done = cls === 'N' ? `”${ETT.includes(w) ? 'ett' : 'en'} ${w}” låter rätt, så det är ett substantiv.` : cls === 'V' ? `”Jag ${w}” låter rätt, så det är ett verb.` : `”En ${w} hund” låter rätt, så det är ett adjektiv.`;
-  const hint = keys.length === 2 ? 'Testa båda: ”en …” och ”jag …”. Vilken låter rätt?' : 'Testa alla tre: ”en …”, ”jag …” och ”en … hund”. Vilken låter rätt?';
-  return { topic: keys.length === 2 ? 'SUBSTANTIV ELLER VERB' : 'TRE ORDKLASSER', prompt: 'Vilken ordklass?', say: `${w}. Vilken ordklass är det?`, ans: cls, opts: keys.map((k) => ({ label: CLS[k].label, sub: CLS[k].sub, value: k })), visual: { word: w }, hint, done };
-}
-const GEN = { matte: genMatte, klocka: genKlocka, svenska: genSvenska };
+// ================= uppgifterna (uppgifter.js) =================
+// Alla moment ur planens lista (matte, svenska, engelska, NO/SO, klockan) ligger som nivåer i uppgifter.js.
+// Berättelserna och meningarna använder klassens egna namn.
+setContext(() => ({ me: firstName(ME), kids: CLASS.map(firstName), teacher: TEACHER?.name || 'Fröken' }));
 
 // ================= GÅNGER: multiplikation tabell 1–5 (som läxbladen, Carl 2026-10-06) =================
 // Läxbladen "Multiplikation tabell 1–5": upprepad addition med guldmynt (5 + 5 + 5 = 3 · 5), krabbans
@@ -1285,9 +1320,9 @@ const GEN = { matte: genMatte, klocka: genKlocka, svenska: genSvenska };
 // tecknet är punkten (·) som i skolan.
 const CODE = ['L', 'R', 'Ä', 'U', 'T', 'E', 'S', 'K', 'J', 'A', 'N'];   // k · tabellen → bokstaven (läxbladets kod för 5:an)
 const MESSAGES = ['NU ÄR SKATTJAKTEN SNART SLUT', 'RASTEN ÄR SNART SLUT', 'ALLA KATTER ÄR SNÄLLA', 'JAKTEN ÄR SLUT', 'SKATTEN SJUNKER', 'LEKA SKA ALLA'];
-function genGanger(l) {
-  const t = D.tabell, k = l === 1 ? rnd(2, 6) : rnd(l === 3 ? 0 : 1, 10), ans = k * t;
-  const kind = l === 1 ? (Math.random() < 0.75 ? 'add' : 'tab') : l === 2 ? pick(['add', 'crab', 'tab', 'crab']) : pick(['crab', 'crab', 'tab']);
+function genGanger(t) {
+  const k = rnd(0, 10), ans = k * t;
+  const kind = pick(['add', 'add', 'crab', 'crab', 'tab']);
   const sum = Array(Math.max(1, k)).fill(t).join(' + ');
   if (kind === 'add' && k >= 2) return { topic: 'UPPREPAD ADDITION', prompt: `${k} · ${t} = ?`, sum: `${sum} = ?`, say: `${k} gånger ${t}`, ans, opts: numOpts(ans, t), visual: { groups: k, t }, hint: `Räkna ${t}-skutt, ett för varje grupp: ${Array.from({ length: Math.min(k, 4) }, (_, i) => t * (i + 1)).join(', ')} …`, done: `${k} grupper med ${t} i varje: ${sum} = ${ans}, alltså ${k} · ${t} = ${ans}.` };
   if (kind === 'crab' && Math.random() < 0.6) {   // krabban har stulit faktorn
@@ -1296,7 +1331,19 @@ function genGanger(l) {
   }
   return { topic: kind === 'crab' ? 'KRABBANS LUCKOR' : `${t}:ANS TABELL`, prompt: `${k} · ${t} = ?`, say: `${k} gånger ${t}`, ans, opts: numOpts(ans, t), visual: kind === 'crab' ? { crab: true, stolen: ans } : null, hint: k === 0 ? `Noll grupper blir ingenting alls.` : `${k} · ${t} är samma sak som ${sum}.`, done: `${k} · ${t} = ${ans}.` };
 }
-GEN.ganger = genGanger;
+// nivåerna i alla ämnen: Gånger = tabell 1–5 och blandat (tabellen styr även huvudräkningen och meddelandet)
+const LEVELS = { ...UPP, ganger: [1, 2, 3, 4, 5, 0].map((t) => ({ name: t ? `${t}:ans tabell` : 'Blandat 1–5', t, gen: () => genGanger(t || rnd(1, 5)) })) };
+const levelOf = (tab) => { const L = LEVELS[tab], i = Math.max(1, Math.min(L.length, D.lvl[tab] | 0 || 1)); return { L, i, lv: L[i - 1] }; };
+const starsHtml = (n) => `<span class="lv-stars" aria-label="${n} av 3 stjärnor">${[0, 1, 2].map((k) => `<i class="${k < n ? 'on' : ''}"></i>`).join('')}</span>`;
+function levelsDialog() {
+  const tab = D.tab, { L, i: cur } = levelOf(tab), best = D.best[tab] || {};
+  const dlg = openModal(`🎯 Nivåer · ${TABS.find((x) => x[0] === tab)[1]}`, `<p class="sp">Välj vilken nivå du vill träna. Stjärnorna är det bästa du har fått på nivån (tre stjärnor = fem rätt på första försöket).</p>
+    <div class="sk-levels">${L.map((lv, k) => `<button type="button" class="btn sk-lv${k + 1 === cur ? ' on' : ''}" data-lv="${k + 1}"><b>${k + 1}</b><span>${esc(lv.name)}</span>${starsHtml(best[k + 1] | 0)}</button>`).join('')}</div>`, [{ label: 'Stäng', onClick: closeModal }]);
+  dlg.querySelectorAll('[data-lv]').forEach((bt) => (bt.onclick = () => {
+    D.lvl[tab] = +bt.dataset.lv; save(); closeModal();
+    if (P.seated && MODE === 'lesson') { LES = { results: [] }; newQ(); teacherSay(`NIVÅ ${D.lvl[tab]}: ${levelOf(tab).lv.name.toUpperCase()}!`); }
+  }));
+}
 
 // ---------- tavlans bilder: guldmynten och krabban ----------
 const PIPS = { 1: [[5, 5]], 2: [[2, 2], [8, 8]], 3: [[2, 2], [5, 5], [8, 8]], 4: [[2, 2], [8, 2], [2, 8], [8, 8]], 5: [[2, 2], [8, 2], [5, 5], [2, 8], [8, 8]] };
@@ -1445,7 +1492,7 @@ window.addEventListener('keydown', (e) => {
   e.preventDefault();
 });
 
-function speak(s) { try { if (!('speechSynthesis' in window)) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(s); u.lang = 'sv-SE'; u.rate = 0.9; const v = speechSynthesis.getVoices().find((x) => /^sv/i.test(x.lang)); if (v) u.voice = v; speechSynthesis.speak(u); } catch { /* uppläsning saknas */ } }
+function speak(s, lang = 'sv-SE') { try { if (!('speechSynthesis' in window)) return; speechSynthesis.cancel(); const u = new SpeechSynthesisUtterance(s); u.lang = lang; u.rate = 0.9; const v = speechSynthesis.getVoices().find((x) => x.lang.toLowerCase().startsWith(lang.slice(0, 2).toLowerCase())); if (v) u.voice = v; speechSynthesis.speak(u); } catch { /* uppläsning saknas */ } }
 
 // ================= start =================
 const hasSave = load();
@@ -1453,7 +1500,7 @@ if (KLASS !== '2B') BG.klass = paintClass();
 if (hasSave) grantWorn(ME.look);
 lockWardrobe(true);
 setTimeout(() => loadShops().catch(() => {}), 1500);   // gallerian laddas i bakgrunden
-D.q = genMatte(D.lvl.matte);
+D.q = levelOf('matte').lv.gen();
 fit(); buildGrid(); updatePill(); renderBelow();
 if (hasSave) { saveAvatar(ME); nextChat = performance.now() + 2500; setTimeout(() => teacherSay('VÄLKOMMEN TILLBAKA, {P}!'), 600); }
 else startCreator();
@@ -1465,5 +1512,5 @@ requestAnimationFrame(loop);
 window.__ps = {
   state: () => ({ scene: P.scene, seated: P.seated, x: P.x, y: P.y, stars: STARS, money: G.money, wardrobe: G.wardrobe.length, toys: Object.keys(G.toys || {}).length, storage: G.storage.length, placed: PLACED, floor: FLOOR, shop: SHOP && SHOP.id, ride: RIDE && (RIDE.kind + ':' + (RIDE.st || RIDE.d)), me: ME && ME.name, kid: ME && ME.look.kid, ans: D.q && D.q.opts.findIndex((o) => o.value === D.q.ans), lesson: LES.results.length, panel: !panel.hidden, modal: modalUp(), bubbles: BUBS.map((b) => b.str) }),
   give: (n) => { G.money += n; G.save(); updatePill(); }, goScene, walkTo, enterShop, rideUp, rideDown, liftTo: (n) => { P.x = LIFT_X + 13; P.y = GBASE + 9; RIDE = { kind: 'lift', st: 'open', t: 0, to: n }; },
-  lib: () => !!SHOPLIB, hit, G,
+  lib: () => !!SHOPLIB, hit, G, lvl: (tab, i) => { D.tab = tab; D.lvl[tab] = i; LES = { results: [] }; newQ(); }, levels: () => Object.fromEntries(Object.entries(LEVELS).map(([k, L]) => [k, L.length])),
 };
