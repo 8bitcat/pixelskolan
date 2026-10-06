@@ -6,6 +6,7 @@
 <title>Pixelskolan</title>
 <meta name="description" content="Pixelskolan – lär dig det man ska kunna i lågstadiet i Snabbfilens pixelstad.">
 <meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
 <meta name="apple-mobile-web-app-title" content="Pixelskolan">
 <meta name="theme-color" content="#100e15">
 <link rel="stylesheet" href="sf/css/style.css">
@@ -15,35 +16,70 @@
 * { box-sizing: border-box; }
 [hidden] { display: none !important; }
 html, body { margin: 0; background: #100e15; }
-body { min-height: 100dvh; padding: max(8px, env(safe-area-inset-top)) max(8px, env(safe-area-inset-right)) max(12px, env(safe-area-inset-bottom)) max(8px, env(safe-area-inset-left));
-  background: repeating-conic-gradient(#100e15 0 25%, #151221 0 50%) 0 0 / 8px 8px; -webkit-text-size-adjust: 100%; }
-/* spelet så stort det går utan att bli högre än skärmen (16:9 + ramen) */
-.app { width: min(1180px, 100%, calc((100dvh - 64px) * 16 / 9 + 16px)); margin: 0 auto; }
-.top { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0 0 6px; }
-.top h1 { margin: 0; font: var(--f3) var(--head); color: var(--gold); letter-spacing: 2px; text-transform: uppercase; line-height: 1; }
-.top a { font: var(--f1) var(--font); color: #cfc7ba; text-decoration: underline; }
-.sf .frame { border-width: 3px; }
-.sf #sk-below { background: var(--paper); border: 4px solid var(--ink); box-shadow: 6px 6px 0 #000; padding: 8px 12px; margin-top: 10px; }
-.sf #sk-below p { font-size: var(--f2); }
+body { min-height: 100dvh; padding: max(4px, env(safe-area-inset-top)) max(4px, env(safe-area-inset-right)) max(4px, env(safe-area-inset-bottom)) max(4px, env(safe-area-inset-left));
+  background: repeating-conic-gradient(#100e15 0 25%, #151221 0 50%) 0 0 / 8px 8px; -webkit-text-size-adjust: 100%; overscroll-behavior: none; }
+/* spelet så stort det går: bilden (16:9 + ramen) och listen under ska rymmas på skärmen */
+.sf { --bar: 46px; }
+.app { width: min(100%, calc((100dvh - var(--bar) - 16px) * 16 / 9 + 8px)); margin: 0 auto; }
+.sf .frame { padding: 3px; border-width: 1px; }
+/* listen under bilden: namnet, hjälptexten på en rad (hela texten i ?-knappen) och knapparna */
+.sf #sk-below { display: flex; align-items: center; flex-wrap: nowrap; gap: 8px; margin-top: 4px; min-height: 38px; background: var(--paper); border: 3px solid var(--ink); padding: 3px 6px; }
+.sf #sk-below .sk-name { font: var(--f1) var(--head); color: var(--red); letter-spacing: 1px; text-transform: uppercase; white-space: nowrap; }
+.sf #sk-below p { flex: 1 1 auto; min-width: 0; font-size: var(--f1); line-height: 1.1; margin: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: var(--ink); }
+.sf #sk-below .sk-bbtns { flex: none; flex-wrap: nowrap; gap: 4px; }
+.sf #sk-below .btn-small { white-space: nowrap; }
+/* liggande mobil (låg skärm): bilden får hela höjden, listen står som en smal spalt till höger */
+@media (max-height: 520px) and (orientation: landscape) {
+  .sf { --bar: 0px; }
+  .app { display: flex; align-items: flex-start; justify-content: center; gap: 4px; width: 100%; }
+  .sf .frame { flex: 0 1 auto; width: min(calc(100% - 96px), calc((100dvh - 10px) * 16 / 9 + 8px)); }
+  .sf #sk-below { flex: 0 0 90px; flex-direction: column; align-items: stretch; margin-top: 0; min-height: 0; padding: 4px; gap: 4px; align-self: stretch; }
+  .sf #sk-below p { display: none; }
+  .sf #sk-below .sk-name { font-size: 10px; text-align: center; }
+  .sf #sk-below .sk-bbtns { display: flex; flex-direction: column; flex-wrap: nowrap; gap: 4px; }
+  .sf #sk-below .btn-small { width: 100%; }
+}
+/* stående mobil: Snabbfilens skylt "vänd på mobilen" */
+.sf #rotate { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px;
+  background: #100e15 repeating-conic-gradient(#100e15 0 25%, #151221 0 50%) 0 0 / 8px 8px; opacity: 1; color: #f4f1ea; text-align: center; }
+.sf #rotate.hidden { display: none; }
+.sf #rotate .ph { font-size: 64px; animation: rot 2.4s ease-in-out infinite; }
+.sf #rotate b { font: 26px var(--head, monospace); color: #ffd23f; letter-spacing: 2px; }
+.sf #rotate p { font: 18px/1.3 var(--font, sans-serif); margin: 0; max-width: 22em; }
+@keyframes rot { 0%, 30% { transform: rotate(0); } 55%, 100% { transform: rotate(-90deg); } }
+@media (prefers-reduced-motion: reduce) { .sf #rotate .ph { animation: none; } }
 </style>
 </head>
 <body>
 <div class="sf" id="sf">
   <div class="app">
-    <div class="top"><h1>Pixelskolan</h1><a href="plan.html">Om Pixelskolan och planen</a></div>
     <div class="frame" id="frame">
       <div class="stage" id="stage">
-        <canvas id="room" width="384" height="216" role="img" aria-label="Spelbart klassrum ritat med Snabbfilens egen motor: tavla, fröken, klasskompisar i skolbänkarna, en ledig bänk och en blå dörr till butiken."></canvas>
-        <div id="sk-pill"><span class="w" id="sk-where">KLASSRUM</span><span class="sk-star" aria-hidden="true"></span><b id="sk-stars">0</b><span class="kr" id="sk-kr">0 kr på fredag</span></div>
+        <canvas id="room" width="384" height="216" role="img" aria-label="Spelbart klassrum ritat med Snabbfilens egen motor: tavla, fröken, klasskompisar i skolbänkarna, en ledig bänk och en blå dörr till gallerian."></canvas>
+        <div id="sk-pill"><span class="w" id="sk-where">KLASSRUM</span><span class="sk-star" aria-hidden="true"></span><b id="sk-stars">0</b><span class="kr" id="sk-kr">0 kr</span></div>
         <div id="skolpanel" class="dlg" hidden></div>
         <div id="decor-panel" hidden></div>
       </div>
     </div>
     <div id="sk-below"></div>
   </div>
+  <div id="rotate" class="hidden"><div class="ph">📱</div><b>VÄND PÅ MOBILEN</b><p>Pixelskolan spelas liggande – då blir bilden stor.</p><button type="button" class="btn" id="rotate-anyway">Spela stående ändå</button></div>
   <div id="modal" class="hidden"></div>
   <div id="toasts"></div>
 </div>
+<script>
+// stående läge på en liten pekskärm: skylten (som i Snabbfilen); "spela stående ändå" gäller sessionen
+(function () {
+  var el = document.getElementById('rotate');
+  function upd() {
+    var off = false; try { off = !!sessionStorage.getItem('ps_rot_ok'); } catch (e) {}
+    var phone = matchMedia('(pointer: coarse)').matches && Math.min(innerWidth, innerHeight) < 560;
+    el.classList.toggle('hidden', off || !phone || innerHeight < innerWidth * 1.2);
+  }
+  document.getElementById('rotate-anyway').onclick = function () { try { sessionStorage.setItem('ps_rot_ok', '1'); } catch (e) {} upd(); };
+  addEventListener('resize', upd); addEventListener('orientationchange', upd); upd();
+})();
+</script>
 <script type="module" src="skola.js"></script>
 </body>
 </html>

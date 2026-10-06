@@ -32,10 +32,24 @@
 .sf .stage #decor-panel { position: absolute; right: 1.5%; top: 12%; bottom: auto; width: 32%; max-height: 72%; z-index: 5; }
 .sf .stage #decor-panel .dp-foot small { font-size: var(--f1); color: var(--muted); }
 .sf .dp-item canvas { max-width: 48px; max-height: 40px; width: auto; height: auto; }
-@container (max-width: 600px) {
+/* liten bild (mobil liggande): rutan stannar i bilden men blir tätare */
+@container (max-width: 760px) {
+  .sf #skolpanel.dlg { left: 1%; right: 1%; bottom: 2%; max-height: 64%; box-shadow: 3px 3px 0 var(--ink); border-width: 3px; }
+  .sf #skolpanel .dlg-head { padding: 2px 8px; }
+  .sf #skolpanel .dlg-head h2 { font-size: var(--f1); }
+  .sf #skolpanel .dlg-body { padding: 4px 6px 5px; gap: 4px; }
+  .sf #skolpanel .sp-row { gap: 4px; }
+  .sf #skolpanel .btn-small { font-size: var(--f1); padding: 1px 6px; }
+  .sf .sp-answers .btn { font-size: var(--f1); padding: 5px 10px; }
+  .sf .sp-pad { gap: 3px; } .sf .sp-pad .btn { font-size: var(--f1); padding: 3px 0; }
+  .sf .dr-q, .sf .dr-typed { font-size: var(--f2); }
+  .sf .sp-fb { font-size: var(--f1); min-height: 0; }
+  .sf #sk-pill { font-size: 10px; padding: 2px 5px; border-width: 2px; }
+}
+/* smal bild (mobil stående): rutan under bilden */
+@container (max-width: 480px) {
   .sf #skolpanel.dlg { position: static; margin-top: 8px; max-height: none; }
   .sf .stage #decor-panel { position: static; width: auto; margin-top: 8px; }
-  .sf #sk-pill { font-size: 10px; padding: 2px 5px; border-width: 2px; }
   .sf #sk-pill .kr { display: none; }
 }
 .sf #sk-below { display: flex; flex-wrap: wrap; align-items: center; gap: 10px 14px; margin-top: 12px; }

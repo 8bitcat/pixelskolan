@@ -240,9 +240,9 @@ const SLAB_Y = GBASE - 26;                          // bjälken (övervåningens
 const ESC = { up: 190, down: 560, run: 134 };       // rulltrapporna: påstigningen (x) och längden
 const LIFT_X = 356;                                 // hissdörrens vänsterkant (samma schakt på alla våningar)
 const FLOORS = [
-  { n: 0, name: 'ENTRÉ', w: 640, shops: [], school: [14, 62], home: [584, 632] },
-  { n: 1, name: 'KLÄDER OCH SKOR', w: 720, shops: [{ id: 'klader', x: 24, label: 'KLÄDAFFÄREN' }, { id: 'skor', x: 600, label: 'SKOBUTIKEN' }] },
-  { n: 2, name: 'LEKSAKER OCH MÖBLER', w: 848, shops: [{ id: 'leksaker', x: 24, label: 'LEKSAKSLÅDAN' }, { id: 'mobler', x: 604, label: 'MÖBELJÄTTEN' }] },
+  { n: 0, name: 'ENTRÉ', w: 960, shops: [], school: [14, 62], home: [904, 952], windows: [[600, 884]] },
+  { n: 1, name: 'KLÄDER OCH SKOR', w: 900, shops: [{ id: 'klader', x: 24, label: 'KLÄDAFFÄREN' }, { id: 'skor', x: 600, label: 'SKOBUTIKEN' }], windows: [[712, 892]] },
+  { n: 2, name: 'LEKSAKER OCH MÖBLER', w: 1040, shops: [{ id: 'leksaker', x: 24, label: 'LEKSAKSLÅDAN' }, { id: 'mobler', x: 604, label: 'MÖBELJÄTTEN' }], windows: [[840, 1032]] },
 ];
 const TOPF = FLOORS.length - 1;
 let FLOOR = 0;                                       // våningen man är på i gallerian
@@ -255,20 +255,20 @@ function loadShops() {
   return (SHOPLIB_P ||= Promise.all([
     import('./sf/js/city/map.js'), import('./sf/js/city/buildings-shops.js'), import('./sf/js/city/buildings-downtown.js'), import('./sf/js/city/buildings-leksaker.js'),
     import('./sf/js/scenes/shop-klader.js'), import('./sf/js/scenes/shop-skor.js'), import('./sf/js/scenes/shop-leksaker.js'), import('./sf/js/scenes/shop-ikea.js'),
-    import('./sf/js/scenes/room.js'), import('./sf/js/game.js'), import('./sf/js/scenes/ikea/art-transit.js'),
-  ]).then(([map, bs, bd, bl, kl, sk, le, ik, room, game, tr]) => {
-    const ART = { ...bs.BUILDING_ART, ...bl.BUILDING_ART, ...bd.BUILDING_ART };
+    import('./sf/js/scenes/room.js'), import('./sf/js/game.js'), import('./sf/js/scenes/ikea/art-transit.js'), import('./sf/js/city/props.js'), import('./sf/js/city/buildings-south.js'),
+  ]).then(([map, bs, bd, bl, kl, sk, le, ik, room, game, tr, props, bsouth]) => {
+    const ART = { ...bs.BUILDING_ART, ...bsouth.BUILDING_ART, ...bl.BUILDING_ART, ...bd.BUILDING_ART };
     for (const f of FLOORS) {
       f.houses = f.shops.map((h) => {
         const b = map.ALL_BUILDINGS.find((x) => x.id === h.id), dx = h.x - b.x, dy = GBASE - map.baseOf(b);
         return { ...h, floor: f.n, b, art: ART[b.kind], dx, dy, w: b.w, door: { x: Math.round((b.door.x0 + b.door.x1) / 2) + dx }, open: 0, img: null };
       });
-      f.upE = f.n < TOPF ? { lx: ESC.up, ly: GBASE + 30, sx: 1, sy: -1, run: ESC.run, clip: SLAB_Y } : null;
+      f.upE = f.n < TOPF ? { lx: ESC.up, ly: GBASE + 30, sx: 1, sy: -1, run: ESC.run, clip: SLAB_Y, riders: [] } : null;
       const dly = GBASE + 42;
-      f.dnE = f.n > 0 ? { lx: ESC.down, ly: dly, sx: -1, sy: 1, run: ESC.run, clip: dly + 14, pit: [ESC.down - 140, ESC.down - 8, dly - 16, dly + 14] } : null;
+      f.dnE = f.n > 0 ? { lx: ESC.down, ly: dly, sx: -1, sy: 1, run: ESC.run, clip: dly + 14, pit: [ESC.down - 140, ESC.down - 8, dly - 16, dly + 14], riders: [] } : null;
       f.lift = { x: LIFT_X, fy: GBASE, open: 0 };
     }
-    SHOPLIB = { artPos: map.artPos, room, katalogOf: game.katalogOf, tr,
+    SHOPLIB = { artPos: map.artPos, baseOf: map.baseOf, allB: map.ALL_BUILDINGS, viewArt: ART, propsMod: props, room, katalogOf: game.katalogOf, tr,
       make: { klader: kl.makeShopKlader, skor: sk.makeShopSkor, leksaker: le.makeShopLeksaker, mobler: ik.makeShopIkea } };
     buildGrid();
     return SHOPLIB;
@@ -326,9 +326,11 @@ function galleriaBG(f) {
     pixText(P, SMALL, 'VÅNINGAR', bx + 6, by + 5, 0xffd23f);
     const rows = [['2', 'LEKSAKSLÅDAN'], ['2', 'MÖBELJÄTTEN'], ['1', 'KLÄDAFFÄREN'], ['1', 'SKOBUTIKEN'], ['0', 'ENTRÉ']];
     rows.forEach(([n, t2], i) => { P.rect(bx + 5, by + 16 + i * 10, 7, 7, 0xf6cf2a); pixText(P, SMALL, n, bx + 7, by + 17 + i * 10, 0x1d51a0); pixText(P, SMALL, t2, bx + 15, by + 17 + i * 10, 0xf4f1ea); });
-    for (const x of [430, 530]) { const fy = GBASE + 2; P.rect(x, fy - 14, 14, 12, 0x6a4a30); P.hl(x, fy - 14, 14, 0x8a6a48); P.ell(x + 7, fy - 20, 10, 9, 0x3f8a3a, 1, 3); P.ell(x + 5, fy - 23, 5, 4, 0x6cb84a, 1, 3); }   // krukväxter
   }
-  return (GAL_BG[f.n] = P.flush());
+  const bg = P.flush(), c = bg.getContext('2d');
+  for (const [x0, x1] of f.windows || []) paintWindowWall(c, f, x0, x1);
+  paintBanners(c, f);
+  return (GAL_BG[f.n] = bg);
 }
 
 // ================= ditt rum =================
@@ -372,7 +374,7 @@ const BLOCKS = {
     const f = FL(), out = [];
     if (f.n < TOPF) out.push([ESC.up + 6, GBASE + 4, ESC.up + 132, GBASE + 34]);
     if (f.n > 0) { const d = ESC.down; out.push([d - 142, GBASE + 24, d - 6, GBASE + 58]); }
-    if (f.n === 0) out.push([428, GBASE, 446, GBASE + 4], [528, GBASE, 546, GBASE + 4]);
+    if (SHOPLIB) { floorDecor(f); out.push(...decorBlocks(f)); }
     return out;
   },
   hem: () => [[18, 98, 40, 135], [38, 92, 58, 110], [328, 90, 356, 102], [360, 92, 378, 106], ...PLACED.filter((p) => !isWallFurn(p.k) && !isFlatFurn(p.k)).map(FP)],
@@ -426,6 +428,8 @@ function walkTo(x, y, cb) { const p = findPath(P.x, P.y, x, y); if (!p || !p.len
 function update(dt) {
   if (SHOP) { try { SHOP.scene.update?.(dt); } catch (e) { console.error('butiken:', e); } return; }
   if (P.scene === 'galleria' && SHOPLIB) {
+    PENV.t += dt; try { propsLib()?.update?.(dt); } catch { /* föremålens rörelser får aldrig stoppa spelet */ }
+    crowdTick(dt);
     for (const h of FL().houses) { const by = !RIDE && Math.abs(P.x - h.door.x) < 16 && P.y < GBASE + 20; h.open += ((by ? 1 : 0) - h.open) * Math.min(1, dt * 8); }   // dörrarna glider upp som i staden
     if (RIDE) { rideTick(dt); return; }
   }
@@ -625,6 +629,10 @@ function draw(now) {
       if (f.dnE) list.push({ fy: f.dnE.pit[3], draw: (c) => drawEsc(c, f.dnE, t) });
       list.push({ fy: GBASE - 1, draw: (c) => drawLift(c, t) });
     }
+    if (SHOPLIB) {
+      for (const d of floorDecor(f)) list.push({ fy: d.y, draw: (c) => drawDecor(c, d) });
+      for (const n of crowdFor(f)) list.push({ fy: n.y + (n.mode === 'sit' ? 0.01 : 0), draw: (c) => drawNpc(c, n, t) });
+    }
     if (SHOPLIB) for (const h of f.houses) {
       list.push({ fy: GBASE - 0.5, draw: (c) => drawHouse(c, h, t) });
       if (h.art?.items) try { for (const it of h.art.items(h.b, stOf(h, t)) || []) list.push({ fy: it.y + h.dy, draw: (c) => { c.save(); c.translate(h.dx, h.dy); it.draw(c); c.restore(); } }); } catch (e) { console.error(`fasaden ${h.id}:`, e); }
@@ -654,7 +662,8 @@ function draw(now) {
   const ft = now - fadeT; if (!reduce && ft < 320) fill(0, 0, W, H, `rgba(10,8,16,${1 - ft / 320})`);
 }
 function fit() {
-  const dpr = window.devicePixelRatio || 1, avail = frame.clientWidth - 16, s = Math.floor(avail * dpr / W);
+  const cs = getComputedStyle(frame), padX = (parseFloat(cs.paddingLeft) || 0) + (parseFloat(cs.paddingRight) || 0);
+  const dpr = window.devicePixelRatio || 1, avail = Math.floor(frame.clientWidth - padX), s = Math.floor(avail * dpr / W);
   if (s >= 1 && W * s / dpr < avail * 0.9) {   // hela steg skulle lämna mycket tomt (t.ex. iPhone stående): rita ett steg skarpare och fyll bredden
     scale = s + 1; cv.width = W * scale; cv.height = H * scale; cv.style.width = avail + 'px'; cv.style.height = (avail * H / W) + 'px'; stage.style.width = avail + 'px';
   } else if (s >= 1) { scale = s; cv.width = W * s; cv.height = H * s; const cw = W * s / dpr; cv.style.width = cw + 'px'; cv.style.height = (H * s / dpr) + 'px'; stage.style.width = cw + 'px'; }
@@ -738,6 +747,176 @@ function endLesson() {
   const face = document.querySelector('#modal .sk-face'); if (face) face.append(portrait(myLook(), '#d8cdb8'));
 }
 
+// ================= gallerians inredning och folk =================
+// Carl 2026-10-06: "mycket mer detaljer … folk, glasstånd, folk som går runt, soptunnor, växter, stora
+// fönster man ser ut igenom … precis som en galleria". Föremålen är stadens egna (city/props.js
+// createProps): samma instanser som i Pixelstaden, flyttade på plats (translate) – glasståndet med
+// glassmenyn och parasollborden, fontänen, parkbänkarna, krukorna, papperskorgarna, träden i galler,
+// gunghästen och kaffevagnen. Genom glasväggarna syns stadens riktiga hus på andra sidan gatan.
+const PENV = { t: 0, hour: 12, dark: 0, day: 1, weather: { season: 'sommar', wind: 0 }, people: [] };
+let PROPS = null;
+function propsLib() {
+  if (!PROPS && SHOPLIB?.propsMod) { try { PROPS = SHOPLIB.propsMod.createProps(PENV); } catch (e) { console.error('stadens föremål:', e); PROPS = { items: () => [], update() {} }; } }
+  return PROPS;
+}
+const propNear = (k, x, y) => propsLib().items().filter((i) => i.kind === k).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0] || null;
+// en våningsplan: [sort, stadens x, y (vilket exemplar), gallerians x, y, hinder [b, h] (null = inget)]
+const DECOR = {
+  0: [['kruka', 178, 193, 74, GBASE + 6, [12, 6]], ['kruka', 566, 193, 404, GBASE + 6, [12, 6]],
+    ['fontän', 934, 379, 486, GBASE + 52, [64, 32]], ['kruka', 242, 193, 436, GBASE + 6, [12, 6]], ['kruka', 178, 193, 536, GBASE + 6, [12, 6]], ['bänk', 718, 195, 432, GBASE + 74, [30, 6]], ['bänk', 1480, 195, 540, GBASE + 74, [30, 6]],
+    ['papperskorg', 1168, 213, 410, GBASE + 74, [8, 4]], ['papperskorg', 560, 301, 846, GBASE + 70, [8, 4]],
+    ['lind', 1792, 352, 600, GBASE + 32, [20, 8]], ['korsbar', 24, 213, 896, GBASE + 32, [20, 8]],
+    ['blomlåda', 36, 193, 120, GBASE + 4, [32, 6]], ['återvinning', 3586, 560, 930, GBASE + 74, [30, 8]]],
+  1: [['kruka', 178, 193, 158, GBASE + 6, [12, 6]], ['papperskorg', 1168, 213, 170, GBASE + 70, [8, 4]],
+    ['bänk', 718, 195, 752, GBASE + 70, [30, 6]], ['bänk', 1480, 195, 826, GBASE + 70, [30, 6]],
+    ['blomlåda', 36, 193, 736, GBASE + 4, [32, 6]], ['blomlåda', 114, 193, 800, GBASE + 4, [32, 6]], ['blomlåda', 648, 193, 864, GBASE + 4, [32, 6]],
+    ['kruka', 242, 193, 710, GBASE + 6, [12, 6]], ['papperskorg', 560, 301, 790, GBASE + 74, [8, 4]], ['lind', 1066, 213, 884, GBASE + 40, [20, 8]]],
+  2: [['gunghäst', 1094, 455, 156, GBASE + 46, [22, 8]], ['gunghäst', 1094, 455, 196, GBASE + 64, [22, 8]], ['kruka', 178, 193, 148, GBASE + 6, [12, 6]],
+    ['kaffevagn', 2318, 346, 872, GBASE + 30, [36, 10]], ['kafébord', 975, 201, 930, GBASE + 66, [30, 8]], ['kafébord', 1040, 201, 990, GBASE + 70, [30, 8]],
+    ['kruka', 242, 193, 846, GBASE + 6, [12, 6]], ['kruka', 566, 193, 1024, GBASE + 6, [12, 6]], ['papperskorg', 1168, 213, 958, GBASE + 30, [8, 4]],
+    ['blomlåda', 648, 193, 1000, GBASE + 4, [32, 6]], ['papperskorg', 560, 301, 590, GBASE + 74, [8, 4]]],
+};
+const GLASS_AT = { floor: 0, x: 712, y: GBASE + 50 };   // glasståndet med allt runtom (samma förskjutning)
+function floorDecor(f) {
+  if (f.decor) return f.decor;
+  const L = propsLib(); if (!L) return [];
+  const out = [];
+  for (const [k, cx, cy, x, y, blk] of DECOR[f.n] || []) { const it = propNear(k, cx, cy); if (it) out.push({ it, x, y, blk, kind: k }); }
+  if (f.n === GLASS_AT.floor) {
+    const g = propNear('glasstånd', 412, 453);
+    if (g) for (const it of L.items()) if (/^glass/.test(it.kind) && Math.abs(it.x - g.x) < 120 && Math.abs(it.y - g.y) < 50) {
+      const x = GLASS_AT.x + (it.x - g.x), y = GLASS_AT.y + (it.y - g.y);
+      out.push({ it, x, y, kind: it.kind, blk: it.kind === 'glasstånd' ? [54, 14] : it.kind === 'glassmeny' ? [44, 6] : it.kind === 'glassbord' ? [14, 6] : it.kind === 'glassbänk' ? [30, 6] : null });
+    }
+  }
+  return (f.decor = out);
+}
+const decorBlocks = (f) => (f.decor || []).filter((d) => d.blk).map((d) => [d.x - (d.blk[0] >> 1), d.y - d.blk[1], d.x + (d.blk[0] >> 1), d.y + 1]);
+const drawDecor = (c, d) => { c.save(); c.translate(d.x - d.it.x, d.y - d.it.y); try { d.it.draw(c); } catch (e) { console.error(d.kind, e); d.it = { ...d.it, draw() {} }; } c.restore(); };
+
+// ---------- glasväggarna: utsikt över gatan med stadens riktiga hus ----------
+const VIEW_HOUSES = ['hem', 'bostad', 'pizzeria', 'mat', 'bank', 'bio', 'frisor', 'djuraffar', 'posten', 'kebab'];
+function paintWindowWall(c, f, x0, x1) {
+  const y0 = 46, y1 = GBASE - 8, T = SHOPLIB;
+  c.save(); c.beginPath(); c.rect(x0, y0, x1 - x0, y1 - y0); c.clip();
+  // himlen
+  for (let y = y0; y < y1; y++) { const k = (y - y0) / (y1 - y0); c.fillStyle = `rgb(${Math.round(128 + 92 * k)},${Math.round(180 + 52 * k)},${Math.round(226 + 18 * k)})`; c.fillRect(x0, y, x1 - x0, 1); }
+  c.fillStyle = 'rgba(255,255,255,0.9)'; for (let i = 0; i < 4; i++) { const cx = x0 + 30 + i * 70 + (f.n * 23) % 40, cy = y0 + 8 + (i % 2) * 7; c.fillRect(cx - 14, cy, 28, 3); c.fillRect(cx - 8, cy - 2, 16, 2); }
+  // husen på andra sidan gatan (högre upp i gallerian ser man mer av taken)
+  const street = y1 - 10 + f.n * 34;
+  let hx = x0 - 30 + (f.n * 57) % 50;
+  for (let i = 0; hx < x1; i++) {
+    const kind = VIEW_HOUSES[(i + f.n * 3) % VIEW_HOUSES.length], b = T.allB.find((x) => x.id === kind), art = b && T.viewArt[b.kind];
+    if (!b || !art) { hx += 90; continue; }
+    let img = null; try { img = (art._imgs ||= {})[kind] ||= art.paint(b, false, { worn: 0, snow: false, season: 'sommar' }); } catch (e) { console.error(`utsikten ${kind}:`, e); }
+    if (!img) { hx += 90; continue; }
+    const p = T.artPos(b, img); c.save(); c.translate(hx - b.x, street - T.baseOf(b)); c.drawImage(img, p.x, p.y); c.restore();
+    hx += b.w + 10;
+  }
+  // trottoaren och gatan nedanför husen, och träden längs gatan
+  c.fillStyle = '#b6afa2'; c.fillRect(x0, street, x1 - x0, 8); c.fillStyle = '#86807a'; c.fillRect(x0, street + 8, x1 - x0, 2); c.fillStyle = '#46484f'; c.fillRect(x0, street + 10, x1 - x0, 60);
+  for (let x = x0 + 8; x < x1; x += 22) { c.fillStyle = '#e8e4da'; c.fillRect(x, street + 22, 12, 2); }
+  const tree = propNear('lind', 150, 213);
+  if (tree) for (let x = x0 + 40; x < x1 - 10; x += 96) { c.save(); c.translate(x - tree.x, street + 6 - tree.y); tree.draw(c); c.restore(); }
+  // glaset: en blå skiftning och snedställda reflexer
+  c.fillStyle = 'rgba(170,215,240,0.16)'; c.fillRect(x0, y0, x1 - x0, y1 - y0);
+  c.fillStyle = 'rgba(255,255,255,0.22)';
+  for (let x = x0 - 40; x < x1; x += 46) for (let i = 0; i < 26; i++) c.fillRect(x + i + ((i / 3) | 0), y1 - 6 - i * 3, 3, 1);
+  c.restore();
+  // ramarna: stålprofiler var 40:e pixel och en tvärslå
+  c.fillStyle = '#6a7078'; for (let x = x0; x <= x1; x += 40) c.fillRect(Math.min(x, x1 - 2), y0, 2, y1 - y0);
+  c.fillRect(x0, y0, x1 - x0, 2); c.fillRect(x0, y0 + 30, x1 - x0, 2); c.fillRect(x0, y1 - 2, x1 - x0, 3);
+  c.fillStyle = '#b8bec6'; for (let x = x0; x <= x1; x += 40) c.fillRect(Math.min(x, x1 - 2), y0, 1, y1 - y0);
+}
+// banderoller i ljusgården
+function paintBanners(c, f) {
+  const B = f.n === 0 ? [['VÄLKOMMEN', '#d83a4a'], ['REA -30%', '#2a6aba']] : f.n === 1 ? [['NYA SKOR', '#2a8a4a'], ['HÖSTMODE', '#d87a1a']] : [['LEKSAKER', '#8e5bd1'], ['FIKA', '#d83a4a']];
+  B.forEach(([s, col], i) => {
+    const x = 214 + i * 150, w = textW(SMALL, s) + 10;
+    c.fillStyle = '#4a4e56'; c.fillRect(x + 2, 40, 1, 8); c.fillRect(x + w - 3, 40, 1, 8);
+    c.fillStyle = col; c.fillRect(x, 48, w, 22); c.fillStyle = 'rgba(0,0,0,0.25)'; c.fillRect(x, 69, w, 1);
+    for (let k = 0; k < w; k += 4) { c.fillStyle = col; c.fillRect(x + k, 70, 2, 2); }
+    ctxText(c, SMALL, s, x + 5, 56, '#ffffff');
+  });
+}
+
+// ---------- folket ----------
+// Shoppare som går mellan butiksfönster, bänkar, glasståndet, fontänen och fönstren, sitter en stund,
+// tittar i skyltfönster och ibland åker rulltrappan (och nya kommer upp ur schaktet).
+const BAG_COLS = ['#d83a4a', '#3a7bd5', '#f0b429', '#46a35a', '#8e5bd1', '#f28bb3', '#2b2b30'];
+function shopperLook() {
+  const kid = Math.random() < 0.3, L = { ...makeLookRich(), kid, phones: false };
+  if (Math.random() < 0.45) { L.bag = 'shoppingBag'; L.bagColor = pick(BAG_COLS); }
+  return cleanLook(L);
+}
+const GUARD_LOOK = () => cleanLook({ skin: '#c99a76', hair: '#2a1d1a', style: 'short', top: 'police', shirt: '#2d3a5c', accent: '#f0b429', bottom: 'pants', pants: '#1e2433', shoes: '#1c1c1c', hat: 'cap', cap: '#1e2433', kid: false });
+function spotsOf(f) {   // ställen folk går till: [x, y, sätt ('look' | 'sit' | 'stand' | 'up'), riktning]
+  const S = [];
+  for (const h of f.houses || []) S.push([h.door.x - 22, GBASE + 8, 'look', 'up'], [h.door.x + 22, GBASE + 8, 'look', 'up'], [h.door.x, GBASE + 7, 'enter', 'up']);
+  for (const d of f.decor || []) {
+    if (d.kind === 'bänk') for (const sx of [-7, 6]) if (!(d.taken ||= {})[sx]) S.push([d.x + sx, d.y + 7, 'sit', 'down', { d, sx }]);
+    if (d.kind === 'fontän') S.push([d.x - 40, d.y, 'stand', 'right'], [d.x + 40, d.y, 'stand', 'left'], [d.x, d.y + 12, 'stand', 'up']);
+    if (d.kind === 'glasstånd') S.push([d.x, d.y + 10, 'stand', 'up'], [d.x - 12, d.y + 16, 'stand', 'up']);
+    if (d.kind === 'kaffevagn') S.push([d.x, d.y + 12, 'stand', 'up']);
+  }
+  for (const w of f.windows || []) for (let x = w[0] + 30; x < w[1] - 20; x += 50) S.push([x, GBASE + 8, 'look', 'up']);
+  if (f.upE) S.push([f.upE.lx - 10, f.upE.ly, 'ride', 'right']);
+  for (let i = 0; i < 6; i++) S.push([40 + Math.random() * (f.w - 80), GBASE + 14 + Math.random() * 60, 'stand', pick(['down', 'left', 'right'])]);
+  return S;
+}
+const CROWD = {};
+function npcPlace(n) { for (let k = 0; k < 40; k++) { const x = 20 + Math.random() * (FL().w - 40), y = GBASE + 10 + Math.random() * 66; if (freeAt(x, y)) { n.x = x; n.y = y; return true; } } return false; }
+function crowdFor(f) {
+  if (CROWD[f.n]) return CROWD[f.n];
+  const list = [], N = f.n === 0 ? 9 : 8;
+  for (let i = 0; i < N; i++) { const n = { look: shopperLook(), x: 0, y: 0, dir: 'down', path: [], dist: 0, mode: 'idle', t: Math.random() * 3, speed: 26 + Math.random() * 16 }; if (npcPlace(n)) list.push(n); }
+  if (f.n === 0) list.push({ look: GUARD_LOOK(), x: 84, y: GBASE + 12, dir: 'down', path: [], dist: 0, mode: 'post', t: 0, speed: 24 });   // väktaren vid skoldörren
+  return (CROWD[f.n] = list);
+}
+function npcGo(n, f) {
+  const S = spotsOf(f), s = pick(S);
+  const p = findPath(n.x, n.y, s[0], s[1]);
+  if (!p || !p.length) { n.mode = 'idle'; n.t = 1 + Math.random() * 2; return; }
+  n.path = p; n.mode = 'walk'; n.spot = s;
+}
+function crowdTick(dt) {
+  const f = FL(), list = crowdFor(f);
+  for (const n of [...list]) {
+    if (n.mode === 'post') { n.t += dt; n.dir = Math.sin(n.t * 0.4) > 0.7 ? 'right' : 'down'; continue; }
+    if (n.mode === 'walk') {
+      const [tx, ty] = n.path[0], dx = tx - n.x, dy = ty - n.y, d = Math.hypot(dx, dy), step = n.speed * dt;
+      if (Math.abs(dx) > Math.abs(dy) + 0.5) n.dir = dx > 0 ? 'right' : 'left'; else if (d > 0.5) n.dir = dy > 0 ? 'down' : 'up';
+      if (d <= step) { n.x = tx; n.y = ty; n.path.shift(); n.dist += d; } else { n.x += dx / d * step; n.y += dy / d * step; n.dist += step; }
+      if (!n.path.length) {
+        const s = n.spot || [];
+        if (s[2] === 'ride' && f.upE) {   // åker rulltrappan upp och försvinner; en ny kommer in senare
+          list.splice(list.indexOf(n), 1); f.upE.riders.push({ look: n.look, d: -8, v: 1 }); setTimeout(() => respawn(f), 5000 + Math.random() * 6000); continue;
+        }
+        if (s[2] === 'enter') { list.splice(list.indexOf(n), 1); setTimeout(() => respawn(f, s), 4000 + Math.random() * 8000); continue; }   // in i butiken
+        if (s[2] === 'sit' && s[4] && !s[4].d.taken[s[4].sx]) { n.seat = s[4]; s[4].d.taken[s[4].sx] = true; n.back = [n.x, n.y]; n.x = s[4].d.x + s[4].sx; n.y = s[4].d.y + 1; }
+        n.mode = n.seat ? 'sit' : 'idle'; n.dir = s[3] || 'down'; n.t = n.seat ? 6 + Math.random() * 8 : 2 + Math.random() * 4;
+      }
+      continue;
+    }
+    n.t -= dt;
+    if (n.t <= 0) { if (n.seat) { n.seat.d.taken[n.seat.sx] = false; n.seat = null; [n.x, n.y] = n.back; } npcGo(n, f); }
+  }
+  // rulltrapporna: åkarna glider längs trappan; neråt-trappan släpper upp nya ur schaktet
+  for (const e of [f.upE, f.dnE]) if (e) for (const r of [...e.riders]) {
+    r.d += r.v * RIDE_V * dt;
+    if (r.v > 0 && r.d >= e.run) e.riders.splice(e.riders.indexOf(r), 1);
+    if (r.v < 0 && r.d <= -12) { e.riders.splice(e.riders.indexOf(r), 1); const n = { look: r.look, x: e.lx - e.sx * 12, y: e.ly, dir: 'down', path: [], dist: 0, mode: 'idle', t: 0.5, speed: 30 + Math.random() * 12 }; list.push(n); }
+  }
+  if (f.dnE && Math.random() < dt / 9 && f.dnE.riders.length < 2 && list.length < 12) f.dnE.riders.push({ look: shopperLook(), d: f.dnE.run, v: -1 });
+}
+function respawn(f, at) {   // någon kommer ut ur en butik eller in genom entrén
+  const list = CROWD[f.n]; if (!list || list.length > 11) return;
+  const h = at ? null : pick(f.houses?.length ? f.houses : [null]);
+  const x = at ? at[0] : h ? h.door.x : (f.school ? 38 : 60), n = { look: at ? shopperLook() : shopperLook(), x, y: GBASE + 9, dir: 'down', path: [], dist: 0, mode: 'idle', t: 0.4, speed: 28 + Math.random() * 14 };
+  list.push(n);
+}
+const drawNpc = (c, n, t) => drawPerson(c, Math.round(n.x), Math.round(n.y), n.look, n.dir, n.mode === 'walk' ? WALK_SEQ[Math.floor(n.dist / 7.3) % 4] : n.mode === 'sit' ? 5 : (Math.sin(t * 2 + n.x) > 0.93 ? 4 : 0));
+
 // ================= gallerian: rulltrappor, hiss och butikerna =================
 function goGalleria() {
   if (P.scene !== 'klass') return goScene('galleria', P.scene);
@@ -801,6 +980,17 @@ function drawEsc(c, e, t) {
   const T = SHOPLIB.tr, art = (e.art ||= T.escalatorArt(e));
   c.drawImage(art.back, art.x, art.y);
   c.drawImage(art.treads[Math.floor(t * RIDE_V) % T.ESC_PERIOD], art.x, art.y);
+  if (e.riders.length || (RIDE?.kind === 'esc' && RIDE.e === e)) {   // åkarna (folket och figuren) klippta vid bjälken / golvkanten
+    c.save(); c.beginPath();
+    if (e.sy < 0) c.rect(art.x - 20, e.clip, art.w + 40, 400); else c.rect(art.x - 20, e.clip - 400, art.w + 40, 400);
+    c.clip();
+    for (const r of [...e.riders].sort((a, b) => T.escPos(e, Math.max(0, a.d))[1] - T.escPos(e, Math.max(0, b.d))[1])) {
+      const dir = (r.v > 0 ? e.sx : -e.sx) > 0 ? 'right' : 'left';
+      if (r.d < 0) drawPerson(c, Math.round(e.lx + e.sx * r.d), e.ly, r.look, dir, WALK_SEQ[Math.floor(t * 8) % 4]);
+      else { const [x, y] = T.escPos(e, r.d); drawPerson(c, Math.round(x), Math.round(y), r.look, dir, 0); }
+    }
+    c.restore();
+  }
   if (RIDE?.kind === 'esc' && RIDE.e === e) {   // figuren på trappan (klippt vid bjälken / golvkanten)
     c.save(); c.beginPath();
     if (e.sy < 0) c.rect(art.x - 20, e.clip, art.w + 40, 400); else c.rect(art.x - 20, e.clip - 400, art.w + 40, 400);
@@ -901,7 +1091,7 @@ function goScene(name, from) {
   if (name === 'galleria') {
     const shop = /^shop:/.test(from || '') ? from.slice(5) : null;
     if (shop) { FLOOR = Math.max(0, floorOfShop(shop)); const h = FL().houses?.find((x) => x.id === shop); [P.x, P.y] = [h ? h.door.x : 100, GBASE + 12]; P.dir = 'down'; }
-    else if (from === 'hem') { FLOOR = 0; [P.x, P.y] = [608, GBASE + 12]; P.dir = 'down'; }
+    else if (from === 'hem') { FLOOR = 0; [P.x, P.y] = [928, GBASE + 12]; P.dir = 'down'; }
     else { FLOOR = 0; [P.x, P.y] = [38, GBASE + 12]; P.dir = 'down'; }
     loadShops().then(() => { if (P.scene === 'galleria') { buildGrid(); updatePill(); } }).catch(() => {});
   } else if (name === 'hem') { [P.x, P.y] = [40, 200]; P.dir = 'up'; loadShops().then(() => homeStore()).catch(() => {}); }
@@ -1024,16 +1214,18 @@ function startSchool() {
 }
 
 // ================= knapparna under bilden =================
+let HELP = '';
 function renderBelow() {
-  const el = $('sk-below'), btn = (a, t, cls = '') => `<button type="button" class="btn btn-small ${cls}" data-b="${a}">${t}</button>`;
+  const el = $('sk-below'), btn = (a, t, cls = '', tip = '') => `<button type="button" class="btn btn-small ${cls}" data-b="${a}"${tip ? ` title="${tip}" aria-label="${tip}"` : ''}>${t}</button>`;
   let p, b = '';
   if (!ME) p = 'Börja med att göra din figur och din klass.';
-  else if (P.scene === 'klass') { p = P.seated ? 'Du sitter i bänken och ser tavlan på nära håll. Svara i rutan. Efter fem uppgifter blir det rast, och Res dig tar dig tillbaka ut i klassrummet.' : `Klicka på den lediga bänken för att börja. Efter fem uppgifter blir det rast, och varje stjärna blir ${KR_PER_STJARNA} kr. Den blå dörren leder till Galleria Stjärnan.`; if (!P.seated) b += btn('sit', 'Gå och sätt dig', 'btn-go'); b += btn('shop', 'Till gallerian') + btn('class', 'Ändra figur och klass'); }
-  else if (SHOP) { p = `Du är i ${SHOPLABEL[SHOP.id].charAt(0) + SHOPLABEL[SHOP.id].slice(1).toLowerCase()}, Snabbfilens egen butik. Klicka på det du vill titta på. Dörren tar dig ut i gallerian igen. Du har ${fmt(G.money)}.`; }
-  else if (P.scene === 'galleria') { p = FLOOR === 0 ? 'Entréplanet. Åk rulltrappan eller hissen upp: plan 1 har klädaffären och skobutiken, plan 2 Leksakslådan och Möbeljätten. Dörrarna leder till skolan och hem.' : `Plan ${FLOOR}. Klicka på en butik för att gå in. Rulltrapporna och hissen tar dig mellan våningarna.`; b += btn('toclass', 'Till skolan') + btn('home', 'Gå hem'); }
-  else { p = 'Klicka på klädskåpet för att byta kläder. Möblerna från Möbeljätten står i förrådet: välj en och klicka på golvet (tavlor och lampor på väggen).'; b += btn('shop', 'Till gallerian') + btn('toclass', 'Till skolan'); }
-  if (ME) b += btn('mute', isMuted() ? '🔇 Ljudet är av' : '🔊 Ljudet är på') + btn('reset', 'Börja om');
-  el.innerHTML = `<p>${p}</p><div class="sk-bbtns">${b}</div>`;
+  else if (SHOP) p = `Du är i ${SHOPLABEL[SHOP.id].charAt(0) + SHOPLABEL[SHOP.id].slice(1).toLowerCase()}, Snabbfilens egen butik. Klicka på det du vill titta på. Dörren tar dig ut i gallerian igen. Du har ${fmt(G.money)}.`;
+  else if (P.scene === 'klass') { p = P.seated ? 'Du sitter i bänken och ser tavlan på nära håll. Svara i rutan. Efter fem uppgifter blir det rast, och Res dig tar dig tillbaka ut i klassrummet.' : `Klicka på den lediga bänken för att börja. Efter fem uppgifter blir det rast, och varje stjärna blir ${KR_PER_STJARNA} kr. Den blå dörren leder till Galleria Stjärnan.`; if (!P.seated) b += btn('sit', '🪑 Sätt dig', 'btn-go'); b += btn('shop', '🏬 Gallerian') + btn('class', '🧑 Figur och klass'); }
+  else if (P.scene === 'galleria') { p = FLOOR === 0 ? 'Entréplanet. Åk rulltrappan eller hissen upp: plan 1 har klädaffären och skobutiken, plan 2 Leksakslådan och Möbeljätten. Dörrarna leder till skolan och hem.' : `Plan ${FLOOR}. Klicka på en butik för att gå in. Rulltrapporna och hissen tar dig mellan våningarna.`; b += btn('toclass', '🏫 Skolan') + btn('home', '🏠 Hem'); }
+  else { p = 'Klicka på klädskåpet för att byta kläder. Möblerna från Möbeljätten står i förrådet: välj en och klicka på golvet (tavlor och lampor på väggen).'; b += btn('shop', '🏬 Gallerian') + btn('toclass', '🏫 Skolan'); }
+  if (ME) b += btn('mute', isMuted() ? '🔇' : '🔊', '', isMuted() ? 'Ljudet är av' : 'Ljudet är på') + btn('reset', '↺', '', 'Börja om från början');
+  HELP = p;
+  el.innerHTML = `<span class="sk-name">Pixelskolan</span><p title="${esc(p)}">${esc(p)}</p><div class="sk-bbtns">${btn('help', '?', '', 'Hjälp')}${b}</div>`;
 }
 $('sk-below').addEventListener('click', (e) => {
   const b = e.target.closest('[data-b]'); if (!b) return;
@@ -1044,7 +1236,8 @@ $('sk-below').addEventListener('click', (e) => {
   else if (a === 'home') goScene('hem', 'galleria');
   else if (a === 'mute') { toggleMute(); musicTick(); renderBelow(); }
   else if (a === 'class') { if (P.seated) standUp(); classDialog(); }
-  else if (a === 'reset') { try { localStorage.removeItem(SAVE_KEY); } catch { /* lagring avstängd */ } fresh(); doorGlow = false; goScene('klass', null); renderBelow(); startCreator(); }
+  else if (a === 'help') openModal('❓ Pixelskolan', `<p>${esc(HELP)}</p><p class="sp">Allt sparas i den här webbläsaren. <a href="plan.html">Om Pixelskolan och planen</a></p>`, [{ label: 'Okej', cls: 'btn-go', onClick: closeModal }]);
+  else if (a === 'reset') { if (!confirm('Börja om från början? Din figur, klass och allt du köpt försvinner.')) return; try { localStorage.removeItem(SAVE_KEY); } catch { /* lagring avstängd */ } fresh(); doorGlow = false; goScene('klass', null); renderBelow(); startCreator(); }
 });
 
 // ================= uppgifterna =================
