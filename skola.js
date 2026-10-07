@@ -15,6 +15,8 @@ import { LEVELS as UPP, setContext, numOpts } from './uppgifter.js';
 import { toggleMute, isMuted } from './sf/js/core/sound.js';
 import { musicTick } from './sf/js/core/music.js';
 import { SLOTS, wornItem } from './sf/js/data/wardrobe.js';
+import { makeView, drawView } from './utsikt.js';
+import { UNITS, UNIT_H, makeUnit, drawUnitLive } from './smabutiker.js';
 
 const W = 384, H = 216, WALL_Y = 92;
 const $ = (id) => document.getElementById(id);
@@ -241,10 +243,15 @@ const GBASE = 136;                                  // butiksfronternas fotlinje
 const SLAB_Y = GBASE - 26;                          // bjälken (övervåningens golv) som rulltrappan uppåt försvinner i
 const ESC = { up: 190, down: 560, run: 134 };       // rulltrapporna: påstigningen (x) och längden
 const LIFT_X = 356;                                 // hissdörrens vänsterkant (samma schakt på alla våningar)
+// Trapphuset (Carl 2026-10-07: "det kan vara affärer vägg i vägg men när det är trapphus stora fönster i
+// bakgrunden så man inte måste gå så långt"): rulltrapporna och hissen står framför en glasvägg från golv
+// till tak, butikerna ligger vägg i vägg på båda sidor och våningarna blev kortare. units = småbutikerna
+// (smabutiker.js) mellan spelets riktiga.
+const TRAP = { x0: 170, x1: 602 };
 const FLOORS = [
-  { n: 0, name: 'ENTRÉ', w: 960, shops: [], school: [14, 62], home: [904, 952], windows: [[600, 884]] },
-  { n: 1, name: 'KLÄDER OCH SKOR', w: 900, shops: [{ id: 'klader', x: 24, label: 'KLÄDAFFÄREN' }, { id: 'skor', x: 600, label: 'SKOBUTIKEN' }], windows: [[712, 892]] },
-  { n: 2, name: 'LEKSAKER OCH MÖBLER', w: 1040, shops: [{ id: 'leksaker', x: 24, label: 'LEKSAKSLÅDAN' }, { id: 'mobler', x: 604, label: 'MÖBELJÄTTEN' }], windows: [[840, 1032]] },
+  { n: 0, name: 'ENTRÉ', w: 840, shops: [], school: [14, 62], home: [780, 828], units: [{ id: 'blommor', x: 606, w: 76 }, { id: 'kiosk', x: 682, w: 84 }] },
+  { n: 1, name: 'KLÄDER OCH SKOR', w: 812, shops: [{ id: 'klader', x: 10, label: 'KLÄDAFFÄREN' }, { id: 'skor', x: 606, label: 'SKOBUTIKEN' }], units: [{ id: 'foto', x: 140, w: 26 }, { id: 'godis', x: 702, w: 102 }] },
+  { n: 2, name: 'LEKSAKER OCH MÖBLER', w: 840, shops: [{ id: 'leksaker', x: 14, label: 'LEKSAKSLÅDAN' }, { id: 'mobler', x: 606, label: 'MÖBELJÄTTEN' }], units: [{ id: 'bankomat', x: 130, w: 36 }] },
 ];
 const TOPF = FLOORS.length - 1;
 let FLOOR = 0;                                       // våningen man är på i gallerian
@@ -257,9 +264,9 @@ function loadShops() {
   return (SHOPLIB_P ||= Promise.all([
     import('./sf/js/city/map.js'), import('./sf/js/city/buildings-shops.js'), import('./sf/js/city/buildings-downtown.js'), import('./sf/js/city/buildings-leksaker.js'),
     import('./sf/js/scenes/shop-klader.js'), import('./sf/js/scenes/shop-skor.js'), import('./sf/js/scenes/shop-leksaker.js'), import('./sf/js/scenes/shop-ikea.js'),
-    import('./sf/js/scenes/room.js'), import('./sf/js/game.js'), import('./sf/js/scenes/ikea/art-transit.js'), import('./sf/js/city/props.js'), import('./sf/js/city/buildings-south.js'),
-  ]).then(([map, bs, bd, bl, kl, sk, le, ik, room, game, tr, props, bsouth]) => {
-    const ART = { ...bs.BUILDING_ART, ...bsouth.BUILDING_ART, ...bl.BUILDING_ART, ...bd.BUILDING_ART };
+    import('./sf/js/scenes/room.js'), import('./sf/js/game.js'), import('./sf/js/scenes/ikea/art-transit.js'), import('./sf/js/city/props.js'),
+  ]).then(([map, bs, bd, bl, kl, sk, le, ik, room, game, tr, props]) => {
+    const ART = { ...bs.BUILDING_ART, ...bl.BUILDING_ART, ...bd.BUILDING_ART };
     for (const f of FLOORS) {
       f.houses = f.shops.map((h) => {
         const b = map.ALL_BUILDINGS.find((x) => x.id === h.id), dx = h.x - b.x, dy = GBASE - map.baseOf(b);
@@ -270,7 +277,7 @@ function loadShops() {
       f.dnE = f.n > 0 ? { lx: ESC.down, ly: dly, sx: -1, sy: 1, run: ESC.run, clip: dly + 14, pit: [ESC.down - 140, ESC.down - 8, dly - 16, dly + 14], riders: [] } : null;
       f.lift = { x: LIFT_X, fy: GBASE, open: 0 };
     }
-    SHOPLIB = { artPos: map.artPos, baseOf: map.baseOf, allB: map.ALL_BUILDINGS, viewArt: ART, propsMod: props, room, katalogOf: game.katalogOf, tr,
+    SHOPLIB = { artPos: map.artPos, baseOf: map.baseOf, allB: map.ALL_BUILDINGS, propsMod: props, room, katalogOf: game.katalogOf, tr,
       make: { klader: kl.makeShopKlader, skor: sk.makeShopSkor, leksaker: le.makeShopLeksaker, mobler: ik.makeShopIkea } };
     buildGrid();
     return SHOPLIB;
@@ -281,37 +288,65 @@ function houseImg(h) {
   if (!h.img) { try { h.img = h.art.paint(h.b, false, { worn: 0, snow: false, season: 'sommar' }); } catch (e) { console.error(`fasaden ${h.id}:`, e); h.img = null; h.art = null; } }
   return h.img;
 }
-// gallerians våning: tak med lampor, ljus vägg med pelare, glastak över ljusgården, blankt stengolv
+// gallerians våning: tak med spotlights, ljus vägg, trapphusets glasvägg från golv till tak (glaset är
+// genomskinligt – utsikten ritas bakom väggen, se drawView) och blankt stengolv med solkatter
 const GAL_BG = {};
 function galleriaBG(f) {
   if (GAL_BG[f.n]) return GAL_BG[f.n];
-  const T = SHOPLIB.tr, Wf = f.w, P = new Pix(Wf, H);
+  const T = SHOPLIB.tr, Wf = f.w, P = new Pix(Wf, H), G0 = GL;
   for (let y = 0; y < GBASE; y++) for (let x = 0; x < Wf; x++) {
     let c = jit(0xf2ece0, x >> 2, y >> 3, 81, 0.015);
     if (y < 7) c = y === 6 ? 0x8a8478 : y === 5 ? 0xd8d0c2 : 0xece6da;
-    else if (x % 64 < 6) c = x % 64 === 0 ? 0xfffaf0 : x % 64 === 5 ? 0xb8b0a2 : 0xe2dacc;          // pelarna
+    else if (y < 13) c = y === 12 ? 0xb8b0a2 : y === 7 ? 0xfffaf0 : 0xe6dfd2;                        // takkoffern
     else if (y >= GBASE - 8) c = y === GBASE - 8 ? 0xb8ae9e : 0x9a8e7c;                              // sockeln
     P.px(x, y, c);
   }
-  for (let x = 32; x < Wf; x += 64) { P.rect(x - 6, 7, 12, 2, 0xfff6d0); P.ell(x, 12, 14, 5, 0xfff6d0, 0.22, 3); }   // taklamporna
-  // ljusgården: glastak upptill och övervåningens räcke/bjälke över rulltrappan uppåt
-  const ax0 = 168, ax1 = 590;
-  for (let y = 7; y < 40; y++) for (let x = ax0; x < ax1; x++) { let c = mix(0x8cc4ec, 0xd8eef6, (y - 7) / 33 + (bayer(x, y) - 0.5) * 0.15); if ((x - ax0) % 30 === 0 || (y - 7) % 11 === 0) c = 0x8a9098; P.px(x, y, c); }
-  P.hl(ax0, 40, ax1 - ax0, 0x6a7078);
+  for (let x = 16; x < Wf; x += 24) if (x < G0.x0 - 6 || x > G0.x1 + 6) { P.rect(x - 2, 10, 4, 2, 0xfffbe8); P.ell(x, 15, 9, 8, 0xfff6d0, 0.18, 3); }   // spotlights över butikerna
+  for (const px of [0, Wf - 6, G0.x0 - 9, G0.x1 + 3]) for (let y = 7; y < GBASE - 8; y++) for (let x = px; x < px + 6; x++) P.px(x, y, x === px ? 0xfffaf0 : x === px + 5 ? 0xb8b0a2 : 0xe2dacc);   // pelarna
+  // ---- trapphusets glasvägg ----
+  P.erase(G0.x0, G0.y0, G0.x1 - G0.x0, G0.y1 - G0.y0);
+  P.rect(G0.x0 - 3, 7, 3, GBASE - 7, 0x6a7078); P.vl(G0.x0 - 3, 7, GBASE - 7, 0xb8bec6);
+  P.rect(G0.x1, 7, 3, GBASE - 7, 0x6a7078); P.vl(G0.x1 + 2, 7, GBASE - 7, 0x4a5058);
+  P.hl(G0.x0 - 3, 7, G0.x1 - G0.x0 + 6, 0x5a6068);
+  for (let y = G0.y1; y < GBASE; y++) for (let x = G0.x0; x < G0.x1; x++) P.px(x, y, y === G0.y1 ? 0xc8ced6 : y === GBASE - 1 ? 0x3a3e46 : jit(0x6a7078, x >> 3, 0, 84, 0.03));   // bröstningen
+  for (let x = G0.x0 + 36; x < G0.x1; x += 36) { P.vl(x - 1, G0.y0, G0.y1 - G0.y0, 0x9aa2ac); P.vl(x, G0.y0, G0.y1 - G0.y0, 0x50565e); }   // spröjsarna
+  const ty = G0.y0 + 42; P.hl(G0.x0, ty, G0.x1 - G0.x0, 0x9aa2ac); P.hl(G0.x0, ty + 1, G0.x1 - G0.x0, 0x50565e);   // tvärposten
+  if (f.n > 0) {   // ledstången framför glaset på övervåningarna
+    const ry = GBASE - 22; P.hl(G0.x0, ry, G0.x1 - G0.x0, 0xe2e6ea); P.hl(G0.x0, ry + 1, G0.x1 - G0.x0, 0x8a929c);
+    for (let x = G0.x0 + 18; x < G0.x1; x += 36) P.vl(x, ry + 2, G0.y1 - ry - 2, 0x8a929c);
+  }
+  if (f.n === TOPF) for (let y = 0; y < 7; y++) for (let x = G0.x0; x < G0.x1; x++) P.px(x, y, (x - G0.x0) % 36 < 2 || y === 6 ? 0x6a7078 : mix(0x9cc8e8, 0xd8eef6, y / 7));   // glastaket
+  // hisschaktet av glas och stål ovanför hissdörren, med linorna
+  const sx0 = LIFT_X - 5, sx1 = LIFT_X + T.LIFT_W + 5, sTop = G0.y0, sBot = GBASE - T.LIFT_H - 19;
+  for (let y = sTop; y < sBot; y++) for (let x = sx0; x < sx1; x++) P.px(x, y, 0xd8eef6, 0.24);
+  for (let y = sTop; y + 18 <= sBot; y += 18) { P.line(sx0, y, sx1 - 1, y + 18, 0x8a929c, 0.75); P.line(sx1 - 1, y, sx0, y + 18, 0x8a929c, 0.75); P.hl(sx0, y, sx1 - sx0, 0x6a7078); }
+  P.rect(sx0 - 1, sTop, 2, sBot - sTop, 0x6a7078); P.rect(sx1 - 1, sTop, 2, sBot - sTop, 0x6a7078);
+  P.vl(LIFT_X + 11, sTop, sBot - sTop, 0x3a3e46, 0.7); P.vl(LIFT_X + 15, sTop, sBot - sTop, 0x3a3e46, 0.7);
+  // pendellamporna i trapphusets tak (på entréplanet hänger stjärnan i stället för en av dem)
+  for (const lx of f.n === 0 ? [272, 318, 566] : [272, 318, 520, 566]) {
+    P.vl(lx, 7, 12, 0x4a4e56); P.rect(lx - 2, 18, 5, 1, 0x4a4e56);
+    for (let y = 19; y < 25; y++) for (let x = -3; x <= 3; x++) if (x * x / 12 + (y - 22) ** 2 / 9 <= 1) P.px(lx + x, y, y < 21 ? 0xfffef0 : y < 23 ? 0xfff2c8 : 0xe8d8a8);
+    P.ell(lx, 23, 13, 9, 0xfff6d0, 0.2, 3);
+  }
   if (f.n < TOPF) T.paintSlab(P, 230, 348, SLAB_Y, `PLAN ${f.n + 1}`);
-  // golvet: stora blanka plattor med lampornas sken
+  // ---- golvet: stora blanka plattor med lampornas sken och solkatterna från glasväggen ----
   for (let y = GBASE; y < H; y++) for (let x = 0; x < Wf; x++) {
     const v = y - GBASE, row = v >> 3, lx = (x + (row & 1 ? 12 : 0)) % 24, ly = v % 8;
     let c = jit(0xe4ddd0, (x + (row & 1 ? 12 : 0)) / 24 | 0, row, 82, 0.03);
     if (lx === 0 || ly === 0) c = mul(c, 0.9); else if (ly === 1) c = mix(c, 0xffffff, 0.1);
-    if (((x - 32) % 64 + 64) % 64 < 10 && v < 26 && hash(x, y, 83) > 0.4) c = mix(c, 0xfffaf0, 0.18);
+    if ((x < G0.x0 || x > G0.x1) && ((x - 16) % 24 + 24) % 24 < 8 && v < 18 && hash(x, y, 83) > 0.45) c = mix(c, 0xfffaf0, 0.16);
     P.px(x, y, c);
+  }
+  for (let y = GBASE + 2; y < GBASE + 36; y++) {
+    const v = y - GBASE, k = 1 - v / 36, sh = Math.round(v * 0.55);
+    for (let p = G0.x0; p < G0.x1; p += 36) for (let x = p + 3 + sh; x < p + 34 + sh; x++) if (x < G0.x1 + 16 && bayer(x, y) < k * 0.85) P.px(x, y, 0xfffbea, 0.2);
   }
   for (let x = 0; x < Wf; x++) { P.px(x, GBASE, 0x000000, 0.25); P.px(x, GBASE + 1, 0x000000, 0.12); }
   if (f.dnE) T.paintPit(P, ...f.dnE.pit);
   T.paintLiftFrame(P, LIFT_X, GBASE, f.n);
-  // våningsskylten i ljusgården
+  // våningsskylten hänger i trapphuset
   const sgn = `PLAN ${f.n} - ${f.name}`, sw = textW(SMALL, sgn) + 12, sx = 452 - (sw >> 1);
+  P.vl(sx + 4, 7, 39, 0x6a7078); P.vl(sx + sw - 5, 7, 39, 0x6a7078);
   P.rect(sx, 46, sw, 11, 0x1d51a0); P.box(sx, 46, sw, 11, 0x0c2a5c); pixText(P, SMALL, sgn, sx + 6, 49, 0xf6d02f);
   const door = (x0, x1, label) => {   // glasdörrar med skylt (skolan och vägen hem på entréplanet)
     const top = GBASE - 44, mx = (x0 + x1) >> 1;
@@ -321,16 +356,26 @@ function galleriaBG(f) {
   };
   if (f.school) door(f.school[0], f.school[1], 'SKOLAN');
   if (f.home) door(f.home[0], f.home[1], 'HEM');
-  if (f.n === 0) {   // entréplanet: gallerians namn och vägvisaren
-    const nm = 'GALLERIA STJÄRNAN', tw = textW(BIG, nm), nx = 470 - (tw >> 1);
-    P.rect(nx - 8, 60, tw + 16, 16, 0x2a2440); P.box(nx - 8, 60, tw + 16, 16, 0xe8b230); pixText(P, BIG, nm, nx, 65, 0xffd23f);
+  if (f.n === 0) {   // entréplanet: gallerians namn på entréväggen, vägvisaren och den stora stjärnan i trapphuset
+    const nm = 'GALLERIA STJÄRNAN', tw = textW(BIG, nm), nx = 84 - (tw >> 1);
+    P.rect(nx - 8, 18, tw + 16, 16, 0x2a2440); P.box(nx - 8, 18, tw + 16, 16, 0xe8b230); pixText(P, BIG, nm, nx, 23, 0xffd23f);
+    for (let x = nx - 6; x < nx + tw + 8; x += 4) P.px(x, 19, 0xfff4c0);
     const bx = 82, by = 44; P.rect(bx, by, 80, 70, 0x2a2440); P.box(bx, by, 80, 70, 0x9aa0a8);
     pixText(P, SMALL, 'VÅNINGAR', bx + 6, by + 5, 0xffd23f);
-    const rows = [['2', 'LEKSAKSLÅDAN'], ['2', 'MÖBELJÄTTEN'], ['1', 'KLÄDAFFÄREN'], ['1', 'SKOBUTIKEN'], ['0', 'ENTRÉ']];
-    rows.forEach(([n, t2], i) => { P.rect(bx + 5, by + 16 + i * 10, 7, 7, 0xf6cf2a); pixText(P, SMALL, n, bx + 7, by + 17 + i * 10, 0x1d51a0); pixText(P, SMALL, t2, bx + 15, by + 17 + i * 10, 0xf4f1ea); });
+    const rows = [['2', 'LEKSAKSLÅDAN'], ['2', 'MÖBELJÄTTEN'], ['1', 'KLÄDAFFÄREN'], ['1', 'SKOBUTIKEN'], ['1', 'GODIS'], ['0', 'BLOMMOR + KIOSK']];
+    rows.forEach(([n, t2], i) => { P.rect(bx + 5, by + 15 + i * 9, 7, 7, 0xf6cf2a); pixText(P, SMALL, n, bx + 7, by + 16 + i * 9, 0x1d51a0); pixText(P, SMALL, t2, bx + 15, by + 16 + i * 9, 0xf4f1ea); });
+    const stx = 520, sty = 34;   // stjärnan: gul, med blank kant, i två linor från taket
+    P.vl(stx - 6, 7, 20, 0x8a8e96); P.vl(stx + 6, 7, 20, 0x8a8e96);
+    const pts = Array.from({ length: 10 }, (_, i) => { const a = -Math.PI / 2 + i * Math.PI / 5, r = i & 1 ? 5.5 : 13; return [Math.cos(a) * r, Math.sin(a) * r]; });
+    const inside = (x, y) => { let o = false; for (let i = 0, j = 9; i < 10; j = i++) { const [xi, yi] = pts[i], [xj, yj] = pts[j]; if ((yi > y) !== (yj > y) && x < (xj - xi) * (y - yi) / (yj - yi) + xi) o = !o; } return o; };
+    for (let y = -13; y <= 13; y++) for (let x = -13; x <= 13; x++) {
+      if (!inside(x + 0.5, y + 0.5)) continue;
+      const edge = !inside(x + 1.5, y + 0.5) || !inside(x - 0.5, y + 0.5) || !inside(x + 0.5, y + 1.5) || !inside(x + 0.5, y - 0.5);
+      P.px(stx + x, sty + y, edge ? 0xc8901a : x + y < -3 ? 0xfff2a0 : x > 1 && y > 0 ? 0xe8a820 : 0xffd23f);
+    }
   }
   const bg = P.flush(), c = bg.getContext('2d');
-  for (const [x0, x1] of f.windows || []) paintWindowWall(c, f, x0, x1);
+  for (const u of f.units || []) { const U = unitOf(u); c.drawImage(U.back, U.ox, 0); }
   paintBanners(c, f);
   return (GAL_BG[f.n] = bg);
 }
@@ -654,8 +699,8 @@ function drawHouse(c, h, t) {
   try { h.art?.live?.(c, h.b, stOf(h, t)); } catch (e) { console.error(`fasaden ${h.id}:`, e); h.art = { ...h.art, live: null }; }
   c.restore();
 }
-let camX = 0;
-const camFor = () => (P.scene === 'galleria' ? Math.max(0, Math.min(FL().w - W, Math.round(P.x - W / 2))) : 0);
+let camX = 0, CAM_OVR = null;   // (CAM_OVR: testkrokarna kan låsa kameran)
+const camFor = () => (P.scene === 'galleria' ? Math.max(0, Math.min(FL().w - W, CAM_OVR ?? Math.round(P.x - W / 2))) : 0);
 function draw(now) {
   const t = now / 1000, sc = P.scene;
   ctx.setTransform(1, 0, 0, 1, 0, 0); ctx.imageSmoothingEnabled = false; ctx.clearRect(0, 0, cv.width, cv.height);
@@ -675,7 +720,10 @@ function draw(now) {
   }
   camX = camFor();
   ctx.translate(-camX, 0);   // bara gallerian är bredare än bilden
-  if (sc === 'galleria') { if (SHOPLIB) ctx.drawImage(galleriaBG(FL()), 0, 0); else fill(camX, 0, W, H, '#2a2440'); }
+  if (sc === 'galleria') {
+    if (SHOPLIB) { const f0 = FL(); try { drawView(ctx, viewOf(f0), t, camX); } catch (e) { if (!VIEW_ERR) console.error('utsikten:', e); VIEW_ERR = true; } ctx.drawImage(galleriaBG(f0), 0, 0); }
+    else fill(camX, 0, W, H, '#2a2440');
+  }
   else ctx.drawImage(BG[sc], 0, 0);
   if (sc === 'klass') {
     chalkBoard(t);
@@ -696,6 +744,7 @@ function draw(now) {
     if (SHOPLIB) {
       for (const d of floorDecor(f)) list.push({ fy: d.y, draw: (c) => drawDecor(c, d) });
       for (const n of crowdFor(f)) list.push({ fy: n.y + (n.mode === 'sit' ? 0.01 : 0), draw: (c) => drawNpc(c, n, t) });
+      for (const u of f.units || []) { const U = unitOf(u); list.push({ fy: GBASE - 7, draw: (c) => drawUnitLive(c, U, t, GBASE) }, { fy: GBASE + 3, draw: (c) => c.drawImage(U.front, U.ox, 0) }); }
     }
     if (SHOPLIB) for (const h of f.houses) {
       list.push({ fy: GBASE - 0.5, draw: (c) => drawHouse(c, h, t) });
@@ -820,7 +869,7 @@ function endLesson() {
 // fönster man ser ut igenom … precis som en galleria". Föremålen är stadens egna (city/props.js
 // createProps): samma instanser som i Pixelstaden, flyttade på plats (translate) – glasståndet med
 // glassmenyn och parasollborden, fontänen, parkbänkarna, krukorna, papperskorgarna, träden i galler,
-// gunghästen och kaffevagnen. Genom glasväggarna syns stadens riktiga hus på andra sidan gatan.
+// gunghästen och kaffevagnen. Genom trapphusets glasvägg syns staden (utsikt.js).
 const PENV = { t: 0, hour: 12, dark: 0, day: 1, weather: { season: 'sommar', wind: 0 }, people: [] };
 let PROPS = null;
 function propsLib() {
@@ -830,82 +879,82 @@ function propsLib() {
 const propNear = (k, x, y) => propsLib().items().filter((i) => i.kind === k).sort((a, b) => Math.hypot(a.x - x, a.y - y) - Math.hypot(b.x - x, b.y - y))[0] || null;
 // en våningsplan: [sort, stadens x, y (vilket exemplar), gallerians x, y, hinder [b, h] (null = inget)]
 const DECOR = {
-  0: [['kruka', 178, 193, 74, GBASE + 6, [12, 6]], ['kruka', 566, 193, 404, GBASE + 6, [12, 6]],
-    ['fontän', 934, 379, 486, GBASE + 52, [64, 32]], ['kruka', 242, 193, 436, GBASE + 6, [12, 6]], ['kruka', 178, 193, 536, GBASE + 6, [12, 6]], ['bänk', 718, 195, 432, GBASE + 74, [30, 6]], ['bänk', 1480, 195, 540, GBASE + 74, [30, 6]],
-    ['papperskorg', 1168, 213, 410, GBASE + 74, [8, 4]], ['papperskorg', 560, 301, 846, GBASE + 70, [8, 4]],
-    ['lind', 1792, 352, 600, GBASE + 32, [20, 8]], ['korsbar', 24, 213, 896, GBASE + 32, [20, 8]],
-    ['blomlåda', 36, 193, 120, GBASE + 4, [32, 6]], ['återvinning', 3586, 560, 930, GBASE + 74, [30, 8]]],
-  1: [['kruka', 178, 193, 158, GBASE + 6, [12, 6]], ['papperskorg', 1168, 213, 170, GBASE + 70, [8, 4]],
-    ['bänk', 718, 195, 752, GBASE + 70, [30, 6]], ['bänk', 1480, 195, 826, GBASE + 70, [30, 6]],
-    ['blomlåda', 36, 193, 736, GBASE + 4, [32, 6]], ['blomlåda', 114, 193, 800, GBASE + 4, [32, 6]], ['blomlåda', 648, 193, 864, GBASE + 4, [32, 6]],
-    ['kruka', 242, 193, 710, GBASE + 6, [12, 6]], ['papperskorg', 560, 301, 790, GBASE + 74, [8, 4]], ['lind', 1066, 213, 884, GBASE + 40, [20, 8]]],
-  2: [['gunghäst', 1094, 455, 156, GBASE + 46, [22, 8]], ['gunghäst', 1094, 455, 196, GBASE + 64, [22, 8]], ['kruka', 178, 193, 148, GBASE + 6, [12, 6]],
-    ['kaffevagn', 2318, 346, 872, GBASE + 30, [36, 10]], ['kafébord', 975, 201, 930, GBASE + 66, [30, 8]], ['kafébord', 1040, 201, 990, GBASE + 70, [30, 8]],
-    ['kruka', 242, 193, 846, GBASE + 6, [12, 6]], ['kruka', 566, 193, 1024, GBASE + 6, [12, 6]], ['papperskorg', 1168, 213, 958, GBASE + 30, [8, 4]],
-    ['blomlåda', 648, 193, 1000, GBASE + 4, [32, 6]], ['papperskorg', 560, 301, 590, GBASE + 74, [8, 4]]],
+  0: [['kruka', 178, 193, 74, GBASE + 6, [12, 6]], ['blomlåda', 36, 193, 120, GBASE + 4, [32, 6]], ['bänk', 718, 195, 112, GBASE + 70, [30, 6]], ['papperskorg', 1168, 213, 146, GBASE + 72, [8, 4]],
+    ['fontän', 934, 379, 420, GBASE + 54, [64, 32]], ['bänk', 718, 195, 300, GBASE + 72, [30, 6]], ['bänk', 1480, 195, 470, GBASE + 76, [30, 6]],
+    ['papperskorg', 1168, 213, 386, GBASE + 74, [8, 4]], ['papperskorg', 560, 301, 772, GBASE + 74, [8, 4]],
+    ['blomlåda', 114, 193, 416, GBASE + 4, [32, 6]], ['blomlåda', 648, 193, 496, GBASE + 4, [32, 6]], ['kruka', 242, 193, 586, GBASE + 6, [12, 6]]],
+  1: [['kruka', 178, 193, 178, GBASE + 6, [12, 6]], ['papperskorg', 1168, 213, 340, GBASE + 72, [8, 4]],
+    ['bänk', 718, 195, 252, GBASE + 72, [30, 6]], ['bänk', 1480, 195, 486, GBASE + 74, [30, 6]],
+    ['blomlåda', 36, 193, 630, GBASE + 4, [32, 6]], ['kruka', 242, 193, 410, GBASE + 6, [12, 6]], ['kruka', 566, 193, 590, GBASE + 6, [12, 6]],
+    ['papperskorg', 560, 301, 700, GBASE + 74, [8, 4]], ['lind', 1066, 213, 598, GBASE + 68, [20, 8]]],
+  2: [['gunghäst', 1094, 455, 56, GBASE + 50, [22, 8]], ['gunghäst', 1094, 455, 100, GBASE + 66, [22, 8]], ['kruka', 178, 193, 178, GBASE + 6, [12, 6]],
+    ['kaffevagn', 2318, 346, 230, GBASE + 28, [36, 10]], ['kafébord', 975, 201, 282, GBASE + 52, [30, 8]], ['kafébord', 1040, 201, 330, GBASE + 68, [30, 8]], ['kafébord', 975, 201, 232, GBASE + 70, [30, 8]],
+    ['kruka', 242, 193, 334, GBASE + 6, [12, 6]], ['kruka', 566, 193, 594, GBASE + 6, [12, 6]], ['papperskorg', 1168, 213, 398, GBASE + 30, [8, 4]],
+    ['blomlåda', 648, 193, 424, GBASE + 4, [32, 6]], ['papperskorg', 560, 301, 592, GBASE + 74, [8, 4]]],
 };
-const GLASS_AT = { floor: 0, x: 712, y: GBASE + 50 };   // glasståndet med allt runtom (samma förskjutning)
+// egna saker (inte stadens): myntkikarna vid glasväggen högst upp
+const OWN_DECOR = { 2: [{ kind: 'kikare', x: 300, y: GBASE + 10, blk: [8, 4] }, { kind: 'kikare', x: 568, y: GBASE + 10, blk: [8, 4] }] };
+const GLASS_AT = { floor: 0, x: 558, y: GBASE + 52 };   // glasståndet med menyn, ett bord och bänken (samma förskjutning)
 function floorDecor(f) {
   if (f.decor) return f.decor;
   const L = propsLib(); if (!L) return [];
   const out = [];
   for (const [k, cx, cy, x, y, blk] of DECOR[f.n] || []) { const it = propNear(k, cx, cy); if (it) out.push({ it, x, y, blk, kind: k }); }
+  for (const d of OWN_DECOR[f.n] || []) out.push({ ...d, own: true });
   if (f.n === GLASS_AT.floor) {
     const g = propNear('glasstånd', 412, 453);
-    if (g) for (const it of L.items()) if (/^glass/.test(it.kind) && Math.abs(it.x - g.x) < 120 && Math.abs(it.y - g.y) < 50) {
+    if (g) for (const it of L.items()) if (/^glass/.test(it.kind) && it.x - g.x > -80 && it.x - g.x < 76 && Math.abs(it.y - g.y) < 50) {
       const x = GLASS_AT.x + (it.x - g.x), y = GLASS_AT.y + (it.y - g.y);
       out.push({ it, x, y, kind: it.kind, blk: it.kind === 'glasstånd' ? [54, 14] : it.kind === 'glassmeny' ? [44, 6] : it.kind === 'glassbord' ? [14, 6] : it.kind === 'glassbänk' ? [30, 6] : null });
     }
   }
   return (f.decor = out);
 }
-const decorBlocks = (f) => (f.decor || []).filter((d) => d.blk).map((d) => [d.x - (d.blk[0] >> 1), d.y - d.blk[1], d.x + (d.blk[0] >> 1), d.y + 1]);
-const drawDecor = (c, d) => { c.save(); c.translate(d.x - d.it.x, d.y - d.it.y); try { d.it.draw(c); } catch (e) { console.error(d.kind, e); d.it = { ...d.it, draw() {} }; } c.restore(); };
-
-// ---------- glasväggarna: utsikt över gatan med stadens riktiga hus ----------
-const VIEW_HOUSES = ['hem', 'bostad', 'pizzeria', 'mat', 'bank', 'bio', 'frisor', 'djuraffar', 'posten', 'kebab'];
-function paintWindowWall(c, f, x0, x1) {
-  const y0 = 46, y1 = GBASE - 8, T = SHOPLIB;
-  c.save(); c.beginPath(); c.rect(x0, y0, x1 - x0, y1 - y0); c.clip();
-  // himlen
-  for (let y = y0; y < y1; y++) { const k = (y - y0) / (y1 - y0); c.fillStyle = `rgb(${Math.round(128 + 92 * k)},${Math.round(180 + 52 * k)},${Math.round(226 + 18 * k)})`; c.fillRect(x0, y, x1 - x0, 1); }
-  c.fillStyle = 'rgba(255,255,255,0.9)'; for (let i = 0; i < 4; i++) { const cx = x0 + 30 + i * 70 + (f.n * 23) % 40, cy = y0 + 8 + (i % 2) * 7; c.fillRect(cx - 14, cy, 28, 3); c.fillRect(cx - 8, cy - 2, 16, 2); }
-  // husen på andra sidan gatan (högre upp i gallerian ser man mer av taken)
-  const street = y1 - 10 + f.n * 34;
-  let hx = x0 - 30 + (f.n * 57) % 50;
-  for (let i = 0; hx < x1; i++) {
-    const kind = VIEW_HOUSES[(i + f.n * 3) % VIEW_HOUSES.length], b = T.allB.find((x) => x.id === kind), art = b && T.viewArt[b.kind];
-    if (!b || !art) { hx += 90; continue; }
-    let img = null; try { img = (art._imgs ||= {})[kind] ||= art.paint(b, false, { worn: 0, snow: false, season: 'sommar' }); } catch (e) { console.error(`utsikten ${kind}:`, e); }
-    if (!img) { hx += 90; continue; }
-    const p = T.artPos(b, img); c.save(); c.translate(hx - b.x, street - T.baseOf(b)); c.drawImage(img, p.x, p.y); c.restore();
-    hx += b.w + 10;
-  }
-  // trottoaren och gatan nedanför husen, och träden längs gatan
-  c.fillStyle = '#b6afa2'; c.fillRect(x0, street, x1 - x0, 8); c.fillStyle = '#86807a'; c.fillRect(x0, street + 8, x1 - x0, 2); c.fillStyle = '#46484f'; c.fillRect(x0, street + 10, x1 - x0, 60);
-  for (let x = x0 + 8; x < x1; x += 22) { c.fillStyle = '#e8e4da'; c.fillRect(x, street + 22, 12, 2); }
-  const tree = propNear('lind', 150, 213);
-  if (tree) for (let x = x0 + 40; x < x1 - 10; x += 96) { c.save(); c.translate(x - tree.x, street + 6 - tree.y); tree.draw(c); c.restore(); }
-  // glaset: en blå skiftning och snedställda reflexer
-  c.fillStyle = 'rgba(170,215,240,0.16)'; c.fillRect(x0, y0, x1 - x0, y1 - y0);
-  c.fillStyle = 'rgba(255,255,255,0.22)';
-  for (let x = x0 - 40; x < x1; x += 46) for (let i = 0; i < 26; i++) c.fillRect(x + i + ((i / 3) | 0), y1 - 6 - i * 3, 3, 1);
-  c.restore();
-  // ramarna: stålprofiler var 40:e pixel och en tvärslå
-  c.fillStyle = '#6a7078'; for (let x = x0; x <= x1; x += 40) c.fillRect(Math.min(x, x1 - 2), y0, 2, y1 - y0);
-  c.fillRect(x0, y0, x1 - x0, 2); c.fillRect(x0, y0 + 30, x1 - x0, 2); c.fillRect(x0, y1 - 2, x1 - x0, 3);
-  c.fillStyle = '#b8bec6'; for (let x = x0; x <= x1; x += 40) c.fillRect(Math.min(x, x1 - 2), y0, 1, y1 - y0);
+const decorBlocks = (f) => [...(f.decor || []).filter((d) => d.blk).map((d) => [d.x - (d.blk[0] >> 1), d.y - d.blk[1], d.x + (d.blk[0] >> 1), d.y + 1]), ...(f.units || []).flatMap((u) => unitOf(u).blocks)];
+function drawKikare(c, d) {   // myntkikaren vid glaset, sedd bakifrån
+  const { x, y } = d, f = (a, b, w, h, col) => { c.fillStyle = col; c.fillRect(x + a, y + b, w, h); };
+  f(-3, -1, 7, 1, '#24483a'); f(-1, -12, 2, 11, '#2e5a3e'); f(1, -12, 1, 11, '#24483a');
+  f(-3, -15, 6, 4, '#3a6e4c'); f(-3, -15, 6, 1, '#5a8e6c'); f(1, -13, 2, 1, '#c8a040');
+  f(-5, -20, 11, 5, '#2a4a36'); f(-5, -20, 11, 1, '#4a7a5a'); f(-4, -19, 3, 3, '#1a1c22'); f(2, -19, 3, 3, '#1a1c22'); f(-4, -19, 1, 1, '#9aa0a8'); f(2, -19, 1, 1, '#9aa0a8');
 }
-// banderoller i ljusgården
+const drawDecor = (c, d) => { if (d.own) return drawKikare(c, d); c.save(); c.translate(d.x - d.it.x, d.y - d.it.y); try { d.it.draw(c); } catch (e) { console.error(d.kind, e); d.it = { ...d.it, draw() {} }; } c.restore(); };
+
+// ---------- utsikten genom glasväggen (utsikt.js) och småbutikerna (smabutiker.js) ----------
+// Horisonten ligger i ögonhöjd på alla våningar; högre upp hamnar kvarteren (mid = deras marklinje)
+// och hustaken närmast (near) längre ner i glaset, och himlen blir större.
+const GL = { x0: TRAP.x0, x1: TRAP.x1, y0: 8, y1: GBASE - 6 };
+const VIEWP = [
+  { hz: 104, mid: 104, near: null, cloudY: [10, 50] },
+  { hz: 100, mid: 132, near: 106, cloudY: [10, 72] },
+  { hz: 104, mid: 152, near: 110, cloudY: [12, 86] },
+];
+const VIEWS = {};
+let VIEW_ERR = false;
+const viewOf = (f) => (VIEWS[f.n] ||= makeView({ n: f.n, w: f.w, viewW: W, ...GL, ...VIEWP[f.n] }));
+const unitOf = (u) => (u.art ||= makeUnit(u, GBASE));
+function unitClick(u) {   // gå fram till butiken: expediten svarar (fotoautomaten blixtrar, bankomaten visar pengarna)
+  const U = unitOf(u), [ax, ay] = U.spot;
+  walkTo(ax, ay, () => {
+    if (!near(ax, ay)) return;
+    P.dir = 'up';
+    const d = U.d;
+    if (d.atm) { say('u', { x: u.x + (u.w >> 1), y: GBASE - 70 }, null, `DU HAR ${fmt(G.money)} I PLÅNBOKEN.`); return; }
+    if (d.booth) U.flash = performance.now() / 1000;
+    U.line = ((U.line ?? -1) + 1) % d.lines.length;
+    say('u', { x: U.keeper ? U.keeper.x : u.x + (u.w >> 1), y: GBASE - (U.keeper ? 46 : 64) }, null, d.lines[U.line]);
+  });
+}
+// banderoller som hänger från taket i trapphuset
 function paintBanners(c, f) {
-  const B = f.n === 0 ? [['VÄLKOMMEN', '#d83a4a'], ['REA -30%', '#2a6aba']] : f.n === 1 ? [['NYA SKOR', '#2a8a4a'], ['HÖSTMODE', '#d87a1a']] : [['LEKSAKER', '#8e5bd1'], ['FIKA', '#d83a4a']];
-  B.forEach(([s, col], i) => {
-    const x = 214 + i * 150, w = textW(SMALL, s) + 10;
-    c.fillStyle = '#4a4e56'; c.fillRect(x + 2, 40, 1, 8); c.fillRect(x + w - 3, 40, 1, 8);
+  const B = f.n === 0 ? [['VÄLKOMMEN', '#d83a4a', 186]] : f.n === 1 ? [['NYA SKOR', '#2a8a4a', 186], ['HÖSTMODE', '#d87a1a', 532]] : [['LEKSAKER', '#8e5bd1', 186], ['FIKA', '#d83a4a', 548]];
+  for (const [s, col, x] of B) {
+    const w = textW(SMALL, s) + 10;
+    c.fillStyle = '#6a7078'; c.fillRect(x + 2, 7, 1, 41); c.fillRect(x + w - 3, 7, 1, 41);
     c.fillStyle = col; c.fillRect(x, 48, w, 22); c.fillStyle = 'rgba(0,0,0,0.25)'; c.fillRect(x, 69, w, 1);
+    c.fillStyle = 'rgba(255,255,255,0.25)'; c.fillRect(x, 48, w, 1);
     for (let k = 0; k < w; k += 4) { c.fillStyle = col; c.fillRect(x + k, 70, 2, 2); }
     ctxText(c, SMALL, s, x + 5, 56, '#ffffff');
-  });
+  }
 }
 
 // ---------- folket ----------
@@ -926,8 +975,10 @@ function spotsOf(f) {   // ställen folk går till: [x, y, sätt ('look' | 'sit'
     if (d.kind === 'fontän') S.push([d.x - 40, d.y, 'stand', 'right'], [d.x + 40, d.y, 'stand', 'left'], [d.x, d.y + 12, 'stand', 'up']);
     if (d.kind === 'glasstånd') S.push([d.x, d.y + 10, 'stand', 'up'], [d.x - 12, d.y + 16, 'stand', 'up']);
     if (d.kind === 'kaffevagn') S.push([d.x, d.y + 12, 'stand', 'up']);
+    if (d.kind === 'kikare') S.push([d.x, d.y + 7, 'stand', 'up']);
   }
-  for (const w of f.windows || []) for (let x = w[0] + 30; x < w[1] - 20; x += 50) S.push([x, GBASE + 8, 'look', 'up']);
+  for (let x = GL.x0 + 14; x < GL.x1 - 8; x += 26) if (!(f.upE && x > ESC.up - 12 && x < ESC.up + 142) && !(x > LIFT_X - 14 && x < LIFT_X + 42)) S.push([x, GBASE + 8, 'look', 'up']);   // vid glasväggen
+  for (const u of f.units || []) { const U = unitOf(u); S.push([U.spot[0], U.spot[1], 'look', 'up']); if (U.keeper) S.push([U.spot[0], GBASE + 7, 'enter', 'up']); }
   if (f.upE) S.push([f.upE.lx - 10, f.upE.ly, 'ride', 'right']);
   for (let i = 0; i < 6; i++) S.push([40 + Math.random() * (f.w - 80), GBASE + 14 + Math.random() * 60, 'stand', pick(['down', 'left', 'right'])]);
   return S;
@@ -1159,7 +1210,7 @@ function goScene(name, from) {
   if (name === 'galleria') {
     const shop = /^shop:/.test(from || '') ? from.slice(5) : null;
     if (shop) { FLOOR = Math.max(0, floorOfShop(shop)); const h = FL().houses?.find((x) => x.id === shop); [P.x, P.y] = [h ? h.door.x : 100, GBASE + 12]; P.dir = 'down'; }
-    else if (from === 'hem') { FLOOR = 0; [P.x, P.y] = [928, GBASE + 12]; P.dir = 'down'; }
+    else if (from === 'hem') { FLOOR = 0; [P.x, P.y] = [(FLOORS[0].home[0] + FLOORS[0].home[1]) >> 1, GBASE + 12]; P.dir = 'down'; }
     else { FLOOR = 0; [P.x, P.y] = [38, GBASE + 12]; P.dir = 'down'; }
     loadShops().then(() => { if (P.scene === 'galleria') { buildGrid(); updatePill(); } }).catch(() => {});
   } else if (name === 'hem') { [P.x, P.y] = [40, 200]; P.dir = 'up'; loadShops().then(() => homeStore()).catch(() => {}); }
@@ -1192,6 +1243,7 @@ function hit(x, y) {
     if (x >= LIFT_X - 6 && x <= LIFT_X + 40 && y >= GBASE - 56 && y <= GBASE + 8) return { t: 'lift', label: 'HISSEN' };
     if (f.upE && x >= ESC.up - 20 && x <= ESC.up + 130 && y >= SLAB_Y - 8 && y <= f.upE.ly + 6) return { t: 'up', label: `RULLTRAPPA UPP TILL PLAN ${f.n + 1}` };
     if (f.dnE && x >= f.dnE.pit[0] && x <= ESC.down + 22 && y >= f.dnE.pit[2] - 16 && y <= f.dnE.pit[3] + 4) return { t: 'down', label: `RULLTRAPPA NER TILL PLAN ${f.n - 1}` };
+    for (const u of f.units || []) if (x >= u.x && x <= u.x + u.w && y >= GBASE - UNIT_H - 2 && y <= GBASE + 6) return { t: 'unit', u, label: UNITS[u.id].label };
     for (const h of f.houses || []) if (x >= h.x - 4 && x <= h.x + h.w + 4 && y >= GBASE - 120 && y <= GBASE + 6) return { t: 'house', h, label: h.label };
     if (y >= GBASE + 4) return { t: 'floor' };
   } else {
@@ -1225,6 +1277,7 @@ cv.addEventListener('click', (e) => {
   else if (h.t === 'board') teacherSay(P.seated ? 'SVARA I RUTAN, {P}!' : 'UPPGIFTEN KOMMER NÄR DU SITTER.');
   else if (h.t === 'door') { if (P.seated) standUp(); goGalleria(); }
   else if (h.t === 'house') { const hx = h.h.door.x, hy = GBASE + 7; walkTo(hx, hy, () => { if (near(hx, hy)) { P.dir = 'up'; setTimeout(() => { if (P.scene === 'galleria' && !SHOP && near(hx, hy)) enterShop(h.h.id); }, 180); } }); }
+  else if (h.t === 'unit') unitClick(h.u);
   else if (h.t === 'up') rideUp();
   else if (h.t === 'down') rideDown();
   else if (h.t === 'lift') liftDialog();
@@ -1510,7 +1563,7 @@ let pillT = 0;
 const loop = (now) => { const dt = Math.min(0.05, (now - last) / 1000); last = now; update(dt); chatter(now); draw(now); if (SHOP && now - pillT > 400) { pillT = now; updatePill(); } requestAnimationFrame(loop); };
 requestAnimationFrame(loop);
 window.__ps = {
-  state: () => ({ scene: P.scene, seated: P.seated, x: P.x, y: P.y, stars: STARS, money: G.money, wardrobe: G.wardrobe.length, toys: Object.keys(G.toys || {}).length, storage: G.storage.length, placed: PLACED, floor: FLOOR, shop: SHOP && SHOP.id, ride: RIDE && (RIDE.kind + ':' + (RIDE.st || RIDE.d)), me: ME && ME.name, kid: ME && ME.look.kid, ans: D.q && D.q.opts.findIndex((o) => o.value === D.q.ans), lesson: LES.results.length, panel: !panel.hidden, modal: modalUp(), bubbles: BUBS.map((b) => b.str) }),
+  state: () => ({ scene: P.scene, seated: P.seated, x: P.x, y: P.y, stars: STARS, money: G.money, wardrobe: G.wardrobe.length, toys: Object.keys(G.toys || {}).length, storage: G.storage.length, placed: PLACED, floor: FLOOR, shop: SHOP && SHOP.id, ride: RIDE && (RIDE.kind + ':' + (RIDE.st || RIDE.d)), me: ME && ME.name, kid: ME && ME.look.kid, ans: D.q && D.q.opts.findIndex((o) => o.value === D.q.ans), lesson: LES.results.length, panel: !panel.hidden, modal: modalUp(), bubbles: BUBS.map((b) => b.str), cam: camX, npcs: P.scene === 'galleria' && SHOPLIB ? crowdFor(FL()).map((n) => [Math.round(n.x), Math.round(n.y), n.mode]) : [] }),
   give: (n) => { G.money += n; G.save(); updatePill(); }, goScene, walkTo, enterShop, rideUp, rideDown, liftTo: (n) => { P.x = LIFT_X + 13; P.y = GBASE + 9; RIDE = { kind: 'lift', st: 'open', t: 0, to: n }; },
-  lib: () => !!SHOPLIB, hit, G, lvl: (tab, i) => { D.tab = tab; D.lvl[tab] = i; LES = { results: [] }; newQ(); }, levels: () => Object.fromEntries(Object.entries(LEVELS).map(([k, L]) => [k, L.length])),
+  lib: () => !!SHOPLIB, hit, G, cam: (x) => { CAM_OVR = x; }, floor: (n) => { switchFloor(n); P.x = LIFT_X + 13; P.y = GBASE + 12; }, floorW: () => FL().w, lvl: (tab, i) => { D.tab = tab; D.lvl[tab] = i; LES = { results: [] }; newQ(); }, levels: () => Object.fromEntries(Object.entries(LEVELS).map(([k, L]) => [k, L.length])),
 };
