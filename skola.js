@@ -1255,7 +1255,7 @@ function enterShop(id) {
   if (!SHOPLIB?.make[id]) return;
   A.avatar = cleanAvatar({ ...ME }); A.game = G; A.pxs = scale; A.sceneName = id;
   panel.hidden = true; homePanel.hidden = true; BUBS = []; hover = null; RIDE = null;
-  try { SHOP = { id, scene: null }; SHOP.scene = A.scene = SHOPLIB.make[id](A, {}); SHOP.scene.enter?.(); }
+  try { SHOP = { id, scene: null, t0: performance.now() }; SHOP.scene = A.scene = SHOPLIB.make[id](A, {}); SHOP.scene.enter?.(); }
   catch (e) { console.error(`butiken ${id}:`, e); SHOP = null; A.scene = null; toast('🚪 Butiken gick inte att öppna just nu.', 'bad'); return; }
   fadeT = performance.now(); updatePill(); renderBelow();
 }
@@ -1266,6 +1266,8 @@ function leaveShop() {
   if (A.avatar?.look && A.avatar.look !== ME.look) ME = cleanAvatar({ ...ME, look: A.avatar.look });   // kläderna man tog på i butiken
   save();
   goScene('galleria', 'shop:' + id);
+  LEFT = { id, until: performance.now() + 1500 };
+  setTimeout(() => { shopTap = false; }, 400);   // (gick man ut utan klick ska nästa klick i gallerian fungera)
 }
 
 // ---------- ditt rum: möblerna från Möbeljätten (Snabbfilens förråd G.storage) ----------
@@ -1362,9 +1364,17 @@ function hit(x, y) {
 const toScreen = (e) => { const r = cv.getBoundingClientRect(); return [(e.clientX - r.left) * W / r.width, (e.clientY - r.top) * H / r.height]; };
 const toWorld = (e) => { const [x, y] = toScreen(e); return [x + camX, y]; };
 // i en butik får butiksscenen pekaren (down/move/up i spelpixlar) och tangenterna, som i spelet
-cv.addEventListener('pointerdown', (e) => { if (!SHOP || modalUp()) return; const [x, y] = toScreen(e); try { cv.setPointerCapture(e.pointerId); } catch { /* ok */ } SHOP.scene.down?.(x, y); });
+// En tryckning som börjar i en butik hör till butiken. Står man redan på dörrmattan går man ut direkt när man
+// trycker på dörren – och klicket som webbläsaren skickar efteråt fick då inte landa på butikens fasad i
+// gallerian (då gick figuren rakt in igen).
+// Barn trycker gärna två gånger: i gallerian står butikens fasad precis där dörren UT låg inne i butiken, så
+// det andra trycket gick rakt in igen (Carl 2026-10-08). Strax efter att man gått ut leder ett tryck på samma
+// butik därför några steg ut i gallerian i stället (LEFT), och de första 0,5 sekunderna inne i en butik räknas
+// inte (då kunde ett dubbeltryck på fasaden trycka på dörren UT direkt).
+let shopTap = false, LEFT = null;
+cv.addEventListener('pointerdown', (e) => { shopTap = !!SHOP; if (!SHOP || modalUp() || performance.now() - SHOP.t0 < 500) return; const [x, y] = toScreen(e); try { cv.setPointerCapture(e.pointerId); } catch { /* ok */ } SHOP.scene.down?.(x, y); });
 cv.addEventListener('pointermove', (e) => { if (!SHOP || modalUp()) return; const [x, y] = toScreen(e); SHOP.scene.move?.(x, y); });
-cv.addEventListener('pointerup', (e) => { if (!SHOP || modalUp()) return; const [x, y] = toScreen(e); SHOP.scene.up?.(x, y); });
+cv.addEventListener('pointerup', (e) => { if (!SHOP || modalUp() || performance.now() - SHOP.t0 < 500) return; const [x, y] = toScreen(e); SHOP.scene.up?.(x, y); });
 window.addEventListener('keydown', (e) => {
   if (!SHOP || modalUp() || e.ctrlKey || e.altKey || e.metaKey || /INPUT|TEXTAREA|SELECT/.test(document.activeElement?.tagName || '')) return;
   SHOP.scene.key?.(e.key);
@@ -1372,6 +1382,7 @@ window.addEventListener('keydown', (e) => {
 cv.addEventListener('mousemove', (e) => { if (SHOP) return; const [x, y] = toWorld(e); mouse = [x, y]; const h = ME && !modalUp() ? hit(x, y) : null; hover = h && (h.t === 'kid' || h.t === 'teacher' || h.label) ? h : null; cv.style.cursor = h ? 'pointer' : 'default'; });
 cv.addEventListener('mouseleave', () => { mouse = null; hover = null; });
 cv.addEventListener('click', (e) => {
+  if (shopTap) { shopTap = false; return; }
   if (SHOP || !ME || modalUp()) return;
   const [x, y] = toWorld(e), h = hit(x, y); if (!h) return;
   if (h.t === 'seat') goSit();
@@ -1379,6 +1390,7 @@ cv.addEventListener('click', (e) => {
   else if (h.t === 'kid') kidSay(h.i, pick(D.rast ? RAST_LINES : P.seated ? LESSON_LINES : FREE_LINES));
   else if (h.t === 'board') teacherSay(P.seated ? 'SVARA I RUTAN, {P}!' : 'UPPGIFTEN KOMMER NÄR DU SITTER.');
   else if (h.t === 'door') { if (P.seated) standUp(); goGalleria(); }
+  else if (h.t === 'house' && LEFT && LEFT.id === h.h.id && performance.now() < LEFT.until) walkTo(h.h.door.x, GBASE + 34);   // nyss ute: några steg ut i gallerian
   else if (h.t === 'house') { const hx = h.h.door.x, hy = GBASE + 7; walkTo(hx, hy, () => { if (near(hx, hy)) { P.dir = 'up'; setTimeout(() => { if (P.scene === 'galleria' && !SHOP && near(hx, hy)) enterShop(h.h.id); }, 180); } }); }
   else if (h.t === 'unit') unitClick(h.u);
   else if (h.t === 'up') rideUp();
