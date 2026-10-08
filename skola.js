@@ -12,6 +12,7 @@ import { openAvatarEditor, saveAvatar, cleanLook, cleanAvatar, avatarTagColors, 
 import { FRAMES } from './sf/js/data/frames.js';
 import { Game, fmt } from './sf/js/game.js';
 import { LEVELS as UPP, setContext, numOpts } from './uppgifter.js';
+import { LEVELS3 } from './uppgifter3.js';
 import { toggleMute, isMuted } from './sf/js/core/sound.js';
 import { musicTick } from './sf/js/core/music.js';
 import { SLOTS, wornItem } from './sf/js/data/wardrobe.js';
@@ -92,22 +93,25 @@ const G = Game.load();
 const KR_PER_STJARNA = 100;
 const ownedIds = () => G.ownedWardrobeIds();
 const LVL0 = { matte: 1, ganger: 5, klocka: 1, svenska: 1, engelska: 1, no: 1 };
-const D = { tab: 'matte', tabell: 5, hist: {}, best: {}, lvl: { ...LVL0 }, streak: 0, miss: 0, q: null, tried: false, solved: false, locked: false, last: '', rast: false };
+// grade = årskursen (2 eller 3, väljs i början): nivåerna och stjärnorna sparas per årskurs (matte / matte3 …).
+// typed = svaret man skriver på tavlan, bad = det skrivna svaret var fel (visas rött tills man skriver igen).
+const D = { tab: 'matte', grade: 3, tabell: 5, hist: {}, best: {}, lvl: { ...LVL0 }, streak: 0, miss: 0, q: null, tried: false, solved: false, locked: false, last: '', rast: false, typed: '', bad: false };
 // klassens namn som man skriver in själv (2B, 3A …): versaler, siffror och bokstäver, högst fyra tecken
 const cleanKlass = (v) => String(v || '').toUpperCase().replace(/[^0-9A-ZÅÄÖ]/g, '').slice(0, 4);
 const gradeOf = (k) => { const m = /^\d/.exec(k); return m ? +m[0] : 0; };
 function fresh() {
-  ME = null; CLASS = DEF_NAMES.map((n) => newAv(n, kidLook())); TEACHER = newAv('Fröken Maja', TEACHER_LOOK()); KLASS = '2B';
+  ME = null; CLASS = DEF_NAMES.map((n) => newAv(n, kidLook())); TEACHER = newAv('Fröken Maja', TEACHER_LOOK()); KLASS = '3A'; D.grade = 3;
   STARS = 0; LESSONS = 0; PLACED = []; D.lvl = { ...LVL0 }; D.tabell = 5; D.hist = {}; D.best = {}; D.rast = false;
 }
-function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ME, CLASS, TEACHER, STARS, LESSONS, PLACED, KLASS, lvl: D.lvl, tabell: D.tabell, hist: D.hist, best: D.best })); } catch { /* lagring avstängd */ } G.save(); }
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ME, CLASS, TEACHER, STARS, LESSONS, PLACED, KLASS, grade: D.grade, lvl: D.lvl, tabell: D.tabell, hist: D.hist, best: D.best })); } catch { /* lagring avstängd */ } G.save(); }
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
     if (!s || !s.ME || !s.ME.name) return false;
     ME = cleanAvatar(s.ME); CLASS = (s.CLASS || []).map(cleanAvatar); TEACHER = cleanAvatar(s.TEACHER);
     if (CLASS.length !== 7) return false;
-    ({ STARS = 0, LESSONS = 0, PLACED = [] } = s); D.lvl = { ...LVL0, ...(s.lvl || {}) }; D.best = s.best && typeof s.best === 'object' ? s.best : {}; D.tabell = Math.max(1, Math.min(5, s.tabell | 0 || 5)); D.hist = s.hist && typeof s.hist === 'object' ? s.hist : {}; KLASS = cleanKlass(s.KLASS) || '2B';
+    ({ STARS = 0, LESSONS = 0, PLACED = [] } = s); D.lvl = { ...LVL0, ...(s.lvl || {}) }; D.best = s.best && typeof s.best === 'object' ? s.best : {}; D.tabell = Math.max(1, Math.min(10, s.tabell | 0 || 5)); D.hist = s.hist && typeof s.hist === 'object' ? s.hist : {}; KLASS = cleanKlass(s.KLASS) || '3A';
+    D.grade = s.grade === 2 || s.grade === 3 ? s.grade : gradeOf(KLASS) && gradeOf(KLASS) <= 2 ? 2 : 3;
     PLACED = (Array.isArray(PLACED) ? PLACED : []).filter((p) => p && typeof p.k === 'string');   // (stjärnbutikens gamla möbler följer inte med)
     return true;
   } catch { return false; }
@@ -402,14 +406,26 @@ function paintHome() {
 // ================= scenerna =================
 const BG = { klass: paintClass(), hem: paintHome() };   // (gallerians våningar målas när de behövs: galleriaBG)
 const LABEL = { klass: 'KLASSRUM', galleria: 'GALLERIA', hem: 'DITT RUM' };
-const START_LVL = { 1: { matte: 1, ganger: 2, klocka: 1, svenska: 1, engelska: 1, no: 1 }, 2: { matte: 3, ganger: 2, klocka: 2, svenska: 3, engelska: 1, no: 1 }, 3: { matte: 7, ganger: 5, klocka: 3, svenska: 7, engelska: 2, no: 2 }, 4: { matte: 9, ganger: 6, klocka: 4, svenska: 11, engelska: 4, no: 3 } };
 const sceneW = (sc) => (sc === 'galleria' ? FL().w : W);
 // nytt klassnamn: dörrskylten är målad i klassrummets bakgrund, så den målas om
 function setKlass(v) {
   const k = cleanKlass(v); if (!k || k === KLASS) return;
-  const g0 = gradeOf(KLASS), g = gradeOf(k); KLASS = k;
-  if (g && g !== g0) D.lvl = { ...START_LVL[Math.min(4, g)] };   // startnivåerna efter årskursen (man kan alltid välja själv under Nivåer)
-  BG.klass = paintClass(); updatePill(); save();
+  const g = gradeOf(k); KLASS = k;
+  if (g) D.grade = g <= 2 ? 2 : 3;   // siffran i klassen väljer årskursen (1:an räknas som 2, 4:an och uppåt som 3)
+  BG.klass = paintClass(); updatePill(); save(); gradeButtons();
+}
+// årskursen 2 eller 3: siffran i klassens namn följer med (3A → 2A)
+function setGrade(g) {
+  D.grade = g === 2 ? 2 : 3;
+  const rest = KLASS.replace(/^\d+/, ''); KLASS = cleanKlass(`${D.grade}${rest || 'A'}`);
+  BG.klass = paintClass(); updatePill(); save(); gradeButtons();
+  const inp = document.querySelector('#modal [data-klass]'); if (inp) inp.value = KLASS;
+}
+function gradeButtons() { document.querySelectorAll('#modal [data-grade]').forEach((b) => b.classList.toggle('btn-gold', +b.dataset.grade === D.grade)); }
+function gradeDialog(then) {   // allra först i ett nytt spel: årskurs 2 eller 3
+  const dlg = openModal('🏫 Välkommen till Pixelskolan', `<p class="sk-big">Vilken årskurs går du i?</p><p class="sp">Uppgifterna följer läroplanen för årskursen du väljer. Du kan byta senare under Figur och klass.</p>
+    <div class="sk-grade">${[2, 3].map((g) => `<button type="button" class="btn sk-gr" data-grade="${g}"><b>${g}</b><span>Årskurs ${g}</span></button>`).join('')}</div>`, [], { closable: false });
+  dlg.querySelectorAll('[data-grade]').forEach((b) => (b.onclick = () => { setGrade(+b.dataset.grade); closeModal(); then(); }));
 }
 // möbler från Möbeljätten i ditt rum: { k, v, c, x, y } (x = vänsterkant, y = fotlinje; väggsaker hänger på väggen)
 const furnOf = (p) => (SHOPLIB ? SHOPLIB.room.furnView(p.k, p.v, p.c || null, 0) : null);
@@ -582,52 +598,95 @@ function chalkClose(b) {
   const ch = (s, x, y, k = 1, col = CW) => ctxText(ctx, CHALK, s, x, y, col, k);
   const k2 = (s, maxW) => (textW(CHALK, s, 2) <= maxW ? 2 : 1);
   if (chalkMode(b, ch)) return;
+  const now = performance.now(), mode = inputOf(q), blink = reduce || Math.floor(now / 450) % 2 === 0;
+  // rutan för svaret: det man skrivit (med blinkande markör), rätt svar i gult, ett fel svar i rött
+  const slot = !mode || !q ? null : D.solved ? { s: ansText(q), col: CY } : D.bad ? { s: D.typed, col: '#ff9a8a' } : { s: D.typed ? D.typed + (blink ? '_' : '') : (blink ? '_' : '?'), col: D.typed ? CW : CY };
+  const SLOT_RE = /(^|\s)\?(\s|$)/;
+  const chS = (str, x, y, k, col = CW, calc = false) => {   // en rad med rutan (en ensam ?) utbytt mot svaret i egen färg
+    const m = slot && SLOT_RE.exec(str);
+    if (!m) { ch(calc && D.solved && !mode ? str.replace('?', String(q.ans)) : str, x, y, k, col); return false; }
+    const i = m.index + m[1].length, a = str.slice(0, i), z = str.slice(i + 1);
+    let xx = x; if (a) { ch(a, xx, y, k, col); xx += textW(CHALK, a, k) + k; }
+    ch(slot.s, xx, y, k, slot.col); xx += textW(CHALK, slot.s || ' ', k) + k;
+    if (z) ch(z, xx, y, k, col);
+    return true;
+  };
+  const wS = (str) => (slot ? str.replace(SLOT_RE, `$1${slot.s || ' '}$2`) : str);   // bredden med svaret ifyllt
   const ty = Math.max(b.y0 + 7, pillB + 4);   // första raden under skylten uppe till vänster
   if (D.rast || !q) { ch('RAST!', b.x0 + 12, ty + 4, 2); ch('BUTIKERNA PÅ STORGATAN ÄR ÖPPNA', b.x0 + 12, ty + 26, 1, CY); ch(`BRA JOBBAT ${KLASS}!`, b.x0 + 12, ty + 38); return; }
   ch(q.topic, b.x0 + 9, ty, 1, CBL);
   if (D.solved) ch('RÄTT!', b.x1 - 9 - textW(CHALK, 'RÄTT!'), b.y0 + 7, 1, CG);
   const top = ty + 15, bot = b.y1 - 6, mid = (top + bot) >> 1;
   const v = q.visual || {};
-  if (v.clock) {   // klockan: urtavlan till höger
+  if (v.column) chalkColumn(b, top, q, slot, blink);   // uppställning
+  else if (v.clock) {   // klockan: urtavlan till höger
     const R = Math.max(20, Math.min(60, Math.floor((bh - 10) / 2))), cx = b.x1 - 16 - R, cy = b.y0 + (bh >> 1), tw = cx - R - 16 - (b.x0 + 12);
     const qs = q.question || 'VAD ÄR KLOCKAN?', k = k2(qs, tw);
-    ch(qs, b.x0 + 12, top + 2, k);
-    if (D.solved) { const a = q.ans.toUpperCase(); ch(a, b.x0 + 12, top + 2 + 7 * k + 9, k2(a, tw), CY); }
+    if (k === 1 && textW(CHALK, qs) > tw) { let y = top + 2; for (const r of wrapChalk(qs, tw)) { ch(r, b.x0 + 12, y); y += 10; } } else ch(qs, b.x0 + 12, top + 2, k);
+    const ay = top + 2 + Math.max(7 * k + 9, textW(CHALK, qs) > tw ? 24 : 0);
+    if (mode) chS('= ?', b.x0 + 12, ay, k2(wS('= ?') + '00', tw));
+    else if (D.solved) { const a = q.ans.toUpperCase(); ch(a, b.x0 + 12, ay, k2(a, tw), CY); }
     clockFace(cx, cy, R, v.clock);
+  } else if (q.look) {   // skriv ordet: ordet syns tills man börjar skriva (titta, täck, skriv)
+    const x = b.x0 + 12, tw = bw - 24, show = !D.typed || D.bad || D.solved;
+    let y = top + 1;
+    if (show) {
+      ch(q.look, x, y, k2(q.look, tw), D.solved ? CY : CW); y += 22;
+      for (const r of (D.solved ? ['RÄTT STAVAT!'] : D.bad ? ['TITTA IGEN OCH SKRIV EN GÅNG TILL.'] : q.board.lines)) { ch(r, x, y, 1, CBL); y += 10; }
+    } else { ch('ORDET ÄR GÖMT. SKRIV DET:', x, y + 2, 1, CBL); y += 14; }
+    if (!D.solved) chS('?', x, y + 2, k2(wS('?') + '0', tw));
   } else if (q.board) {   // text på tavlan (svenska, engelska, NO/SO, de nya matteuppgifterna) + ev. bild till höger
     const R = Math.max(18, Math.min(56, Math.floor((bh - 12) / 2)));
     const rw = v.shape ? 2 * R + 10 : v.pie ? 2 * R : v.chart ? Math.min(170, Math.floor(bw * 0.45)) : 0;
     const tw = bw - 24 - (rw ? rw + 14 : 0), x = b.x0 + 12, B = q.board;
-    let y = top + 1;
-    if (B.big) { const k = k2(B.big, tw); ch(B.big, x, y, k, CW); y += 7 * k + 7; }
+    let y = top + 1, placed = false;
+    const big = () => { if (!B.big) return; const k = k2(wS(B.big), tw); placed = chS(B.big, x, y, k) || placed; y += 7 * k + 7; };
+    const later = B.big && /^=/.test(B.big);   // "= ?" står efter raderna
+    if (!later) big();
     const rows = []; for (const ln of B.lines || []) rows.push(...wrapChalk(ln, tw));
     const lh = rows.length > 4 ? 9 : 11;
-    for (const r of rows) { ch(r, x, y, 1, CW); y += lh; }
-    if (D.solved && B.after) for (const r of wrapChalk(B.after, tw)) { y += 2; ch(r, x, y, 1, CY); y += lh; }
+    for (const r of rows) { const hit = slot && !placed && SLOT_RE.test(r); placed = chS(r, x, y, hit ? 2 : 1) || placed; y += hit ? 18 : lh; }
+    if (later) { y += 2; big(); }
+    if (mode && !placed) { y += 2; const k = k2(wS('SVAR: ?') + '0', tw); chS('SVAR: ?', x, y, k); y += 7 * k + 6; }
+    if (D.solved && B.after && !(placed && /^=/.test(B.after))) for (const r of wrapChalk(B.after, tw)) { y += 2; ch(r, x, y, 1, CY); y += lh; }
     const vx = b.x1 - 14 - rw, vy = b.y0 + 6, vh = bh - 12;
     if (v.shape) chalkShape(vx + (rw >> 1), b.y0 + (bh >> 1) + 2, R, v.shape);
     if (v.pie) chalkPie(vx + R, b.y0 + (bh >> 1) + 2, R - 2, v.pie[0], v.pie[1]);
     if (v.chart) chalkChart(vx, Math.max(vy, ty - 2), rw, vh - Math.max(0, ty - 2 - vy), v.chart);
   } else if (v.groups || v.crab) {   // gånger: guldmynten eller krabban
-    const pr = D.solved ? q.prompt.replace('?', String(q.ans)) : q.prompt;
+    const pr = q.prompt;
     if (v.groups) {   // upprepad addition: grupperna med guldmynt + additionen och multiplikationen
       const n = v.groups, perRow = Math.min(n, 10), cw = 15;
       for (let i = 0; i < n; i++) coinBox(b.x0 + 12 + (i % perRow) * cw, top + 1 + Math.floor(i / perRow) * cw, v.t);
-      const y2 = top + 1 + Math.ceil(n / perRow) * cw + 4, sum = D.solved ? q.sum.replace('?', String(q.ans)) : q.sum;
-      ch(sum, b.x0 + 12, y2, k2(sum, bw - 24), CW);
-      ch(pr, b.x0 + 12, y2 + (textW(CHALK, sum, 2) <= bw - 24 ? 18 : 11), k2(pr, bw - 24), D.solved ? CY : CW);
+      const y2 = top + 1 + Math.ceil(n / perRow) * cw + 4, sum = q.sum;
+      chS(sum, b.x0 + 12, y2, k2(wS(sum), bw - 24), CW, true);
+      chS(pr, b.x0 + 12, y2 + (textW(CHALK, wS(sum), 2) <= bw - 24 ? 18 : 11), k2(wS(pr), bw - 24), D.solved ? CY : CW, true);
     } else {
-      const k = k2(pr, bw - 70);
-      ch(pr, b.x0 + 12, mid - ((7 * k) >> 1), k, D.solved ? CY : CW);
+      const k = k2(wS(pr), bw - 70);
+      chS(pr, b.x0 + 12, mid - ((7 * k) >> 1), k, D.solved ? CY : CW, true);
       crab(b.x1 - 44, mid - 10); if (!D.solved) ch('?', b.x1 - 50, mid - 18, 1, CY);
     }
   } else {   // räkneuppgift i stor krita (+ tiorutan)
-    const pr = (D.solved ? q.prompt.replace('?', String(q.ans)) : q.prompt).replace(/−/g, '-');
+    const pr = q.prompt.replace(/−/g, '-');
     const tf = v.frame !== undefined, cs = Math.max(9, Math.min(18, Math.floor((bot - top - 4) / 2.4)));
-    const fw = tf ? cs * 5 + 1 : 0, k = k2(pr, bw - 24 - (tf ? fw + 20 : 0));
-    ch(pr, b.x0 + 12, mid - ((7 * k) >> 1), k, D.solved ? CY : CW);
+    const fw = tf ? cs * 5 + 1 : 0, k = k2(wS(pr) + '0', bw - 24 - (tf ? fw + 20 : 0));
+    chS(pr, b.x0 + 12, mid - ((7 * k) >> 1), k, D.solved ? CY : CW, true);
     if (tf) tenFrame(b.x1 - 12 - fw, mid - cs, cs, v.frame);
   }
+}
+// uppställning: talen under varandra med linje, svaret skrivs från entalen och åt vänster (markören visar var)
+function chalkColumn(b, top, q, slot, blink) {
+  const [a, c, op] = q.visual.column, dw = 12, nd = 4, right = b.x0 + 26 + (nd + 1) * dw, lh = Math.max(15, Math.min(18, Math.floor((b.y1 - top - 26) / 2))), y0 = top + (lh < 18 ? 4 : 6);   // (låg tavla på mobilen: tätare rader)
+  const num = (s, y, col) => { for (let i = 0; i < s.length; i++) ctxText(ctx, CHALK, s[s.length - 1 - i], right - (i + 1) * dw, y, col, 2); };
+  ['H', 'T', 'E'].forEach((l, i) => ctxText(ctx, SMALL, l, right - (3 - i) * dw + 3, y0 - 7, CBL));
+  num(String(a), y0, CW); num(String(c), y0 + lh, CW);
+  ctxText(ctx, CHALK, op === '+' ? '+' : '-', right - (nd + 1) * dw, y0 + lh, CW, 2);
+  fill(right - (nd + 1) * dw - 2, y0 + 2 * lh - 3, (nd + 1) * dw + 4, 2, CW);
+  const s = D.solved ? String(q.ans) : D.typed, yA = y0 + 2 * lh + 2;
+  num(s, yA, slot ? slot.col : CW);
+  if (!D.solved && !D.bad && blink && s.length < nd) fill(right - (s.length + 1) * dw + 1, yA + 15, dw - 3, 2, CY);
+  const tip = D.solved ? `${a} ${op === '+' ? '+' : '-'} ${c} = ${q.ans}` : 'ENTALEN FÖRST', tx = right + 18;
+  if (tx + textW(CHALK, tip) < b.x1 - 8) ctxText(ctx, CHALK, tip, tx, yA + 4, D.solved ? CY : CBL);
 }
 // radbryt kritan (stora typsnittet) på ord så att raden får plats i bredden w
 function wrapChalk(text, w) {
@@ -649,6 +708,7 @@ function chalkShape(cx, cy, R, f) {   // former och kroppar i krita
   else if (f === 'rektangel') rect(cx - s, cy - (h >> 1) - 4, 2 * s, h + 8);
   else if (f === 'triangel') { cLine(cx, cy - h - 4, cx + h + 6, cy + h); cLine(cx + h + 6, cy + h, cx - h - 6, cy + h); cLine(cx - h - 6, cy + h, cx, cy - h - 4); }
   else if (f === 'cirkel') cEll(cx, cy, h + 4, h + 4);
+  else if (f === 'femhörning' || f === 'sexhörning') { const n = f === 'femhörning' ? 5 : 6, r = h + 7, pts = Array.from({ length: n }, (_, i) => { const a = -Math.PI / 2 + i * 2 * Math.PI / n; return [Math.round(cx + Math.cos(a) * r), Math.round(cy + Math.sin(a) * r)]; }); pts.forEach((pt, i) => cLine(pt[0], pt[1], pts[(i + 1) % n][0], pts[(i + 1) % n][1])); }
   else if (f === 'kub' || f === 'rätblock') {
     const w = f === 'kub' ? s - 6 : s + 10, hh = f === 'kub' ? s - 6 : h + 2, d = Math.round(s * 0.3), x = cx - (w >> 1) - (d >> 1), y = cy - (hh >> 1) + (d >> 1);
     rect(x, y, w, hh); rect(x + d, y - d, w, hh);
@@ -792,21 +852,22 @@ let LES = { results: [] };
 function lessonPanel() {
   const q = D.q, n = LES.results.length;
   const dots = [0, 1, 2, 3, 4].map((i) => `<i class="${i < n ? LES.results[i] : i === n ? 'cur' : ''}"></i>`).join('');
-  const { i: li, lv } = levelOf(D.tab), best = (D.best[D.tab] || {})[li] | 0;
+  const { i: li, lv, key } = levelOf(D.tab), best = (D.best[key] || {})[li] | 0, mode = inputOf(q);
   panel.innerHTML = `<div class="dlg-head"><h2>${esc(TABS.find((x) => x[0] === D.tab)[1])} · ${li}. ${esc(lv.name)} ${starsHtml(best)}</h2><span class="sp-dots" aria-label="Uppgift ${Math.min(n + 1, 5)} av 5">${dots}</span></div>
     <div class="dlg-body">
       <div class="sp-row">${TABS.map(([k, l]) => `<button type="button" class="btn btn-small${D.tab === k ? ' btn-gold' : ''}" data-tab="${k}">${l}</button>`).join('')}<span class="sp-topic">${esc(q.topic)}</span><span class="sp-spacer"></span><button type="button" class="btn btn-small btn-gold" data-sp="levels">🎯 Nivåer</button>${'speechSynthesis' in window ? '<button type="button" class="btn btn-small" data-sp="say">Läs upp</button>' : ''}<button type="button" class="btn btn-small" data-sp="stand">Res dig</button></div>
       ${D.tab === 'ganger' ? `<div class="sp-row sp-tab"><span class="sp-topic">Tabell ${D.tabell}:</span><button type="button" class="btn btn-small" data-mode="drill">⏱ Huvudräkning</button><button type="button" class="btn btn-small" data-mode="secret">🏴‍☠️ Hemligt meddelande</button></div>` : ''}
-      <div class="sp-row sp-answers">${q.opts.map((o, i) => `<button type="button" class="btn" data-ans="${i}">${esc(o.label)}${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</button>`).join('')}</div>
-      <p class="sp-fb" aria-live="polite"></p>
+      ${mode ? keysHtml(mode) : `<div class="sp-row sp-answers">${q.opts.map((o, i) => `<button type="button" class="btn" data-ans="${i}">${esc(o.label)}${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</button>`).join('')}</div>`}
+      <p class="sp-fb" aria-live="polite">${mode ? esc(q.rtl ? 'Skriv entalen först: siffrorna hamnar från höger, som när du räknar på papper. Tryck sedan på Klar.' : mode === 'time' ? 'Skriv klockslaget, till exempel 14:30, och tryck på Klar.' : mode === 'word' ? 'Skriv med bokstäverna och tryck på Klar.' : 'Skriv svaret med siffrorna och tryck på Klar.') : ''}</p>
     </div>`;
-  panel.hidden = false; measureVis();
+  panel.hidden = false; measureVis(true);   // (ny fråga: tavlan anpassar sig efter rutans höjd)
 }
 function feedback(lead, rest, kind) { const f = panel.querySelector('.sp-fb'); if (f) f.innerHTML = `<b class="${kind}">${esc(lead)}</b> ${esc(rest)}`; }
 panel.addEventListener('click', (e) => {
   const b = e.target.closest('button'); if (!b || b.disabled) return;
   if (b.dataset.tab) { D.tab = b.dataset.tab; D.streak = 0; D.miss = 0; newQ(); teacherSay(`NU TAR VI ${TABNAME[D.tab]}!`); }
   else if (b.dataset.ans !== undefined) answer(b, D.q.opts[+b.dataset.ans].value);
+  else if (b.dataset.key) typeKey(b.dataset.key);
   else if (b.dataset.mode === 'drill') startDrill();
   else if (b.dataset.mode === 'secret') startSecret();
   else if (b.dataset.pad) drillKey(b.dataset.pad);
@@ -824,13 +885,13 @@ function newQ() {
   const { lv } = levelOf(D.tab); if (D.tab === 'ganger') D.tabell = lv.t || 5;
   const sig = (x) => (x.prompt || '') + JSON.stringify(x.board || '') + JSON.stringify(x.visual || {}) + x.ans;
   do { q = lv.gen(); n++; } while (sig(q) === D.last && n < 8);
-  D.last = sig(q); D.q = q; D.tried = false; D.solved = false; D.locked = false;
+  D.last = sig(q); D.q = q; D.tried = false; D.solved = false; D.locked = false; D.typed = ''; D.bad = false;
   if (P.seated) { if (MODE === 'lesson') lessonPanel(); else modePanel(); }
 }
-function answer(btn, val) {
+function answer(btn, val, ok = val === D.q.ans) {
   if (D.locked) return;
-  if (val === D.q.ans) {
-    D.locked = true; D.solved = true; btn.classList.add('btn-go');
+  if (ok) {
+    D.locked = true; D.solved = true; btn?.classList.add('btn-go');
     let line = pick(['RÄTT!', 'BRA JOBBAT!', 'SNYGGT!', 'PRECIS!']), extra = '';
     LES.results.push(D.tried ? 'ok' : 'star');
     if (!D.tried) D.streak++; else D.streak = 0;
@@ -840,16 +901,58 @@ function answer(btn, val) {
     if (Math.random() < 0.35) setTimeout(() => kidSay(rnd(0, 2), pick(CHEER)), 500);
     setTimeout(() => { if (!P.seated) return; if (LES.results.length >= 5) endLesson(); else newQ(); }, 1800);
   } else {
-    btn.classList.add('btn-red'); btn.disabled = true; D.tried = true; D.streak = 0; D.miss++;
+    if (btn) { btn.classList.add('btn-red'); btn.disabled = true; } else D.bad = true;
+    D.tried = true; D.streak = 0; D.miss++;
     let line = 'NÄSTAN! LÄS LEDTRÅDEN.', extra = '';
     feedback('Inte riktigt.', D.q.hint + extra, 'no'); teacherSay(line);
   }
 }
+// ---------- skriva svaret på tavlan (Carl 2026-10-08) ----------
+// Knapparna ligger i rutan och siffrorna/bokstäverna hamnar på tavlan, där frågetecknet stod. Inga textfält,
+// så iPadens tangentbord kommer aldrig fram. Den gröna knappen Klar rättar. Uppställningar skrivs från
+// entalen (höger) och åt vänster, som på papper.
+const inputOf = (q) => q?.input || (typeof q?.ans === 'number' ? 'num' : null);
+const ansText = (q) => (inputOf(q) === 'word' ? String(q.ans).toUpperCase() : String(q.ans));
+const KEYROWS = ['QWERTYUIOPÅ', 'ASDFGHJKLÖÄ', 'ZXCVBNM'];
+function keysHtml(mode) {
+  const key = (c, cls = '') => `<button type="button" class="btn${cls}" data-key="${c}">${c === 'del' ? '⌫' : c === 'ok' ? '✓ Klar' : c}</button>`;
+  if (mode === 'word') return `<div class="sp-kb">${KEYROWS.map((r, i) => `<div class="sp-keys">${[...r].map((c) => key(c)).join('')}${i === 2 ? key('del', ' sp-del') + key('ok', ' btn-go sp-ok') : ''}</div>`).join('')}</div>`;
+  return `<div class="sp-kb"><div class="sp-keys">${[...'1234567890'].map((c) => key(c)).join('')}${mode === 'time' ? key(':') : ''}${key('del', ' sp-del')}${key('ok', ' btn-go sp-ok')}</div></div>`;
+}
+function parseTime(t) {
+  let h, m; t = String(t);
+  if (t.includes(':')) [h, m] = t.split(':').map((x) => (x === '' ? NaN : +x)); else if (t.length >= 3) { h = +t.slice(0, -2); m = +t.slice(-2); } else return null;
+  return h >= 0 && h <= 24 && m >= 0 && m < 60 ? h * 60 + m : null;
+}
+function typeKey(k) {
+  const q = D.q, mode = inputOf(q);
+  if (!mode || D.locked || !P.seated || MODE !== 'lesson' || D.rast) return;
+  if (k === 'ok') return submitTyped();
+  if (D.bad) { D.bad = false; D.typed = ''; }
+  if (k === 'del') { D.typed = q.rtl ? D.typed.slice(1) : D.typed.slice(0, -1); return; }
+  const okKey = mode === 'num' ? /^\d$/ : mode === 'time' ? /^[\d:]$/ : /^[A-ZÅÄÖ]$/;
+  if (!okKey.test(k) || (k === ':' && (!D.typed || D.typed.includes(':'))) || D.typed.length >= (mode === 'word' ? 14 : 5)) return;
+  D.typed = q.rtl ? k + D.typed : D.typed + k;
+}
+function submitTyped() {
+  const q = D.q, mode = inputOf(q), t = D.typed;
+  if (!t || D.bad) return;
+  const norm = (w) => String(w).trim().toUpperCase();
+  const ok = mode === 'num' ? +t === q.ans : mode === 'time' ? (q.accept || [parseTime(q.ans)]).includes(parseTime(t)) : [q.ans, ...(q.accept || [])].some((w) => norm(w) === norm(t));
+  answer(null, null, ok);
+}
+// tangentbordet på datorn gör samma sak som knapparna
+window.addEventListener('keydown', (e) => {
+  if (MODE !== 'lesson' || !P.seated || modalUp() || SHOP || D.rast || !inputOf(D.q) || e.ctrlKey || e.metaKey || e.altKey) return;
+  const k = e.key.length === 1 ? e.key.toUpperCase() : e.key;
+  if (k === 'Enter') typeKey('ok'); else if (k === 'Backspace') typeKey('del'); else if (/^[0-9:A-ZÅÄÖ]$/.test(k)) typeKey(k); else return;
+  e.preventDefault();
+});
 const starIco = '<span class="sk-star" aria-label="stjärnor"></span>';
 function endLesson() {
   const firstTry = LES.results.filter((r) => r === 'star').length, earned = 1 + (firstTry >= 3 ? 1 : 0) + (firstTry === 5 ? 1 : 0);
   const kr = earned * KR_PER_STJARNA;
-  const { L, i: li } = levelOf(D.tab), bk = (D.best[D.tab] ||= {}), better = earned > (bk[li] | 0);
+  const { L, i: li, key } = levelOf(D.tab), bk = (D.best[key] ||= {}), better = earned > (bk[li] | 0);
   bk[li] = Math.max(bk[li] | 0, earned);
   STARS += earned; G.money += kr; LESSONS++; D.rast = true; doorGlow = true; save(); updatePill();
   loadShops().catch(() => {});
@@ -858,7 +961,7 @@ function endLesson() {
   setTimeout(() => kidSay(rnd(0, 2), pick(RAST_LINES)), 1200);
   openModal('🔔 Rast!', `<div class="who"><div class="sk-face"></div><div><p class="sk-big">${firstTry} av 5 rätt på första försöket.</p><p>Du fick <b>${earned} ${starIco}</b> och varje stjärna blir ${KR_PER_STJARNA} kr: <b>${fmt(kr)}</b> i plånboken. Nu har du ${fmt(G.money)}.</p><p>Nivå ${li}, ${esc(L[li - 1].name)}: ${starsHtml(bk[li])}${better ? ' <b>Nytt rekord!</b>' : ''}</p><p class="sp">Galleria Stjärnan ligger bakom den blå dörren bredvid ${esc(TEACHER.name)}: kläder, skor, leksaker och möbler på tre våningar.</p></div></div>`, [
     { label: 'En lektion till', onClick: () => { closeModal(); D.rast = false; LES = { results: [] }; newQ(); teacherSay('EN LEKTION TILL? VAD BRA, {P}!'); } },
-    ...(li < L.length ? [{ label: `Nästa nivå: ${L[li].name}`, onClick: () => { closeModal(); D.rast = false; D.lvl[D.tab] = li + 1; save(); LES = { results: [] }; newQ(); teacherSay(`NIVÅ ${li + 1}: ${L[li].name.toUpperCase()}!`); } }] : []),
+    ...(li < L.length ? [{ label: `Nästa nivå: ${L[li].name}`, onClick: () => { closeModal(); D.rast = false; D.lvl[key] = li + 1; save(); LES = { results: [] }; newQ(); teacherSay(`NIVÅ ${li + 1}: ${L[li].name.toUpperCase()}!`); } }] : []),
     { label: 'Gå till gallerian', cls: 'btn-go', onClick: () => { closeModal(); standUp(); goGalleria(); } },
   ]);
   const face = document.querySelector('#modal .sk-face'); if (face) face.append(portrait(myLook(), '#d8cdb8'));
@@ -1312,21 +1415,34 @@ function startCreator() {
 }
 function classDialog() {
   const card = (av, i, role) => `<div class="sk-kid"><div class="sk-por" data-por="${i}"></div><input type="text" maxlength="${role === 't' ? 16 : 12}" value="${esc(av.name)}" data-name="${i}" aria-label="${role === 't' ? 'Frökens namn' : `Klasskompis ${i + 1}`}" autocomplete="off" spellcheck="false"><div class="sk-btns"><button type="button" class="btn btn-small" data-edit="${i}">Ändra</button><button type="button" class="btn btn-small" data-rand="${i}">Slumpa</button></div></div>`;
-  const dlg = openModal('🏫 Din klass', `<div class="sk-lbl">Vilken klass går du i?</div>
-    <div class="sk-klass"><input type="text" maxlength="4" value="${esc(KLASS)}" data-klass aria-label="Din klass" autocomplete="off" spellcheck="false" autocapitalize="characters"><span class="sp">Till exempel 2B eller 3A. Det står på dörren och på tavlan, och siffran väljer hur svåra uppgifterna är från början.</span></div>
+  const dlg = openModal('🏫 Din klass', `<div class="sk-me"><div class="sk-por" data-por="me"></div><div><div class="sk-lbl">Din figur</div><p class="sk-big">${esc(ME?.name || '')}</p>
+      <div class="sk-btns"><button type="button" class="btn btn-small" data-me="edit">✏️ Ändra</button><button type="button" class="btn btn-small" data-me="redo">↺ Gör om figuren</button></div></div></div>
+    <div class="sk-lbl">Vilken årskurs går du i?</div>
+    <div class="sk-grade sk-grade-s">${[2, 3].map((g) => `<button type="button" class="btn${g === D.grade ? ' btn-gold' : ''}" data-grade="${g}">Årskurs ${g}</button>`).join('')}</div>
+    <div class="sk-lbl">Vilken klass går du i?</div>
+    <div class="sk-klass"><input type="text" maxlength="4" value="${esc(KLASS)}" data-klass aria-label="Din klass" autocomplete="off" spellcheck="false" autocapitalize="characters"><span class="sp">Till exempel 3A eller 2B. Det står på dörren och på tavlan.</span></div>
     <p class="sp">Döp fröken och klasskompisarna. Ändra öppnar samma figurskapare som för din egen figur.</p>
     <div class="sk-lbl">Fröken</div><div class="sk-class">${card(TEACHER, 't', 't')}</div>
     <div class="sk-lbl">Klasskompisar</div><div class="sk-class">${CLASS.map((k, i) => card(k, i, 'k')).join('')}</div>`, [
-    { label: 'Ändra min figur', onClick: () => editPlayer(() => classDialog()) },
+    { label: '↺ Gör om figuren', onClick: () => redoFigure() },
     { label: 'Börja skolan', cls: 'btn-go', onClick: () => startSchool() },
   ], { closable: false });
   dlg.classList.add('dlg-furn');
-  const avOf = (i) => (i === 't' ? TEACHER : CLASS[+i]);
+  const avOf = (i) => (i === 't' ? TEACHER : i === 'me' ? ME : CLASS[+i]);
+  dlg.querySelectorAll('[data-grade]').forEach((b) => (b.onclick = () => setGrade(+b.dataset.grade)));
+  dlg.querySelector('[data-me="edit"]').onclick = () => editPlayer(() => classDialog());
+  dlg.querySelector('[data-me="redo"]').onclick = () => redoFigure();
   dlg.querySelector('[data-klass]')?.addEventListener('input', (e) => setKlass(e.target.value));
   dlg.querySelectorAll('[data-por]').forEach((d) => d.append(portrait(avOf(d.dataset.por).look, '#d8cdb8')));
   dlg.querySelectorAll('[data-name]').forEach((inp) => inp.addEventListener('input', () => { const i = inp.dataset.name, v = inp.value.replace(/\s+/g, ' ').trim(); const av = avOf(i); av.name = v || (i === 't' ? 'Fröken' : `Kompis ${+i + 1}`); }));
   dlg.querySelectorAll('[data-rand]').forEach((b) => (b.onclick = () => { const i = b.dataset.rand; const av = avOf(i); av.look = i === 't' ? adultLook() : kidLook(); classDialog(); }));
   dlg.querySelectorAll('[data-edit]').forEach((b) => (b.onclick = () => { const i = b.dataset.edit; editOther(avOf(i), (nav) => { if (nav) { if (i === 't') TEACHER = nav; else CLASS[+i] = nav; } classDialog(); }); }));
+}
+// göra om sin figur från början (Carl: "när jag gjort en karaktär måste jag ha en knapp för att göra om"):
+// figurskaparen med en ny figur och samma namn; Avbryt behåller den gamla
+function redoFigure() {
+  saveAvatar(newAv(ME?.name || '', kidLook())); lockWardrobe(false);
+  openAvatarEditor({ onDone: (av) => { ME = cleanAvatar(av); grantWorn(ME.look); lockWardrobe(true); lookChanged(); save(); classDialog(); }, onCancel: () => { if (ME) saveAvatar(ME); lockWardrobe(true); classDialog(); } });
 }
 function startSchool() {
   const first = P.scene === 'klass' && !P.seated && P.x === 220 && P.y === 210;
@@ -1341,7 +1457,7 @@ function renderBelow() {
   let p, b = '';
   if (!ME) p = 'Börja med att göra din figur och din klass.';
   else if (SHOP) p = `Du är i ${SHOPLABEL[SHOP.id].charAt(0) + SHOPLABEL[SHOP.id].slice(1).toLowerCase()}, Snabbfilens egen butik. Klicka på det du vill titta på. Dörren tar dig ut i gallerian igen. Du har ${fmt(G.money)}.`;
-  else if (P.scene === 'klass') { p = P.seated ? 'Du sitter i bänken och ser tavlan på nära håll. Svara i rutan. Efter fem uppgifter blir det rast, och Res dig tar dig tillbaka ut i klassrummet.' : `Klicka på den lediga bänken för att börja. Efter fem uppgifter blir det rast, och varje stjärna blir ${KR_PER_STJARNA} kr. Den blå dörren leder till Galleria Stjärnan.`; if (!P.seated) b += btn('sit', '🪑 Sätt dig', 'btn-go'); b += btn('shop', '🏬 Gallerian') + btn('class', '🧑 Figur och klass'); }
+  else if (P.scene === 'klass') { p = P.seated ? 'Du sitter i bänken och ser tavlan på nära håll. Skriv svaret med knapparna i rutan – det hamnar på tavlan – och tryck på den gröna Klar. Efter fem uppgifter blir det rast.' : `Klicka på den lediga bänken för att börja. Efter fem uppgifter blir det rast, och varje stjärna blir ${KR_PER_STJARNA} kr. Den blå dörren leder till Galleria Stjärnan.`; if (!P.seated) b += btn('sit', '🪑 Sätt dig', 'btn-go'); b += btn('shop', '🏬 Gallerian') + btn('class', '🧑 Figur och klass'); }
   else if (P.scene === 'galleria') { p = FLOOR === 0 ? 'Entréplanet. Åk rulltrappan eller hissen upp: plan 1 har klädaffären och skobutiken, plan 2 Leksakslådan och Möbeljätten. Dörrarna leder till skolan och hem.' : `Plan ${FLOOR}. Klicka på en butik för att gå in. Rulltrapporna och hissen tar dig mellan våningarna.`; b += btn('toclass', '🏫 Skolan') + btn('home', '🏠 Hem'); }
   else { p = 'Klicka på klädskåpet för att byta kläder. Möblerna från Möbeljätten står i förrådet: välj en och klicka på golvet (tavlor och lampor på väggen).'; b += btn('shop', '🏬 Gallerian') + btn('toclass', '🏫 Skolan'); }
   if (ME) b += btn('mute', isMuted() ? '🔇' : '🔊', '', isMuted() ? 'Ljudet är av' : 'Ljudet är på') + btn('reset', '↺', '', 'Börja om från början');
@@ -1358,7 +1474,7 @@ $('sk-below').addEventListener('click', (e) => {
   else if (a === 'mute') { toggleMute(); musicTick(); renderBelow(); }
   else if (a === 'class') { if (P.seated) standUp(); classDialog(); }
   else if (a === 'help') openModal('❓ Pixelskolan', `<p>${esc(HELP)}</p><p class="sp">Allt sparas i den här webbläsaren. <a href="plan.html">Om Pixelskolan och planen</a></p>`, [{ label: 'Okej', cls: 'btn-go', onClick: closeModal }]);
-  else if (a === 'reset') { if (!confirm('Börja om från början? Din figur, klass och allt du köpt försvinner.')) return; try { localStorage.removeItem(SAVE_KEY); } catch { /* lagring avstängd */ } fresh(); doorGlow = false; goScene('klass', null); renderBelow(); startCreator(); }
+  else if (a === 'reset') { if (!confirm('Börja om från början? Din figur, klass och allt du köpt försvinner.')) return; try { localStorage.removeItem(SAVE_KEY); } catch { /* lagring avstängd */ } fresh(); doorGlow = false; goScene('klass', null); renderBelow(); gradeDialog(startCreator); }
 });
 
 // ================= uppgifterna (uppgifter.js) =================
@@ -1384,17 +1500,20 @@ function genGanger(t) {
   }
   return { topic: kind === 'crab' ? 'KRABBANS LUCKOR' : `${t}:ANS TABELL`, prompt: `${k} · ${t} = ?`, say: `${k} gånger ${t}`, ans, opts: numOpts(ans, t), visual: kind === 'crab' ? { crab: true, stolen: ans } : null, hint: k === 0 ? `Noll grupper blir ingenting alls.` : `${k} · ${t} är samma sak som ${sum}.`, done: `${k} · ${t} = ${ans}.` };
 }
-// nivåerna i alla ämnen: Gånger = tabell 1–5 och blandat (tabellen styr även huvudräkningen och meddelandet)
-const LEVELS = { ...UPP, ganger: [1, 2, 3, 4, 5, 0].map((t) => ({ name: t ? `${t}:ans tabell` : 'Blandat 1–5', t, gen: () => genGanger(t || rnd(1, 5)) })) };
-const levelOf = (tab) => { const L = LEVELS[tab], i = Math.max(1, Math.min(L.length, D.lvl[tab] | 0 || 1)); return { L, i, lv: L[i - 1] }; };
+// nivåerna i alla ämnen per årskurs (uppgifter.js = åk 2, uppgifter3.js = åk 3). Gånger = tabell 1–5 i åk 2 och
+// 1–10 i åk 3, plus blandat (tabellen styr även huvudräkningen och meddelandet).
+const gangerLv = (max) => [...Array.from({ length: max }, (_, i) => i + 1), 0].map((t) => ({ name: t ? `${t}:ans tabell` : `Blandat 1–${max}`, t, gen: () => genGanger(t || rnd(1, max)) }));
+const LEVELS = { 2: { ...UPP, ganger: gangerLv(5) }, 3: { ...LEVELS3, ganger: gangerLv(10) } };
+const LVKEY = (tab) => (D.grade === 3 ? tab + '3' : tab);   // åk 2 behåller de gamla nycklarna (sparade stjärnor)
+const levelOf = (tab) => { const L = LEVELS[D.grade][tab], key = LVKEY(tab), i = Math.max(1, Math.min(L.length, D.lvl[key] | 0 || 1)); return { L, i, lv: L[i - 1], key }; };
 const starsHtml = (n) => `<span class="lv-stars" aria-label="${n} av 3 stjärnor">${[0, 1, 2].map((k) => `<i class="${k < n ? 'on' : ''}"></i>`).join('')}</span>`;
 function levelsDialog() {
-  const tab = D.tab, { L, i: cur } = levelOf(tab), best = D.best[tab] || {};
-  const dlg = openModal(`🎯 Nivåer · ${TABS.find((x) => x[0] === tab)[1]}`, `<p class="sp">Välj vilken nivå du vill träna. Stjärnorna är det bästa du har fått på nivån (tre stjärnor = fem rätt på första försöket).</p>
+  const tab = D.tab, { L, i: cur, key } = levelOf(tab), best = D.best[key] || {};
+  const dlg = openModal(`🎯 Nivåer · ${TABS.find((x) => x[0] === tab)[1]} · åk ${D.grade}`, `<p class="sp">Välj vilken nivå du vill träna. Stjärnorna är det bästa du har fått på nivån (tre stjärnor = fem rätt på första försöket).</p>
     <div class="sk-levels">${L.map((lv, k) => `<button type="button" class="btn sk-lv${k + 1 === cur ? ' on' : ''}" data-lv="${k + 1}"><b>${k + 1}</b><span>${esc(lv.name)}</span>${starsHtml(best[k + 1] | 0)}</button>`).join('')}</div>`, [{ label: 'Stäng', onClick: closeModal }]);
   dlg.querySelectorAll('[data-lv]').forEach((bt) => (bt.onclick = () => {
-    D.lvl[tab] = +bt.dataset.lv; save(); closeModal();
-    if (P.seated && MODE === 'lesson') { LES = { results: [] }; newQ(); teacherSay(`NIVÅ ${D.lvl[tab]}: ${levelOf(tab).lv.name.toUpperCase()}!`); }
+    D.lvl[key] = +bt.dataset.lv; save(); closeModal();
+    if (P.seated && MODE === 'lesson') { LES = { results: [] }; newQ(); teacherSay(`NIVÅ ${D.lvl[key]}: ${levelOf(tab).lv.name.toUpperCase()}!`); }
   }));
 }
 
@@ -1556,14 +1675,14 @@ setTimeout(() => loadShops().catch(() => {}), 1500);   // gallerian laddas i bak
 D.q = levelOf('matte').lv.gen();
 fit(); buildGrid(); updatePill(); renderBelow();
 if (hasSave) { saveAvatar(ME); nextChat = performance.now() + 2500; setTimeout(() => teacherSay('VÄLKOMMEN TILLBAKA, {P}!'), 600); }
-else startCreator();
+else gradeDialog(startCreator);
 if (window.ResizeObserver) new ResizeObserver(fit).observe(frame); else window.addEventListener('resize', fit);
 let last = performance.now();
 let pillT = 0;
 const loop = (now) => { const dt = Math.min(0.05, (now - last) / 1000); last = now; update(dt); chatter(now); draw(now); if (SHOP && now - pillT > 400) { pillT = now; updatePill(); } requestAnimationFrame(loop); };
 requestAnimationFrame(loop);
 window.__ps = {
-  state: () => ({ scene: P.scene, seated: P.seated, x: P.x, y: P.y, stars: STARS, money: G.money, wardrobe: G.wardrobe.length, toys: Object.keys(G.toys || {}).length, storage: G.storage.length, placed: PLACED, floor: FLOOR, shop: SHOP && SHOP.id, ride: RIDE && (RIDE.kind + ':' + (RIDE.st || RIDE.d)), me: ME && ME.name, kid: ME && ME.look.kid, ans: D.q && D.q.opts.findIndex((o) => o.value === D.q.ans), lesson: LES.results.length, panel: !panel.hidden, modal: modalUp(), bubbles: BUBS.map((b) => b.str), cam: camX, npcs: P.scene === 'galleria' && SHOPLIB ? crowdFor(FL()).map((n) => [Math.round(n.x), Math.round(n.y), n.mode]) : [] }),
+  state: () => ({ scene: P.scene, seated: P.seated, x: P.x, y: P.y, stars: STARS, money: G.money, wardrobe: G.wardrobe.length, toys: Object.keys(G.toys || {}).length, storage: G.storage.length, placed: PLACED, floor: FLOOR, shop: SHOP && SHOP.id, ride: RIDE && (RIDE.kind + ':' + (RIDE.st || RIDE.d)), me: ME && ME.name, kid: ME && ME.look.kid, ans: D.q && D.q.opts ? D.q.opts.findIndex((o) => o.value === D.q.ans) : -1, input: inputOf(D.q), typed: D.typed, want: D.q && inputOf(D.q) ? ansText(D.q) : null, grade: D.grade, klass: KLASS, lesson: LES.results.length, panel: !panel.hidden, modal: modalUp(), bubbles: BUBS.map((b) => b.str), cam: camX, npcs: P.scene === 'galleria' && SHOPLIB ? crowdFor(FL()).map((n) => [Math.round(n.x), Math.round(n.y), n.mode]) : [] }),
   give: (n) => { G.money += n; G.save(); updatePill(); }, goScene, walkTo, enterShop, rideUp, rideDown, liftTo: (n) => { P.x = LIFT_X + 13; P.y = GBASE + 9; RIDE = { kind: 'lift', st: 'open', t: 0, to: n }; },
-  lib: () => !!SHOPLIB, hit, G, cam: (x) => { CAM_OVR = x; }, floor: (n) => { switchFloor(n); P.x = LIFT_X + 13; P.y = GBASE + 12; }, floorW: () => FL().w, lvl: (tab, i) => { D.tab = tab; D.lvl[tab] = i; LES = { results: [] }; newQ(); }, levels: () => Object.fromEntries(Object.entries(LEVELS).map(([k, L]) => [k, L.length])),
+  lib: () => !!SHOPLIB, hit, G, cam: (x) => { CAM_OVR = x; }, floor: (n) => { switchFloor(n); P.x = LIFT_X + 13; P.y = GBASE + 12; }, floorW: () => FL().w, lvl: (tab, i) => { D.tab = tab; D.lvl[LVKEY(tab)] = i; LES = { results: [] }; newQ(); }, levels: () => Object.fromEntries(Object.entries(LEVELS[D.grade]).map(([k, L]) => [k, L.length])), grade: (g) => setGrade(g), type: (k) => typeKey(k),
 };

@@ -183,6 +183,23 @@ figcaption b { color: var(--ink); font-weight: 700; }
 .sf .dr-typed { font: var(--f3) var(--font); min-width: 3.2em; text-align: center; background: #fffbe8; border: 3px solid var(--ink); padding: 0 6px; }
 .sf .sp-pad { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; }
 .sf .sp-pad .btn { font-size: var(--f2); padding: 6px 0; }
+/* skriva svaret på tavlan: siffror (och : för klockslag) på en rad, bokstäverna i tre rader, gröna Klar */
+.sf .sp-kb { display: flex; flex-direction: column; gap: 5px; }
+.sf .sp-keys { display: flex; gap: 5px; }
+.sf .sp-keys .btn { flex: 1 1 0; min-width: 0; padding: 8px 0; font-size: var(--f2); text-align: center; }
+.sf .sp-keys .sp-del { flex: 1.4 1 0; }
+.sf .sp-keys .sp-ok { flex: 2.6 1 0; }
+/* årskursen och din figur */
+.sf .sk-grade { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0 4px; }
+.sf .sk-gr { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 150px; padding: 14px 22px; }
+.sf .sk-gr b { font: var(--f4) var(--head); color: var(--red); line-height: 1; }
+.sf .sk-gr span { font-size: var(--f2); }
+.sf .sk-grade-s { margin: 0 0 4px; gap: 8px; }
+.sf .sk-me { display: flex; gap: 12px; align-items: center; background: #fff; border: 3px solid var(--ink); padding: 8px 10px; margin: 0 0 6px; }
+.sf .sk-me .sk-lbl { margin-top: 0; }
+.sf .sk-me .sk-big { margin: 0 0 6px; }
+.sf .sk-me .sk-btns { justify-content: flex-start; }
+@container (max-width: 760px) { .sf .sp-kb, .sf .sp-keys { gap: 3px; } .sf .sp-keys .btn { font-size: var(--f1); padding: 4px 0; } }
 .sf .sk-hist { border-collapse: collapse; margin: 8px 0; font-size: var(--f2); }
 .sf .sk-hist th, .sf .sk-hist td { border: 2px solid var(--ink); padding: 2px 8px; text-align: left; }
 .sf .sk-hist th { background: var(--paper2); font-weight: 400; }

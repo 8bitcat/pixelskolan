@@ -1,6 +1,11 @@
 // Pixelskolans uppgifter: alla moment från planens lista (Lgr22, åk 1–3) som nivåer per ämne.
 // Varje nivå: { name, gen() } → en uppgift:
-//   { topic, prompt?, board?: { big?, lines?, after? }, visual?, say, lang?, ans, opts: [{ label, value, sub? }], hint, done }
+//   { topic, prompt?, board?: { big?, lines?, after? }, visual?, say, lang?, ans, opts?: [{ label, value, sub? }], input?, accept?, hint, done }
+//   Svaren skrivs på tavlan med knapparna i rutan (Carl 2026-10-08: "skriva på tavlan … inte trycka i färdiga
+//   svar"): input 'num' (siffror – alla uppgifter med ett tal som svar), 'time' (klockslag 14:30, accept =
+//   godkända minuter efter midnatt) eller 'word' (bokstäver, accept = fler godkända ord). Utan input väljer
+//   man bland opts (ord och meningar som inte går att skriva entydigt). En ensam ? på tavlan är rutan där
+//   svaret skrivs.
 //   prompt = räkneuppgiften i stor krita (som förut); board = text på tavlan (stort ord och/eller rader);
 //   after = det som skrivs på tavlan när man svarat rätt; visual = bild på tavlan (tiorutan, klockan,
 //   former, stapeldiagram, tårtbitar).
@@ -8,11 +13,12 @@
 export const rnd = (a, b) => a + Math.floor(Math.random() * (b - a + 1));
 export const pick = (a) => a[Math.floor(Math.random() * a.length)];
 export const shuffle = (a) => { for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; } return a; };
-const pad = (n) => String(n).padStart(2, '0');
-const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
+export const pad = (n) => String(n).padStart(2, '0');
+export const cap = (s) => s.charAt(0).toUpperCase() + s.slice(1);
 // klassens namn till berättelserna (skola.js sätter dem)
 let CTX = () => ({ me: 'Mira', kids: ['Alva', 'Noah', 'Selma', 'Elias', 'Wilma', 'Leo', 'Saga'], teacher: 'Fröken Maja' });
 export const setContext = (fn) => { CTX = fn; };
+export const ctx = () => CTX();
 
 export function numOpts(ans, spread) {
   const set = new Set([ans]);
@@ -20,9 +26,13 @@ export function numOpts(ans, spread) {
   return shuffle([...set]).map((v) => ({ label: String(v), value: v }));
 }
 // textsvar: rätt + felaktiga, blandade (värdet = texten)
-const textOpts = (right, wrong, n = 3) => shuffle([right, ...shuffle([...new Set(wrong.filter((w) => w !== right))]).slice(0, n - 1)]).map((w) => ({ label: w, value: w }));
+export const textOpts = (right, wrong, n = 3) => shuffle([right, ...shuffle([...new Set(wrong.filter((w) => w !== right))]).slice(0, n - 1)]).map((w) => ({ label: w, value: w }));
 // en kunskapsfråga ur en lista: [fråga, rätt, fel, fel]
-const quiz = (topic, list) => () => { const [q, right, ...wrong] = pick(list); return { topic, board: { lines: [q.toUpperCase()], after: right.toUpperCase() }, say: q, ans: right, opts: textOpts(right, wrong), hint: 'Läs frågan en gång till och tänk efter.', done: `${q} ${right}.` }; };
+// (är svaret ett tal skrivs det med siffror i stället)
+export const quiz = (topic, list) => () => {
+  const [q, right, ...wrong] = pick(list), num = /^\d+$/.test(right);
+  return { topic, board: { lines: [q.toUpperCase()], after: right.toUpperCase() }, say: q, ...(num ? { input: 'num', ans: +right } : { ans: right, opts: textOpts(right, wrong) }), hint: 'Läs frågan en gång till och tänk efter.', done: `${q} ${right}.` };
+};
 
 // ======================= MATTE =======================
 function tio() { const a = rnd(1, 9); return { topic: 'TIOKOMPISAR', prompt: `${a} + ? = 10`, say: `${a} plus hur mycket blir tio?`, ans: 10 - a, opts: numOpts(10 - a, 3), visual: { frame: a }, hint: `Titta på tavlan: ${a} rutor är fyllda. Hur många är tomma?`, done: `${a} och ${10 - a} är tiokompisar.` }; }
@@ -69,13 +79,13 @@ const MATT = [
 const mata = quiz('MÄTA', MATT);
 const FORMER2 = ['kvadrat', 'rektangel', 'triangel', 'cirkel'], FORMER3 = ['kub', 'klot', 'cylinder', 'kon', 'rätblock', 'pyramid'];
 const HORN = { kvadrat: 4, rektangel: 4, triangel: 3 };
-function former() {
+export function former() {
   if (Math.random() < 0.25) { const f = pick(['kvadrat', 'rektangel', 'triangel']); return { topic: 'FORMER', board: { lines: [`HUR MÅNGA HÖRN HAR EN ${f.toUpperCase()}?`], after: `${HORN[f]} HÖRN` }, visual: { shape: f }, say: `Hur många hörn har en ${f}?`, ans: HORN[f], opts: numOpts(HORN[f], 1), hint: 'Räkna hörnen på formen på tavlan.', done: `En ${f} har ${HORN[f]} hörn.` }; }
   const three = Math.random() < 0.6, list = three ? FORMER3 : FORMER2, f = pick(list);
   return { topic: three ? 'KROPPAR' : 'FORMER', board: { lines: [three ? 'VAD HETER KROPPEN?' : 'VAD HETER FORMEN?'], after: f.toUpperCase() }, visual: { shape: f }, say: three ? 'Vad heter kroppen?' : 'Vad heter formen?', ans: f, opts: textOpts(f, list, 3).map((o) => ({ ...o, label: cap(o.label) })), hint: three ? 'Klot är runt som en boll, en kub har sex lika fyrkantiga sidor och en cylinder ser ut som en burk.' : 'Räkna hörnen: triangel 3, kvadrat och rektangel 4, cirkel inga.', done: `Det är en ${f}.` };
 }
-const MATRATT = ['PIZZA', 'TACOS', 'FISK', 'SOPPA', 'PASTA'];
-function diagram() {
+export const MATRATT = ['PIZZA', 'TACOS', 'FISK', 'SOPPA', 'PASTA'];
+export function diagram() {
   const foods = shuffle(MATRATT.slice()).slice(0, 4), vals = shuffle([2, 3, 4, 5, 6, 7, 8]).slice(0, 4), bars = foods.map((f, i) => [f, vals[i]]);
   const r = rnd(0, 2), maxI = vals.indexOf(Math.max(...vals)), minI = vals.indexOf(Math.min(...vals));
   const v = { chart: bars };
@@ -96,7 +106,7 @@ function tabell2510() { const t = pick([2, 5, 10]), n = rnd(2, 10), seq = Array.
 const HW = ['tolv', 'ett', 'två', 'tre', 'fyra', 'fem', 'sex', 'sju', 'åtta', 'nio', 'tio', 'elva'];
 const hw = (h) => HW[((h % 12) + 12) % 12];
 export function phrase(h, m) { const c = hw(h), n = hw(h + 1); return { 0: `klockan ${c}`, 5: `fem över ${c}`, 10: `tio över ${c}`, 15: `kvart över ${c}`, 20: `tjugo över ${c}`, 25: `fem i halv ${n}`, 30: `halv ${n}`, 35: `fem över halv ${n}`, 40: `tjugo i ${n}`, 45: `kvart i ${n}`, 50: `tio i ${n}`, 55: `fem i ${n}` }[m]; }
-function klocka(l) {
+export function klocka(l) {
   const mins = l === 1 ? [0, 30] : l === 2 ? [0, 15, 30, 45] : [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
   const h = rnd(1, 12), m = pick(mins), right = phrase(h, m);
   const pairs = m === 0 ? [[h, 30], [h - 1, 30], [h + 1, 0]] : [[h - 1, m], [h, (60 - m) % 60], [h + 1, m], [h, (m + 30) % 60]];
@@ -106,8 +116,7 @@ function klocka(l) {
 }
 function digital() {
   const h = rnd(1, 10), m = pick([0, 15, 30, 45]), pm = Math.random() < 0.6, hh = pm ? h + 12 : h, right = `${pad(hh)}:${pad(m)}`;
-  const wrong = [`${pad(pm ? h : h + 12)}:${pad(m)}`, `${pad(hh)}:${pad((m + 30) % 60)}`, `${pad(hh + (m === 45 ? 0 : 1))}:${pad(m)}`].filter((w) => w !== right);
-  return { topic: 'DIGITAL TID', question: pm ? 'PÅ EFTERMIDDAGEN - DIGITALT?' : 'PÅ FÖRMIDDAGEN - DIGITALT?', prompt: 'Digitalt?', say: `Klockan är ${phrase(h, m)} på ${pm ? 'eftermiddagen' : 'förmiddagen'}. Hur skriver man det digitalt?`, ans: right, opts: shuffle([right, ...new Set(wrong)].slice(0, 3)).map((p) => ({ label: p, value: p })), visual: { clock: [h, m] }, hint: pm ? 'På eftermiddagen lägger man till 12 på timmen: ett blir 13, två blir 14 …' : 'På förmiddagen är timmen samma som på urtavlan.', done: `${cap(phrase(h, m))} på ${pm ? 'eftermiddagen' : 'förmiddagen'} är ${right}.` };
+  return { topic: 'DIGITAL TID', input: 'time', accept: [hh * 60 + m], question: pm ? 'PÅ EFTERMIDDAGEN - SKRIV DIGITALT' : 'PÅ FÖRMIDDAGEN - SKRIV DIGITALT', prompt: 'Digitalt?', say: `Klockan är ${phrase(h, m)} på ${pm ? 'eftermiddagen' : 'förmiddagen'}. Skriv det digitalt.`, ans: right, visual: { clock: [h, m] }, hint: pm ? 'På eftermiddagen lägger man till 12 på timmen: ett blir 13, två blir 14 …' : 'På förmiddagen är timmen samma som på urtavlan.', done: `${cap(phrase(h, m))} på ${pm ? 'eftermiddagen' : 'förmiddagen'} är ${right}.` };
 }
 
 // ======================= SVENSKA =======================
@@ -124,15 +133,14 @@ function motsats() {
 const ALFA = 'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ';
 const ORDLISTA = ['apa', 'boll', 'cykel', 'docka', 'elefant', 'fisk', 'glass', 'hund', 'is', 'jacka', 'katt', 'lampa', 'mus', 'nalle', 'ost', 'penna', 'ros', 'sol', 'tåg', 'uggla', 'väska', 'yxa', 'zebra', 'ål', 'äpple', 'ö'];
 function alfa() {
-  if (Math.random() < 0.4) { const i = rnd(0, ALFA.length - 2), c = ALFA[i], nx = ALFA[i + 1]; const wrong = [ALFA[Math.max(0, i - 1)], ALFA[Math.min(ALFA.length - 1, i + 2)], ALFA[(i + 5) % ALFA.length]].filter((x) => x !== nx && x !== c); return { topic: 'ALFABETET', board: { big: c, lines: ['VILKEN BOKSTAV KOMMER EFTER?'], after: `${c} ${nx}` }, say: `Vilken bokstav kommer efter ${c}?`, ans: nx, opts: textOpts(nx, wrong), hint: 'Sjung alfabetet tyst för dig själv fram till bokstaven.', done: `Efter ${c} kommer ${nx}.` }; }
+  if (Math.random() < 0.4) { const i = rnd(0, ALFA.length - 2), c = ALFA[i], nx = ALFA[i + 1]; return { topic: 'ALFABETET', input: 'word', board: { big: `${c} ?`, lines: ['VILKEN BOKSTAV KOMMER EFTER?'] }, say: `Vilken bokstav kommer efter ${c}?`, ans: nx, hint: 'Sjung alfabetet tyst för dig själv fram till bokstaven.', done: `Efter ${c} kommer ${nx}.` }; }
   const words = shuffle(ORDLISTA.slice()).slice(0, 3), first = words.slice().sort((a, b) => ALFA.indexOf(a[0].toUpperCase()) - ALFA.indexOf(b[0].toUpperCase()))[0];
   return { topic: 'ALFABETISK ORDNING', board: { lines: [words.map((w) => w.toUpperCase()).join('   '), 'VILKET ORD KOMMER FÖRST I ALFABETET?'], after: first.toUpperCase() }, say: `Vilket ord kommer först i alfabetet: ${words.join(', ')}?`, ans: first, opts: words.map((w) => ({ label: w, value: w })), hint: 'Titta på första bokstaven i varje ord. Vilken kommer först i alfabetet?', done: `${cap(first)} kommer först, för ${first[0].toUpperCase()} kommer först i alfabetet.` };
 }
 const SAMMANSATT = [['fot', 'boll'], ['regn', 'båge'], ['glass', 'strut'], ['snö', 'gubbe'], ['cykel', 'hjälm'], ['tand', 'borste'], ['is', 'bit'], ['blå', 'bär'], ['sko', 'snöre'], ['hund', 'koja'], ['sand', 'låda'], ['bok', 'hylla'], ['lek', 'plats'], ['sol', 'glasögon'], ['skol', 'gård']];
-function sammansatt() {
-  const [a, b] = pick(SAMMANSATT), right = a + b, other = pick(SAMMANSATT.filter((p) => p[0] !== a));
-  const wrong = [b + a, a + other[1], other[0] + b].filter((w) => w !== right);
-  return { topic: 'SAMMANSATTA ORD', board: { big: `${a.toUpperCase()} + ${b.toUpperCase()}`, lines: ['= ?'], after: `= ${right.toUpperCase()}` }, say: `${a} plus ${b}. Vilket ord blir det?`, ans: right, opts: textOpts(right, wrong), hint: 'Sätt ihop orden i samma ordning som på tavlan.', done: `${cap(a)} och ${b} blir ${right}.` };
+export function sammansatt() {
+  const [a, b] = pick(SAMMANSATT), right = a + b;
+  return { topic: 'SAMMANSATTA ORD', input: 'word', board: { big: `${a.toUpperCase()} + ${b.toUpperCase()}`, lines: ['SKRIV IHOP ORDEN:', '= ?'] }, say: `${a} plus ${b}. Skriv ordet.`, ans: right, hint: 'Sätt ihop orden i samma ordning som på tavlan, utan mellanslag.', done: `${cap(a)} och ${b} blir ${right}.` };
 }
 const VOKAL = [['JAG DRICKER VATTEN UR ETT ___.', 'glas', 'glass'], ['JAG ÄTER EN ___ MED STRÖSSEL.', 'glass', 'glas'], ['HUSET HAR ETT RÖTT ___.', 'tak', 'tack'], ['___ FÖR HJÄLPEN!', 'tack', 'tak'],
   ['GLASET ÄR ___ AV SAFT.', 'full', 'ful'], ['VI BOR I EN ___ MED TRÄDGÅRD.', 'villa', 'vila'], ['EFTER GYMPAN BEHÖVER JAG ___.', 'vila', 'villa'], ['HAN HAR EN ___ PÅ HUVUDET.', 'hatt', 'hat'],
@@ -143,21 +151,21 @@ function vokal() {
   return { topic: 'LÅNGA OCH KORTA VOKALER', board: { lines: [s], after: s.replace('___', right.toUpperCase()) }, say: s.toLowerCase().replace('___', 'blank'), ans: right, opts: shuffle([right, wrong]).map((w) => ({ label: w, value: w })), hint: 'Kort vokal har dubbel konsonant efter sig (glass, tack). Lång vokal har en (glas, tak). Säg orden högt.', done: `Det ska vara ${right}.` };
 }
 const DUBBEL = [['katt', ['kat', 'kaat']], ['hoppa', ['hopa', 'hoopa']], ['sitta', ['sita', 'siitta']], ['komma', ['koma', 'kommma']], ['kudde', ['kude', 'kuddde']], ['boll', ['bol', 'bolll']], ['vatten', ['vaten', 'vattten']], ['flicka', ['flika', 'flickka']], ['sommar', ['somar', 'sommmar']], ['simma', ['sima', 'siimma']], ['mössa', ['mösa', 'möössa']], ['rulle', ['rule', 'ruulle']], ['tröja', ['tröjja', 'trööja']], ['glass', ['glas', 'glasss']], ['pappa', ['papa', 'paappa']]];
-function dubbel() { const [right, wrong] = pick(DUBBEL); return { topic: 'DUBBELTECKNING', board: { lines: ['VILKET ORD ÄR RÄTT STAVAT?'], after: right.toUpperCase() }, say: right, ans: right, opts: textOpts(right, wrong), hint: 'Lyssna på vokalen: är den kort skrivs konsonanten efter den dubbelt.', done: `${cap(right)} stavas så.` }; }
+export function dubbel() { const [right, wrong] = pick(DUBBEL); return { topic: 'DUBBELTECKNING', board: { lines: ['VILKET ORD ÄR RÄTT STAVAT?'], after: right.toUpperCase() }, say: right, ans: right, opts: textOpts(right, wrong), hint: 'Lyssna på vokalen: är den kort skrivs konsonanten efter den dubbelt.', done: `${cap(right)} stavas så.` }; }
 const SJTJ = [['sju', ['skju', 'schu'], 'DET FINNS ___ DAGAR I EN VECKA.'], ['sjuk', ['skjuk', 'stjuk'], 'NÄR MAN HAR FEBER ÄR MAN ___.'], ['sjö', ['skjö', 'schö'], 'VI BADAR I EN ___.'], ['skjorta', ['sjorta', 'schorta'], 'PAPPA HAR EN RANDIG ___.'],
   ['stjärna', ['sjärna', 'skjärna'], 'EN ___ LYSER PÅ HIMLEN.'], ['sked', ['sjed', 'sched'], 'JAG ÄTER SOPPA MED EN ___.'], ['tjugo', ['kjugo', 'chugo'], 'TIO PLUS TIO ÄR ___.'], ['kjol', ['tjol', 'chol'], 'HON HAR EN RÖD ___.'],
   ['tjock', ['kjock', 'sjock'], 'BOKEN ÄR TUNN, KUDDEN ÄR ___.'], ['köpa', ['tjöpa', 'chöpa'], 'JAG VILL ___ EN GLASS.'], ['jord', ['gjord', 'djord'], 'BLOMMAN VÄXER I ___.'], ['ljus', ['jus', 'djus'], 'TÄND ETT ___!'],
   ['hjärta', ['järta', 'gjärta'], 'MITT ___ SLÅR FORT.'], ['djur', ['jur', 'hjur'], 'EN KATT ÄR ETT ___.'], ['göra', ['jöra', 'gjöra'], 'VAD SKA VI ___ PÅ RASTEN?']];
-function sjtj() { const [right, wrong, s] = pick(SJTJ); return { topic: 'SJ-, TJ- OCH J-LJUD', board: { lines: [s, 'VILKET ÄR RÄTT STAVAT?'], after: s.replace('___', right.toUpperCase()) }, say: s.toLowerCase().replace('___', right), ans: right, opts: textOpts(right, wrong), hint: 'Samma ljud kan stavas på olika sätt. Vilket ord har du sett förut?', done: `${cap(right)} stavas så.` }; }
+export function sjtj() { const [right, wrong, s] = pick(SJTJ); return { topic: 'SJ-, TJ- OCH J-LJUD', board: { lines: [s, 'VILKET ÄR RÄTT STAVAT?'], after: s.replace('___', right.toUpperCase()) }, say: s.toLowerCase().replace('___', right), ans: right, opts: textOpts(right, wrong), hint: 'Samma ljud kan stavas på olika sätt. Vilket ord har du sett förut?', done: `${cap(right)} stavas så.` }; }
 const NGNK = [['sång', ['sångg', 'sonng'], 'VI SJUNGER EN ___.'], ['lång', ['långg', 'lonng'], 'GIRAFFEN HAR EN ___ HALS.'], ['ring', ['rinng', 'rigng'], 'HON HAR EN ___ PÅ FINGRET.'], ['gunga', ['gungga', 'gunnga'], 'BARNEN ___ PÅ LEKPLATSEN.'],
   ['bank', ['bangk', 'bannk'], 'PENGARNA FINNS PÅ ___.'], ['tänka', ['tängka', 'tännka'], 'JAG MÅSTE ___ EFTER.'], ['bänk', ['bängk', 'bännk'], 'VI SITTER PÅ EN ___.'], ['sjunka', ['sjungka', 'sjunnka'], 'STENEN KOMMER ATT ___.'],
   ['finger', ['fingger', 'finnger'], 'MITT ___ GÖR ONT.'], ['ängel', ['änngel', 'ängl'], 'EN ___ HAR VINGAR.'], ['tunga', ['tungga', 'tunnga'], 'JAG RÄCKER UT ___.']];
 function ngnk() { const [right, wrong, s] = pick(NGNK); return { topic: 'NG OCH NK', board: { lines: [s, 'VILKET ÄR RÄTT STAVAT?'], after: s.split('___').join(right.toUpperCase()) }, say: s.toLowerCase().split('___').join(right), ans: right, opts: textOpts(right, wrong), hint: 'Ng-ljudet stavas ng (sång). Före k blir det bara n (bank).', done: `${cap(right)} stavas så.` }; }
 const SLUT = [['VAD HETER DU', '?'], ['JAG HETER {P}', '.'], ['AKTA DIG', '!'], ['VAR BOR DU', '?'], ['VI HAR RAST NU', '.'], ['HJÄLP', '!'], ['VILL DU LEKA', '?'], ['SOLEN SKINER', '.'], ['VAD GOTT DET ÄR', '!'], ['HUR GAMMAL ÄR DU', '?'], ['KATTEN SOVER I SOFFAN', '.'], ['NÄR BÖRJAR SKOLAN', '?']];
 const TECKEN = { '.': 'Punkt .', '?': 'Frågetecken ?', '!': 'Utropstecken !' };
-function slut() { const [s0, right] = pick(SLUT), s = s0.replace('{P}', CTX().me.toUpperCase()); return { topic: 'PUNKT, FRÅGETECKEN, UTROPSTECKEN', board: { lines: [`${s} _`, 'VAD SKA STÅ I SLUTET?'], after: s + right }, say: s.toLowerCase(), ans: right, opts: ['.', '?', '!'].map((t) => ({ label: TECKEN[t], value: t })), hint: 'En fråga slutar med frågetecken. Något man ropar eller känner starkt slutar med utropstecken. Annars punkt.', done: `Det ska vara ${TECKEN[right].toLowerCase()}.` }; }
+export function slut() { const [s0, right] = pick(SLUT), s = s0.replace('{P}', CTX().me.toUpperCase()); return { topic: 'PUNKT, FRÅGETECKEN, UTROPSTECKEN', board: { lines: [`${s} _`, 'VAD SKA STÅ I SLUTET?'], after: s + right }, say: s.toLowerCase(), ans: right, opts: ['.', '?', '!'].map((t) => ({ label: TECKEN[t], value: t })), hint: 'En fråga slutar med frågetecken. Något man ropar eller känner starkt slutar med utropstecken. Annars punkt.', done: `Det ska vara ${TECKEN[right].toLowerCase()}.` }; }
 const PLATSER = ['Pixelstaden', 'Göteborg', 'Stockholm', 'Sverige', 'Malmö'];
-function storBokstav() {
+export function storBokstav() {
   const c = CTX(), kids = [...new Set(c.kids.map((k) => cap(String(k).trim().split(/\s+/)[0].toLowerCase())))], N = pick(kids), M = pick(kids.filter((k) => k !== N)) || 'Leo', Pl = pick(PLATSER), t = rnd(0, 2);
   const right = t === 0 ? `${N} bor i ${Pl}.` : t === 1 ? `${N} och ${M} leker i parken.` : `Vi åker till ${Pl} på lördag.`;
   const wrong = t === 0 ? [`${N.toLowerCase()} bor i ${Pl}.`, `${N} bor i ${Pl.toLowerCase()}.`, `${N} bor i ${Pl}`] : t === 1 ? [`${N} och ${M.toLowerCase()} leker i parken.`, `${N.toLowerCase()} och ${M} leker i parken.`, `${N} och ${M} leker i parken`] : [`vi åker till ${Pl} på lördag.`, `Vi åker till ${Pl.toLowerCase()} på lördag.`, `Vi åker till ${Pl} på Lördag.`];
@@ -166,7 +174,7 @@ function storBokstav() {
 const ETT = ['äpple', 'hus'];
 const WORDS = { N: ['hund', 'katt', 'boll', 'bok', 'hus', 'cykel', 'äpple', 'glass', 'fotboll', 'skolgård', 'frukost', 'regnbåge', 'kompis'], V: ['springer', 'hoppar', 'äter', 'sover', 'läser', 'simmar', 'dansar', 'sjunger', 'tänker', 'cyklar', 'väntar', 'klättrar', 'skrattar'], A: ['glad', 'stor', 'liten', 'snabb', 'röd', 'mjuk', 'kall', 'rolig', 'försiktig', 'nyfiken', 'blöt', 'modig', 'trött'] };
 export const CLS = { N: { label: 'Substantiv', sub: 'en eller ett …' }, V: { label: 'Verb', sub: 'jag …' }, A: { label: 'Adjektiv', sub: 'hur något är' } };
-function ordklass(keys) {
+export function ordklass(keys) {
   return () => {
     const cls = pick(keys), w = pick(WORDS[cls]);
     const done = cls === 'N' ? `”${ETT.includes(w) ? 'ett' : 'en'} ${w}” låter rätt, så det är ett substantiv.` : cls === 'V' ? `”Jag ${w}” låter rätt, så det är ett verb.` : `”En ${w} hund” låter rätt, så det är ett adjektiv.`;
@@ -179,7 +187,7 @@ const MENING = [['HUNDEN ___ EFTER BOLLEN.', 'springer', ['blå', 'stol']], ['JA
   ['MIN KOMPIS ÄR ___ IDAG.', 'glad', ['springer', 'boll']], ['VI SPELAR ___ PÅ RASTEN.', 'fotboll', ['äter', 'trött']]];
 function mening() { const [s0, right, wrong] = pick(MENING), s = s0.replace('{P}', CTX().me.toUpperCase()); return { topic: 'MENINGAR', board: { lines: [s, 'VILKET ORD PASSAR?'], after: s.replace('___', right.toUpperCase()) }, say: s.toLowerCase().replace('___', 'blank'), ans: right, opts: textOpts(right, wrong), hint: 'Läs meningen med varje ord. Vilken blir en riktig mening?', done: `${cap(s.toLowerCase().replace('___', right))}` }; }
 // läsförståelse: korta berättelser med klassens egna namn
-const LAS = [
+export const LAS = [
   (A) => [`${A} GÅR TILL GLASSTÅNDET OCH KÖPER EN JORDGUBBSGLASS FÖR 12 KR.`, `Vilken glass köper ${cap(A.toLowerCase())}?`, 'Jordgubb', ['Choklad', 'Pistage']],
   (A) => [`${A} HAR EN HUND SOM HETER BAMSE. BAMSE ÄLSKAR ATT SPRINGA I PARKEN.`, 'Vad heter hunden?', 'Bamse', [cap(A.toLowerCase()), 'Parken']],
   (A) => [`DET REGNAR UTE. ${A} TAR PÅ SIG GUMMISTÖVLAR OCH EN GUL REGNJACKA.`, 'Vilken färg har regnjackan?', 'Gul', ['Röd', 'Blå']],
@@ -193,13 +201,21 @@ const LAS = [
   (A) => [`${A} PLANTERAR TRE SOLROSOR OCH VATTNAR DEM VARJE DAG. EFTER EN VECKA HAR DE VUXIT.`, 'Hur många solrosor blir det?', 'Tre', ['Två', 'Fem']],
   (A, T, B) => [`${A} OCH ${B} BAKAR KAKOR. ${B} HÄLLER I SOCKER OCH ${A} RÖR I DEGEN.`, 'Vem häller i sockret?', cap(B.toLowerCase()), [cap(A.toLowerCase()), 'Fröken']],
 ];
-function las() {
+export function las() {
   const c = CTX(), A = pick(c.kids), B = pick(c.kids.filter((k) => k !== A)), [text, q, right, wrong] = pick(LAS)(A.toUpperCase(), c.teacher.toUpperCase(), B.toUpperCase());
   return { topic: 'LÄSFÖRSTÅELSE', board: { lines: [text, q.toUpperCase()], after: right.toUpperCase() }, say: `${text.toLowerCase()} ${q}`, ans: right, opts: textOpts(right, wrong), hint: 'Läs berättelsen på tavlan en gång till. Svaret står där.', done: `${right}.` };
 }
 
+// Skriv ordet (titta, täck, skriv): ordet står på tavlan tills man börjar skriva, sedan göms det.
+// Läs upp säger ordet. look = ordet som visas.
+export const ORD2 = ['sol', 'hus', 'katt', 'boll', 'glass', 'skola', 'mamma', 'pappa', 'cykel', 'äpple', 'fisk', 'kompis', 'regn', 'snö', 'blomma', 'sommar', 'vinter', 'hund', 'häst', 'kaka', 'bok', 'tåg', 'säng', 'lampa', 'penna', 'dörr', 'sko', 'mössa', 'vatten', 'kudde', 'docka', 'tröja', 'måne', 'fönster'];
+export const diktamen = (list) => () => {
+  const w = pick(list);
+  return { topic: 'SKRIV ORDET', input: 'word', look: w.toUpperCase(), board: { lines: ['TITTA NOGA PÅ ORDET.', 'NÄR DU BÖRJAR SKRIVA GÖMS DET.'] }, say: w, ans: w, hint: 'Tryck på Läs upp och lyssna. Säg ordet långsamt och skriv ett ljud i taget.', done: `${cap(w)} stavas ${w.toUpperCase().split('').join('-')}.` };
+};
+
 // ======================= ENGELSKA =======================
-const EN = {
+export const EN = {
   farger: [['röd', 'red'], ['blå', 'blue'], ['grön', 'green'], ['gul', 'yellow'], ['svart', 'black'], ['vit', 'white'], ['rosa', 'pink'], ['lila', 'purple'], ['orange', 'orange'], ['brun', 'brown'], ['grå', 'grey']],
   siffror: [['ett', 'one'], ['två', 'two'], ['tre', 'three'], ['fyra', 'four'], ['fem', 'five'], ['sex', 'six'], ['sju', 'seven'], ['åtta', 'eight'], ['nio', 'nine'], ['tio', 'ten'], ['elva', 'eleven'], ['tolv', 'twelve'], ['tretton', 'thirteen'], ['fjorton', 'fourteen'], ['femton', 'fifteen'], ['sexton', 'sixteen'], ['sjutton', 'seventeen'], ['arton', 'eighteen'], ['nitton', 'nineteen'], ['tjugo', 'twenty']],
   djur: [['hund', 'dog'], ['katt', 'cat'], ['häst', 'horse'], ['ko', 'cow'], ['gris', 'pig'], ['fågel', 'bird'], ['fisk', 'fish'], ['kanin', 'rabbit'], ['mus', 'mouse'], ['får', 'sheep'], ['anka', 'duck'], ['björn', 'bear'], ['lejon', 'lion'], ['apa', 'monkey'], ['elefant', 'elephant']],
@@ -207,7 +223,7 @@ const EN = {
   mat: [['äpple', 'apple'], ['banan', 'banana'], ['bröd', 'bread'], ['mjölk', 'milk'], ['ost', 'cheese'], ['ägg', 'egg'], ['glass', 'ice cream'], ['vatten', 'water'], ['smörgås', 'sandwich'], ['apelsin', 'orange'], ['kaka', 'cake'], ['jordgubbe', 'strawberry']],
   dagar: [['måndag', 'Monday'], ['tisdag', 'Tuesday'], ['onsdag', 'Wednesday'], ['torsdag', 'Thursday'], ['fredag', 'Friday'], ['lördag', 'Saturday'], ['söndag', 'Sunday'], ['hej', 'hello'], ['hej då', 'goodbye'], ['tack', 'thank you'], ['god morgon', 'good morning'], ['god natt', 'good night'], ['hur mår du?', 'how are you?']],
 };
-function engelska(key, topic) {
+export function engelska(key, topic) {
   return () => {
     const list = EN[key], [sv, en] = pick(list), toEn = Math.random() < 0.55;
     const others = list.filter((p) => p[0] !== sv && p[1] !== en).map((p) => (toEn ? p[1] : p[0]));
@@ -218,19 +234,19 @@ function engelska(key, topic) {
 }
 
 // ======================= NO OCH SO =======================
-const ARSTID = [['Vilken årstid kommer efter vintern?', 'Våren', 'Sommaren', 'Hösten'], ['Vilken månad kommer efter mars?', 'April', 'Maj', 'Februari'], ['Hur många månader har ett år?', '12', '10', '7'],
+export const ARSTID = [['Vilken årstid kommer efter vintern?', 'Våren', 'Sommaren', 'Hösten'], ['Vilken månad kommer efter mars?', 'April', 'Maj', 'Februari'], ['Hur många månader har ett år?', '12', '10', '7'],
   ['När faller löven från träden?', 'På hösten', 'På våren', 'På sommaren'], ['Vilken månad är det julafton?', 'December', 'November', 'Januari'], ['Hur många dagar har en vecka?', '7', '5', '10'],
   ['Vilken månad börjar året med?', 'Januari', 'Mars', 'December'], ['När firar vi midsommar?', 'I juni', 'I december', 'I mars'], ['Vilken årstid är kallast?', 'Vintern', 'Sommaren', 'Våren'],
   ['Vilken dag kommer efter onsdag?', 'Torsdag', 'Tisdag', 'Fredag'], ['Vilken månad kommer före juni?', 'Maj', 'Juli', 'April']];
-const NATUR = [['Vilket djur ger oss mjölk?', 'Kon', 'Grisen', 'Hönan'], ['Vad heter en hästunge?', 'Föl', 'Kalv', 'Lamm'], ['Vad heter en kounge?', 'Kalv', 'Föl', 'Kattunge'], ['Vilket djur sover hela vintern?', 'Björnen', 'Älgen', 'Räven'],
+export const NATUR = [['Vilket djur ger oss mjölk?', 'Kon', 'Grisen', 'Hönan'], ['Vad heter en hästunge?', 'Föl', 'Kalv', 'Lamm'], ['Vad heter en kounge?', 'Kalv', 'Föl', 'Kattunge'], ['Vilket djur sover hela vintern?', 'Björnen', 'Älgen', 'Räven'],
   ['Vad behöver en växt för att växa?', 'Vatten och ljus', 'Bara sand', 'Mörker'], ['Vilket djur lägger ägg?', 'Hönan', 'Katten', 'Kon'], ['Vad heter en fårunge?', 'Lamm', 'Föl', 'Kalv'],
   ['Vad blir ett grodyngel när det växer upp?', 'En groda', 'En fisk', 'En fjäril'], ['Vad blir en larv?', 'En fjäril', 'En spindel', 'En mask'], ['Vilket träd har barr?', 'Granen', 'Björken', 'Eken'],
   ['Vilken fågel kan inte flyga?', 'Pingvinen', 'Kråkan', 'Måsen'], ['Hur många ben har en spindel?', '8', '6', '4']];
-const TRAFIK = [['Vad betyder rött ljus?', 'Stanna', 'Gå', 'Spring'], ['Var går man över gatan?', 'Vid övergångsstället', 'Mitt i kurvan', 'Bakom bussen'], ['Vad har man på huvudet när man cyklar?', 'Cykelhjälm', 'Keps', 'Ingenting'],
+export const TRAFIK = [['Vad betyder rött ljus?', 'Stanna', 'Gå', 'Spring'], ['Var går man över gatan?', 'Vid övergångsstället', 'Mitt i kurvan', 'Bakom bussen'], ['Vad har man på huvudet när man cyklar?', 'Cykelhjälm', 'Keps', 'Ingenting'],
   ['Vilken sida av vägen cyklar man på i Sverige?', 'Höger', 'Vänster', 'Mitten'], ['Vad gör man innan man går över gatan?', 'Tittar åt båda hållen', 'Blundar', 'Springer direkt'],
   ['Vad har man på sig för att synas i mörkret?', 'Reflex', 'Solglasögon', 'Mössa'], ['Vad betyder grön gubbe i trafikljuset?', 'Du får gå', 'Stanna', 'Vänta'],
   ['Var går man om det inte finns trottoar?', 'Längs vänsterkanten', 'Mitt i vägen', 'Längs högerkanten']];
-const KROPP = [['Hur många gånger om dagen borstar man tänderna?', 'Två', 'En', 'Fem'], ['Vilket organ pumpar runt blodet?', 'Hjärtat', 'Magen', 'Lungorna'], ['Vad andas vi med?', 'Lungorna', 'Hjärtat', 'Magen'],
+export const KROPP = [['Hur många gånger om dagen borstar man tänderna?', 'Två', 'En', 'Fem'], ['Vilket organ pumpar runt blodet?', 'Hjärtat', 'Magen', 'Lungorna'], ['Vad andas vi med?', 'Lungorna', 'Hjärtat', 'Magen'],
   ['Vad luktar du med?', 'Näsan', 'Örat', 'Handen'], ['Vad gör man innan man äter?', 'Tvättar händerna', 'Springer', 'Sover'], ['Vad är bra för kroppen?', 'Frukt och grönsaker', 'Bara godis', 'Bara läsk'],
   ['Hur många sinnen har vi?', 'Fem', 'Tre', 'Tio'], ['Vad behöver kroppen när den är trött?', 'Sömn', 'Godis', 'Läsk'], ['Vad skyddar hjärnan?', 'Skallen', 'Magen', 'Knät']];
 
@@ -247,7 +263,7 @@ export const LEVELS = {
     { name: 'Rim', gen: rim }, { name: 'Motsatsord', gen: motsats }, { name: 'Alfabetisk ordning', gen: alfa }, { name: 'Sammansatta ord', gen: sammansatt },
     { name: 'Långa och korta vokaler', gen: vokal }, { name: 'Dubbelteckning', gen: dubbel }, { name: 'Stavning: sj-, tj- och j-ljud', gen: sjtj }, { name: 'Stavning: ng och nk', gen: ngnk },
     { name: 'Punkt, frågetecken, utropstecken', gen: slut }, { name: 'Stor bokstav', gen: storBokstav }, { name: 'Substantiv eller verb', gen: ordklass(['N', 'V']) }, { name: 'Tre ordklasser', gen: ordklass(['N', 'V', 'A']) },
-    { name: 'Meningar', gen: mening }, { name: 'Läsförståelse', gen: las },
+    { name: 'Meningar', gen: mening }, { name: 'Läsförståelse', gen: las }, { name: 'Skriv ordet', gen: diktamen(ORD2) },
   ],
   engelska: [
     { name: 'Färger', gen: engelska('farger', 'COLOURS - FÄRGER') }, { name: 'Siffror 1–20', gen: engelska('siffror', 'NUMBERS - SIFFROR') }, { name: 'Djur', gen: engelska('djur', 'ANIMALS - DJUR') },
