@@ -1,0 +1,12 @@
+{
+  "appId": "io.eightbitcat.pixelskolan",
+  "appName": "Pixelskolan",
+  "webDir": "www",
+  "backgroundColor": "#100e15",
+  "ios": {
+    "contentInset": "never",
+    "scrollEnabled": false,
+    "allowsLinkPreview": false,
+    "preferredContentMode": "mobile"
+  }
+}

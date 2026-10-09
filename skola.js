@@ -20,6 +20,8 @@ import { makeView, drawView } from './utsikt.js';
 import { UNITS, UNIT_H, makeUnit, drawUnitLive } from './smabutiker.js';
 
 const W = 384, H = 216, WALL_Y = 92;
+// i iOS-appen (Capacitor) finns ingen tillbakaknapp: länkar ut ur spelet visas inte där
+const IN_APP = !!window.Capacitor?.isNativePlatform?.();
 const $ = (id) => document.getElementById(id);
 const reduce = !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
 const jit = (c, x, y, s, a) => mul(c, 1 + (hash(x, y, s) - 0.5) * 2 * a);
@@ -1485,7 +1487,7 @@ $('sk-below').addEventListener('click', (e) => {
   else if (a === 'home') goScene('hem', 'galleria');
   else if (a === 'mute') { toggleMute(); musicTick(); renderBelow(); }
   else if (a === 'class') { if (P.seated) standUp(); classDialog(); }
-  else if (a === 'help') openModal('❓ Pixelskolan', `<p>${esc(HELP)}</p><p class="sp">Allt sparas i den här webbläsaren. <a href="plan.html">Om Pixelskolan och planen</a></p>`, [{ label: 'Okej', cls: 'btn-go', onClick: closeModal }]);
+  else if (a === 'help') openModal('❓ Pixelskolan', `<p>${esc(HELP)}</p><p class="sp">${IN_APP ? 'Allt sparas i appen på den här enheten.' : 'Allt sparas i den här webbläsaren. <a href="plan.html">Om Pixelskolan och planen</a>'}</p>`, [{ label: 'Okej', cls: 'btn-go', onClick: closeModal }]);
   else if (a === 'reset') { if (!confirm('Börja om från början? Din figur, klass och allt du köpt försvinner.')) return; try { localStorage.removeItem(SAVE_KEY); } catch { /* lagring avstängd */ } fresh(); doorGlow = false; goScene('klass', null); renderBelow(); gradeDialog(startCreator); }
 });
 

@@ -1,0 +1,17 @@
+{
+  "name": "pixelskolan-app",
+  "private": true,
+  "appVersion": "1.0",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs",
+    "sync": "node build.mjs && npx cap sync ios"
+  },
+  "dependencies": {
+    "@capacitor/core": "^8.5.2",
+    "@capacitor/ios": "^8.5.2"
+  },
+  "devDependencies": {
+    "@capacitor/cli": "^8.5.2"
+  }
+}
