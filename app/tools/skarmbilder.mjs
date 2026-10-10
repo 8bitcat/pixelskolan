@@ -1,7 +1,7 @@
 // App Store-bilderna till Pixelskolan: spelet i appens läge (liggande, utan webbläsare) i exakt Apples storlekar.
 //   iphone63  iPhone med Dynamic Island (6,3 tum)  874×402 ×3 = 2622×1206 (det enda som krävs för iPhone)
 //   ipad13    iPad 13 tum                          1376×1032 ×2 = 2752×2064
-//   node app/tools/skarmbilder.mjs [iphone63|ipad13]   → app/store/ladda-upp/<enhet>/NN-namn.png (båda om inget anges)
+//   node app/tools/skarmbilder.mjs [iphone63|ipad13]   → app/store/ladda-upp/<enhet>/<enhet>-NN-namn.png (båda om inget anges)
 // Ordningen är den som bilderna ska dras in i App Store Connect. Kräver en lokal server för repot på 8824 (PORT=…).
 import { createRequire } from 'module';
 import fs from 'fs';
@@ -13,8 +13,8 @@ const { chromium } = require('playwright');
 const APP = path.resolve(path.dirname(fileURLToPath(import.meta.url)), '..');
 const PORT = process.env.PORT || 8824;
 const ENHETER = {
-  iphone63: { mapp: 'iPhone 6,3 tum', viewport: { width: 874, height: 402 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true },
-  ipad13: { mapp: 'iPad 13 tum', viewport: { width: 1376, height: 1032 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
+  iphone63: { mapp: 'iPhone 6,3 tum', pre: 'iPhone-6,3', viewport: { width: 874, height: 402 }, deviceScaleFactor: 3, isMobile: true, hasTouch: true },
+  ipad13: { mapp: 'iPad 13 tum', pre: 'iPad-13', viewport: { width: 1376, height: 1032 }, deviceScaleFactor: 2, isMobile: true, hasTouch: true },
 };
 const val = process.argv[2] ? [process.argv[2]] : Object.keys(ENHETER);
 
@@ -29,7 +29,7 @@ for (const id of val) {
   page.on('pageerror', (e) => console.log('sidfel:', e.message));
   const st = () => page.evaluate(() => window.__ps.state());
   const wait = (ms) => page.waitForTimeout(ms);
-  const shot = async (n, namn) => { await wait(350); await page.screenshot({ path: path.join(OUT, `${String(n).padStart(2, '0')}-${namn}.png`) }); console.log(id, n, namn); };
+  const shot = async (n, namn) => { await wait(350); await page.screenshot({ path: path.join(OUT, `${E.pre}-${String(n).padStart(2, '0')}-${namn}.png`) });   // enheten först: de två mapparna får inte förväxlas console.log(id, n, namn); };
   const typeAns = async (s) => { for (const c of s) await page.evaluate((k) => window.__ps.type(k), c); };
   // en uppgift av rätt sort på nivån (t.ex. guldmynten i Gånger): be om nya tills den passar
   const pickQ = async (tab, lvl, ok) => { for (let i = 0; i < 40; i++) { await page.evaluate(([t, l]) => window.__ps.lvl(t, l), [tab, lvl]); if (await page.evaluate(ok)) return; } };
