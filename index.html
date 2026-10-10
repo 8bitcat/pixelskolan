@@ -39,6 +39,13 @@ body { min-height: 100dvh; padding: max(4px, env(safe-area-inset-top)) max(4px, 
   .sf #sk-below .sk-bbtns { display: flex; flex-direction: column; flex-wrap: nowrap; gap: 4px; }
   .sf #sk-below .btn-small { width: 100%; }
 }
+/* hög liggande skärm (iPad, 4:3): lektionsrutan under tavlan i stället för ovanpå – hela tavlan syns, knapparna
+   blir större och ytan under bilden används (bilden krymper så att rutan får plats) */
+@media (min-height: 521px) and (max-aspect-ratio: 3/2) and (orientation: landscape) {
+  .sf { --panel: 240px; }
+  .app { width: min(100%, calc((100dvh - var(--bar) - var(--panel) - 20px) * 16 / 9 + 8px)); }
+  .sf #skolpanel.dlg { position: static; margin-top: 6px; max-height: none; box-shadow: 4px 4px 0 var(--ink); }
+}
 /* stående mobil: Snabbfilens skylt "vänd på mobilen" */
 .sf #rotate { position: fixed; inset: 0; z-index: 60; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; padding: 24px;
   background: #100e15 repeating-conic-gradient(#100e15 0 25%, #151221 0 50%) 0 0 / 8px 8px; opacity: 1; color: #f4f1ea; text-align: center; }
