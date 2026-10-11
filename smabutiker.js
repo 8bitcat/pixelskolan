@@ -2,6 +2,7 @@
 // (Carl 2026-10-07: "det kan vara affärer vägg i vägg … mängder av detaljer"). Man går inte in i dem,
 // men expediten står bakom disken och svarar när man klickar. Målade med Snabbfilens penna
 // (floor-pix.js); expediterna är spelets figurer (people.js).
+// BLING BLING (bling.js) är den enda man går in i: fasaden ritas här, butiken är en egen scen (UNITS.bling.shop).
 // Varje butik har en bakre bild (rummet bakom glaset, målas in i gallerians vägg), en expedit som
 // ritas levande och en främre bild (disken, glaset med reflexer och det som står ute på golvet).
 import { Pix, SMALL, BIG, textW, text as pixText, mix, mul, hash, bayer } from './sf/js/core/floor-pix.js';
@@ -15,6 +16,8 @@ export const UNITS = {
     lines: ['HEJ HEJ! TIDNINGEN KOM NYSS.', 'GLASSEN FINNS I FRYSEN UTANFÖR.', 'VILL DU HA ETT SERIEMAGASIN?'] },
   godis: { label: 'GODISBUTIKEN', sign: 'GODIS', col: 0xe0457e, edge: 0xa02858, ink: 0xffffff, wall: 0xfff0f5, flo: 0xd8c4cc, door: 34, keeper: 84,
     lines: ['PLOCKGODIS PÅ LÖRDAG!', 'MIN FAVORIT ÄR SURA REMMAR. VAD GILLAR DU?', 'KOM IHÅG ATT BORSTA TÄNDERNA SEN!'] },
+  bling: { label: 'BLING BLING', sign: 'BLING BLING', col: 0x2a1a2e, edge: 0xb9862a, ink: 0xffd23f, wall: 0xf7dce8, flo: 0xf6eef2, door: 54, keeper: 101, shop: 'bling', sparkle: true,
+    lines: ['VÄLKOMMEN IN!', 'DU KAN DESIGNA ETT EGET HALSBAND HOS OSS!'] },
   foto: { label: 'FOTOAUTOMATEN', booth: true, lines: ['BLIXT! FYRA BILDER.', 'LE STORT!'] },
   bankomat: { label: 'BANKOMATEN', atm: true },
 };
@@ -196,6 +199,106 @@ function godisOut(P, u, g) {   // en jätteklubba vid dörren
   for (let y = -5; y <= 5; y++) for (let xx = -5; xx <= 5; xx++) { const r = Math.hypot(xx, y); if (r > 5.4) continue; const a = Math.atan2(y, xx) - r * 0.6; P.px(x + xx, g - 25 + y, r > 4.6 ? 0x2a6aba : (Math.floor((a + 7) / (Math.PI / 3)) & 1) ? 0x46b04a : 0xffffff); }
 }
 
+// ---------- BLING BLING: smycken till vänster, väskor till höger (butiken inne: bling.js) ----------
+const GOLD = 0xe8b84a, GOLDD = 0xb9862a, GOLDL = 0xfff0b0, PLUM = 0x2a1a2e;
+const BAGCOL = [0xf07ab0, 0xd8394a, 0x3a7bd5, 0xf2c94e, 0x9a62d8, 0x2ab0b0, 0x2b2a33, 0xf0902e];
+const sparkle = (P, x, y, c = 0xffffff) => { P.px(x, y, c); P.px(x - 1, y, c, 0.6); P.px(x + 1, y, c, 0.6); P.px(x, y - 1, c, 0.6); P.px(x, y + 1, c, 0.6); };
+function bust(P, cx, by, neck) {   // en sammetsbyst (8 × 15) med ett halsband
+  for (let y = 0; y < 15; y++) for (let x = -4; x <= 4; x++) {
+    const n = Math.abs(x) <= 1 && y < 7, sh = y >= 6 && Math.abs(x) <= 1 + (y - 6) * 0.6 + 1;
+    if (n || sh) P.px(cx + x, by - 15 + y, x < 0 ? 0x3a3c78 : 0x23244f);
+  }
+  P.rect(cx - 2, by, 5, 1, GOLDD);
+  const [c, p] = neck;
+  for (let t = 0; t <= 6; t++) P.px(cx - 3 + t, by - 9 + Math.round(2 * (1 - ((t - 3) / 3) ** 2)), c === 'rb' ? [0xe8394f, 0xf2c94e, 0x4fb06a, 0x3a7bd5, 0x9a62d8, 0xf0902e, 0xe8394f][t] : c);
+  if (p) { P.px(cx, by - 6, p); P.px(cx, by - 5, mul(p, 0.7)); }
+}
+function minibag(P, x, y, c, kind) {   // väskorna på hyllorna (8 × 7)
+  const d = mul(c, 0.7), l = mix(c, 0xffffff, 0.3);
+  if (kind === 0) { P.rect(x, y + 2, 8, 5, c); P.hl(x, y + 2, 8, l); P.px(x + 2, y + 1, d); P.px(x + 5, y + 1, d); P.hl(x + 3, y, 2, d); P.px(x + 4, y + 4, GOLD); }
+  else if (kind === 1) { P.rect(x + 1, y + 1, 6, 6, c); P.rect(x + 1, y + 1, 6, 2, d); P.px(x + 4, y + 3, GOLD); P.vl(x + 1, y + 1, 6, l); }
+  else if (kind === 2) { P.rect(x + 1, y, 6, 7, c); P.rect(x + 2, y + 3, 4, 3, d); P.hl(x + 1, y, 6, l); }
+  else { P.rect(x, y + 3, 8, 4, c); for (let k = 0; k < 8; k += 2) P.px(x + k, y + 3, l); P.px(x + 1, y + 2, 0x5a4a3a); P.px(x + 6, y + 2, 0x5a4a3a); P.hl(x + 2, y + 1, 4, 0x5a4a3a); }
+}
+function blingBack(P, u, d, g) {
+  const x0 = u.x + 3, x1 = u.x + u.w - 3, it = g - UNIT_H + 16, fl = g - 9;
+  for (let y = it + 2; y < fl; y++) for (let x = x0; x < x1; x++) {   // tapeten: rosa ränder med guldprickar
+    const lx = (x - x0) % 8, ly = (y - it) % 8;
+    if (lx < 4) P.px(x, y, 0xf1cfe0); if (lx === 6 && ly === 4) P.px(x, y, GOLD);
+  }
+  for (let x = x0; x < x1; x++) { P.px(x, fl - 7, 0xfff7f0); P.px(x, fl - 6, GOLD); }   // bröstpanelen
+  for (let y = fl - 5; y < fl; y++) for (let x = x0; x < x1; x++) P.px(x, y, (x - x0) % 10 === 0 ? mix(0xfff7f0, GOLD, 0.5) : 0xfff7f0);
+  // vänster: hyllan med byster och halsband, under den trappan med ringar och örhängen i sammet
+  P.rect(x0 + 2, it + 26, 46, 2, 0xfff7f0); P.hl(x0 + 2, it + 28, 46, GOLDD); P.hl(x0 + 2, it + 29, 46, 0x000000, 0.12);
+  [[0xf6f2ea, 0], [GOLD, 0xe8394f], ['rb', 0], [0xd8dee6, 0x4f8ff0], [GOLDL, 0x3fbf7a]].forEach((n, k) => bust(P, x0 + 7 + k * 9, it + 26, n));
+  for (let k = 0; k < 3; k++) {
+    const sy = fl - 9 - k * 6, sx = x0 + 3 + k * 4, w = 42 - k * 8;
+    P.rect(sx, sy, w, 6, k % 2 ? 0x8e1f3c : 0x7a1832); P.hl(sx, sy, w, 0xb83a5a);
+    for (let j = 0; j < w - 4; j += 5) {
+      const jx = sx + 2 + j, kind = (j / 5 + k) % 3;
+      if (kind === 0) { P.box(jx, sy - 2, 3, 3, GOLD); P.px(jx + 1, sy - 3, [0xe8394f, 0x4f8ff0, 0xffffff][k]); }
+      else if (kind === 1) { P.px(jx, sy - 2, GOLD); P.px(jx, sy - 1, 0xf5a3c7); P.px(jx + 2, sy - 2, GOLD); P.px(jx + 2, sy - 1, 0xf5a3c7); }
+      else { P.rect(jx, sy - 2, 3, 2, 0xffffff); P.px(jx + 1, sy - 3, GOLD); }
+    }
+  }
+  // genom dörren: spegeln längst in
+  const mx = u.x + d.door + 5;
+  P.rect(mx, it + 10, 10, fl - it - 16, GOLD); P.rect(mx + 1, it + 11, 8, fl - it - 18, 0xd8eef8);
+  for (let y = it + 12; y < fl - 8; y++) if ((y + mx) % 9 < 2) P.px(mx + 2 + ((y - it) % 5), y, 0xffffff);
+  // höger: väskhyllan, två rader fack med väskor
+  for (let r = 0; r < 2; r++) for (let k = 0; k < 4; k++) {
+    const bx = u.x + 77 + k * 11, by = it + 9 + r * 15;
+    P.rect(bx, by, 11, 13, 0xfff7f0); P.box(bx, by, 11, 13, GOLD); P.hl(bx + 1, by + 11, 9, GOLDD);
+    minibag(P, bx + 2, by + 3, BAGCOL[(k * 3 + r * 5) % BAGCOL.length], (k + r * 2) % 4);
+  }
+  // kristallkronorna i taket
+  for (const cx of [u.x + 27, u.x + 100]) {
+    P.vl(cx, it + 2, 3, GOLDD); P.hl(cx - 4, it + 5, 9, GOLD); P.hl(cx - 3, it + 6, 7, GOLDD);
+    for (let k = -4; k <= 4; k += 2) { P.vl(cx + k, it + 7, k % 4 ? 2 : 3, 0xe8f6fc); P.px(cx + k, it + 4, 0xfff6c0); }
+    P.ell(cx, it + 9, 12, 7, 0xfff6d0, 0.2, 3);
+  }
+}
+function blingFront(P, u, d, g) {
+  // vänster skyltfönster: en låg glasmonter med smycken på sammet
+  const cx0 = u.x + 7, cw = 42;
+  P.rect(cx0, g - 12, cw, 9, 0xfff7f0); P.box(cx0, g - 12, cw, 9, GOLDD); P.hl(cx0 + 1, g - 11, cw - 2, GOLD);
+  for (let x = cx0 + 4; x < cx0 + cw - 4; x += 9) P.rect(x, g - 9, 5, 4, mix(0xfff7f0, GOLD, 0.3));
+  P.rect(cx0 + 1, g - 19, cw - 2, 7, 0x8e1f3c); P.hl(cx0 + 1, g - 13, cw - 2, 0x6e1830);
+  for (let k = 0; k < 5; k++) {
+    const jx = cx0 + 4 + k * 8, y = g - 17;
+    if (k % 2) { P.box(jx, y + 1, 4, 4, GOLD); P.px(jx + 1, y, [0x4f8ff0, 0xe8394f][k >> 1 & 1]); P.px(jx + 2, y, 0xffffff); }
+    else for (let t = 0; t <= 5; t++) P.px(jx + t, y + Math.round(2 * (1 - ((t - 2.5) / 2.5) ** 2)), k === 2 ? 0xffffff : GOLDL);
+  }
+  for (let y = g - 19; y < g - 12; y++) for (let x = cx0 + 1; x < cx0 + cw - 1; x++) if ((x + y * 2) % 13 < 2) P.px(x, y, 0xffffff, 0.5);
+  P.box(cx0, g - 20, cw, 9, 0xc8e6f2); P.hl(cx0, g - 20, cw, 0xffffff);
+  // höger: disken (rosa med guldstjärnor) med kassan och en väska på
+  const kx = u.x + 82, kw = 38;
+  P.rect(kx, g - 22, kw, 3, 0xffffff); P.hl(kx, g - 20, kw, GOLD);
+  for (let y = g - 19; y < g - 3; y++) for (let x = kx; x < kx + kw; x++) P.px(x, y, x === kx || x === kx + kw - 1 ? 0xb83a78 : 0xf07ab0);
+  P.hl(kx + 1, g - 18, kw - 2, 0xf8a4c8);
+  for (let x = kx + 5; x < kx + kw - 3; x += 9) { P.px(x, g - 11, GOLDL); P.px(x - 1, g - 11, GOLD); P.px(x + 1, g - 11, GOLD); P.px(x, g - 12, GOLD); P.px(x, g - 10, GOLD); }
+  P.rect(kx + 27, g - 26, 8, 4, 0x2b2a33); P.rect(kx + 28, g - 25, 6, 1, 0x7ad07a);
+  minibag(P, kx + 4, g - 29, 0xe8b84a, 0);
+}
+function blingOut(P, u, g) {
+  const dx = u.x + 54;   // den rosa mattan med guldkant framför dörren
+  for (let y = 0; y < 7; y++) for (let x = -2 - y; x < 22 + y; x++) P.px(dx + x, g + y, y === 0 || y === 6 || x === -2 - y || x === 21 + y ? GOLD : (x + y) % 4 === 0 ? 0xf8a4c8 : 0xf07ab0);
+  const bx = u.x + 30;   // en skylt på staffli: halsbandet man kan designa själv
+  P.line(bx, g, bx + 3, g - 17, GOLDD); P.line(bx + 12, g, bx + 9, g - 17, GOLDD); P.line(bx + 6, g - 4, bx + 6, g - 17, GOLDD);
+  P.rect(bx, g - 19, 13, 12, PLUM); P.box(bx, g - 19, 13, 12, GOLD);
+  for (let t = 0; t <= 8; t++) P.px(bx + 2 + t, g - 16 + Math.round(3 * (1 - ((t - 4) / 4) ** 2)), GOLDL);
+  P.rect(bx + 5, g - 12, 3, 2, 0xf07ab0); P.px(bx + 6, g - 11, 0xffffff);
+  sparkle(P, bx + 10, g - 16, 0xffd23f);
+}
+function blingSign(P, u, d, g) {   // ovanpå den vanliga skylten: diamanter i ändarna och guldkant
+  const top = g - UNIT_H;
+  for (const cx of [u.x + 9, u.x + u.w - 10]) {
+    const D = ['.###.', '#####', '.###.', '..#..'];
+    D.forEach((r, j) => [...r].forEach((ch, i) => { if (ch === '#') P.px(cx - 2 + i, top + 4 + j, j === 0 ? 0xffffff : j === 1 ? 0xbfe6f6 : 0x8ac8e8); }));
+  }
+  for (let x = u.x + 4; x < u.x + u.w - 4; x += 6) P.px(x, top + 12, GOLD);
+}
+
 // ---------- fotoautomaten och bankomaten ----------
 function fotoBack(P, u, g) {
   const x0 = u.x, w = u.w, top = g - 60;
@@ -221,7 +324,9 @@ function atmBack(P, u, g) {
   P.line(x0 + 2, top + 12, x0 + 6, top + 10, 0x6a727a); P.line(x0 + w - 3, top + 12, x0 + w - 7, top + 10, 0x6a727a);   // insynsskyddet
 }
 
-const THEME = { blommor: [blommorBack, blommorFront, blommorOut], kiosk: [kioskBack, kioskFront, kioskOut], godis: [godisBack, godisFront, godisOut] };
+const THEME = { blommor: [blommorBack, blommorFront, blommorOut], kiosk: [kioskBack, kioskFront, kioskOut], godis: [godisBack, godisFront, godisOut], bling: [blingBack, blingFront, blingOut] };
+// BLING BLINGs expedit är samma person som står i kassan inne i butiken (bling.js)
+const KEEPER = { bling: () => ({ ...makeLookRich(), hair: '#ecd489', style: 'bun', top: 'tee', shirt: '#f07ab0', kid: false, bottom: 'skirt', pants: '#2b2a33', neck: 'pearls', jewel: 'hoops' }) };
 
 // bygger butikens bilder (en gång): { back, front, ox, keeper, blocks }
 export function makeUnit(u, g) {
@@ -232,13 +337,14 @@ export function makeUnit(u, g) {
   else if (d.atm) atmBack(B, u, g);
   else {
     const [back, front, outside] = THEME[u.id];
-    room(B, u, d, g); back(B, u, d, g); fascia(B, u, d, g);
+    room(B, u, d, g); back(B, u, d, g); fascia(B, u, d, g); if (u.id === 'bling') blingSign(B, u, d, g);
     front(F, u, d, g); glassFront(F, u, d, g); outside(F, u, g);
-    U.keeper = { x: u.x + d.keeper, look: makeLookRich() };
+    U.keeper = { x: u.x + d.keeper, look: KEEPER[u.id] ? KEEPER[u.id]() : makeLookRich() };
     U.spot = [u.x + d.door + 10, g + 8];
     if (u.id === 'blommor') U.blocks.push([u.x + 42, g - 2, u.x + 76, g + 2]);
     if (u.id === 'kiosk') U.blocks.push([u.x + 28, g - 2, u.x + 42, g + 1], [u.x + 58, g - 2, u.x + 80, g + 1]);
     if (u.id === 'godis') U.blocks.push([u.x + 4, g - 2, u.x + 12, g + 1]);
+    if (u.id === 'bling') U.blocks.push([u.x + 28, g - 2, u.x + 44, g + 1]);
   }
   U.back = B.flush(); U.front = F.flush();
   return U;
@@ -257,6 +363,14 @@ export function drawUnitLive(c, U, t, g) {
     if (cyc < 7) { c.fillStyle = '#2d3a5c'; c.fillRect(u.x + 6, g - 7, 2, 3); c.fillRect(u.x + 10, g - 7, 2, 3); c.fillStyle = '#1c1c1c'; c.fillRect(u.x + 5, g - 4, 3, 1); c.fillRect(u.x + 10, g - 4, 3, 1); }
     if (cyc > 2 && cyc < 6 && (cyc % 1) < 0.12) { c.fillStyle = 'rgba(255,255,255,0.75)'; c.fillRect(u.x + 2, g - 47, 14, 6); c.fillStyle = 'rgba(255,255,255,0.3)'; c.fillRect(u.x - 4, g - 52, 26, 18); }
     if (U.flash != null && t - U.flash < 0.15) { c.fillStyle = 'rgba(255,255,255,0.8)'; c.fillRect(u.x - 6, g - 62, u.w + 12, 64); }
+  }
+  if (d.sparkle) {   // glittret i skylten och skyltfönstren
+    for (let i = 0; i < 7; i++) {
+      const ph = (t * 0.9 + i * 0.37) % 2.2; if (ph > 0.5) continue;
+      const k = Math.floor((t * 0.9 + i * 0.37) / 2.2) * 7 + i, zone = i < 3 ? [u.x + 6, g - UNIT_H + 2, u.w - 12, 10] : i < 5 ? [u.x + 6, g - 56, 44, 30] : [u.x + 78, g - 64, 42, 28];
+      const x = Math.round(zone[0] + hash(k, 1, 61) * zone[2]), y = Math.round(zone[1] + hash(k, 2, 61) * zone[3]), r = ph < 0.25 ? 1 : 2;
+      c.fillStyle = 'rgba(255,255,255,0.95)'; c.fillRect(x - r, y, r * 2 + 1, 1); c.fillRect(x, y - r, 1, r * 2 + 1);
+    }
   }
   if (d.atm && Math.floor(t * 2) % 2) { c.fillStyle = '#5ae07a'; c.fillRect(u.x + 21, g - 22, 1, 2); }
 }

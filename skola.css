@@ -104,6 +104,30 @@
 .sf .sk-me .sk-lbl { margin-top: 0; }
 .sf .sk-me .sk-big { margin: 0 0 6px; }
 .sf .sk-me .sk-btns { justify-content: flex-start; }
+/* BLING BLING (bling.js): montrarna/väskväggen som kort med figuren, ateljén med bild + delar och pris */
+.sf .bl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
+.sf .bl-card { display: flex; flex-direction: column; align-items: center; gap: 3px; background: #fff; border: 3px solid var(--ink); padding: 6px 4px; text-align: center; }
+.sf .bl-card.on { background: #fde7f1; border-color: #b83a78; }
+.sf .bl-card b { font-size: var(--f2); line-height: 1; hyphens: manual; overflow-wrap: anywhere; }
+.sf .bl-card span { font-size: var(--f1); color: var(--muted); }
+.sf .bl-pre canvas { display: block; max-width: 100%; image-rendering: pixelated; background: linear-gradient(#fbe6ef, #f3cfe0); border: 2px solid var(--ink); }
+.sf .bl-design { display: flex; gap: 12px; align-items: flex-start; }
+.sf .bl-show { flex: 0 0 min(288px, 42%); display: flex; flex-direction: column; gap: 6px; position: sticky; top: 0; }
+.sf .bl-canvas canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: 38vh; image-rendering: pixelated; border: 3px solid var(--ink); }
+.sf .bl-sum { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; background: #2a1a2e; color: #ffd23f; padding: 4px 8px; border: 3px solid var(--ink); }
+.sf .bl-sum b { font: var(--f3) var(--head); line-height: 1; }
+.sf .bl-sum .sp { color: #f3cfe0; margin: 0; }
+.sf .bl-list { list-style: none; margin: 0; padding: 0; font-size: var(--f1); }
+.sf .bl-list li { display: flex; justify-content: space-between; gap: 6px; border-bottom: 1px dashed var(--paper2); padding: 1px 0; }
+.sf .bl-pick { flex: 1 1 auto; min-width: 0; }
+.sf .bl-grp .sk-lbl { margin: 6px 0 4px; }
+.sf .bl-opts, .sf .bl-mine { display: flex; flex-wrap: wrap; gap: 5px; }
+.sf .bl-opts .btn { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left; }
+.sf .bl-opts .btn small { font-size: var(--f1); opacity: .75; }
+.sf .bl-opts .btn i { display: block; width: 14px; height: 8px; border: 2px solid var(--ink); }
+.sf .bl-mine { margin-bottom: 4px; }
+@media (max-height: 520px) { .sf .bl-list { display: none; } .sf .bl-sum b { font-size: var(--f2); } }
+@container (max-width: 760px) { .sf .bl-design { flex-direction: column; } .sf .bl-show { position: static; flex-basis: auto; width: min(288px, 100%); } }
 @container (max-width: 760px) { .sf .sp-kb, .sf .sp-keys { gap: 3px; } .sf .sp-keys .btn { font-size: var(--f1); padding: 4px 0; } }
 .sf .sk-hist { border-collapse: collapse; margin: 8px 0; font-size: var(--f2); }
 .sf .sk-hist th, .sf .sk-hist td { border: 2px solid var(--ink); padding: 2px 8px; text-align: left; }
