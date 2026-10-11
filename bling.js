@@ -8,6 +8,8 @@
 //   fram:    ateljén – DESIGNA HALSBAND (kedja, hänge, sten, pärlor) och DESIGNA VÄSKA (modell, färg, mönster,
 //            berlock); varje del har sitt pris och det färdiga sätts på figuren (närmaste modell i spelet + färgen)
 //   spegeln: smyckeskrinet – allt man äger och sina egna designer, ta på och av
+// Man ser alltid hur det blir på figuren, som i klädaffären (Carl 2026-10-11): montrarna öppnar klädaffärens egen
+// provdialog (Du nu ➜ Med …, vrid figuren, välj färg) och ateljén och spegeln har samma vridbara figur.
 // Pengarna är spelets (A.game.money). Egna designer sparas av skola.js (opts.store).
 import { Pix, SMALL, BIG, textW, text as pixText, ctxText, mix, mul, hash, bayer } from './sf/js/core/floor-pix.js';
 import { drawPerson, makeLookRich } from './sf/js/core/people.js';
@@ -15,6 +17,7 @@ import { openModal, closeModal, esc, toast } from './sf/js/core/ui.js';
 import { itemById, lookForItem, lookWithoutSlot, isWorn } from './sf/js/data/wardrobe.js';
 import { fmt } from './sf/js/game.js';
 import { play } from './sf/js/core/sound.js';
+import { openBuy, figure } from './sf/js/scenes/klader/buy.js';   // klädaffärens provdialog: samma sätt att prova som för kläderna
 
 const W = 384, H = 216, WALL = 90;
 const WALK = [1, 3, 2, 3];
@@ -423,10 +426,31 @@ export function makeShopBling(A, opts = {}) {
   // gnistor: på montrarna, kronorna, skylten och mattan
   const SPARK = []; for (let i = 0; i < 34; i++) { const z = pickOf([[12, 100, 62, 10], [82, 100, 62, 10], [24, 156, 62, 10], [128, 13, 128, 16], [100, 14, 24, 10], [260, 14, 24, 10], [233, 37, 142, 46], [14, 36, 120, 20]]); SPARK.push({ x: z[0] + Math.random() * z[2], y: z[1] + Math.random() * z[3], ph: Math.random() * 6, sp: 1.5 + Math.random() * 2 }); }
 
-  // ---------- montrarna och väskväggen: spelets riktiga smycken och väskor ----------
+  // ---------- provfiguren: "Du nu ➜ Med …" som går att vrida, som i klädaffärens köpdialog (klader/buy.js) ----------
   const wearing = (it) => isWorn(it, A.avatar.look);
   const setLook = (look) => { A.avatar = { ...A.avatar, look }; };
-  // smycken: huvudet och överkroppen fem gånger större; väskor: hela figuren från sidan (väskan syns på ryggen/höften)
+  const DIRS = ['down', 'left', 'up', 'right'], DIR_NAMES = ['Framifrån', 'Från sidan', 'Bakifrån', 'Från sidan'];
+  const figScale = () => (window.innerHeight >= 620 && window.innerWidth >= 560 ? 5 : window.innerHeight < 480 ? 3 : 4);
+  function bestDir(now, withIt) {   // åt vilket håll syns skillnaden mest (en ryggsäck syns bäst bakifrån)
+    const px = (look, dir) => { const c = document.createElement('canvas'); c.width = 28; c.height = 44; const x = c.getContext('2d', { willReadFrequently: true }); drawPerson(x, 14, 41, look, dir, 0); return x.getImageData(0, 0, 28, 44).data; };
+    const score = DIRS.map((dir, i) => { const a = px(now, dir), b = px(withIt, dir); let n = 0; for (let k = 0; k < a.length; k += 4) if (a[k] !== b[k] || a[k + 1] !== b[k + 1] || a[k + 2] !== b[k + 2] || a[k + 3] !== b[k + 3]) n++; return n * (i === 0 ? 1.6 : 1); });
+    return score.indexOf(Math.max(...score));
+  }
+  const stageHtml = (what, single = false) => `<div class="bl-try"><div class="bl-stage">${single ? '' : '<div class="bl-fig" data-fig="now"><i></i><small>Du nu</small></div><div class="bl-arrow">➜</div>'}<div class="bl-fig" data-fig="new"><i></i><small>${esc(what)}</small></div></div>
+    <div class="bl-turn"><button type="button" class="btn btn-small" data-turn="-1" aria-label="Vrid åt vänster">⟲ Vrid</button><b class="bl-view" data-view></b><button type="button" class="btn btn-small" data-turn="1" aria-label="Vrid åt höger">Vrid ⟳</button></div></div>`;
+  function stage(dlg, withLook, dr) {   // dr = { i, user } – riktningen följer med när dialogen ritas om
+    const render = () => {
+      const dir = DIRS[dr.i];
+      dlg.querySelector('[data-fig="now"] i')?.replaceChildren(figure(A.avatar.look, dir, 2));
+      dlg.querySelector('[data-fig="new"] i')?.replaceChildren(figure(withLook(), dir, figScale()));
+      dlg.querySelector('[data-view]').textContent = DIR_NAMES[dr.i];
+    };
+    dlg.querySelectorAll('[data-turn]').forEach((b) => (b.onclick = () => { dr.i = (dr.i + +b.dataset.turn + 4) % 4; dr.user = true; play('click'); render(); }));
+    render();
+  }
+
+  // ---------- montrarna och väskväggen: spelets egna smycken och väskor; ett klick provar på figuren ----------
+  // korten: smycken med huvudet och överkroppen inzoomade, väskor med hela figuren från sidan
   const preview = (look, mode = 'neck') => {
     const c = document.createElement('canvas'); c.width = 30; c.height = 44; const g = c.getContext('2d'); g.imageSmoothingEnabled = false;
     drawPerson(g, 15, 42, look, mode === 'bag' ? 'right' : 'down', 0);
@@ -435,57 +459,55 @@ export function makeShopBling(A, opts = {}) {
       const d = g.getImageData(0, 0, 30, 44).data; let top = 0; while (top < 43 && ![...Array(30).keys()].some((x) => d[(top * 30 + x) * 4 + 3] > 0)) top++;
       const o = document.createElement('canvas'); o.width = 24; o.height = 24; const og = o.getContext('2d'); og.imageSmoothingEnabled = false;
       og.drawImage(c, 3, Math.max(0, top - 1), 24, 24, 0, 0, 24, 24); out = big(o, 4);
-    } else if (mode === 'bag') {
+    } else {
       const o = document.createElement('canvas'); o.width = 24; o.height = 36; const og = o.getContext('2d'); og.imageSmoothingEnabled = false;
       og.drawImage(c, 3, 8, 24, 36, 0, 0, 24, 36); out = big(o, 3);
-    } else out = big(c, 3);
+    }
     out.style.width = out.width + 'px'; out.style.height = out.height + 'px'; return out;
   };
-  const nameOf = (it) => esc(it.name).replace(/\u00ad/g, '&shy;');
+  const nameOf = (it) => esc(it.name).replace(/­/g, '&shy;');
   function catalog(cat) {
     const D = CATS[cat], items = D.ids.map(itemById).filter(Boolean);
-    const card = (it) => { const own = G.ownsWardrobe(it.id), on = own && wearing(it), price = G.clothesPrice(it); return `<div class="bl-card${on ? ' on' : ''}"><div class="bl-pre" data-pre="${it.id}"></div><b>${nameOf(it)}</b><span>${own ? (on ? 'Har du på dig' : 'Din') : fmt(price)}</span><button type="button" class="btn btn-small${own ? '' : ' btn-go'}" data-it="${it.id}">${own ? (on ? 'Ta av' : 'Ta på') : 'Köp'}</button></div>`; };
-    const dlg = openModal(D.title, `<p class="sp">Du har <b>${fmt(G.money)}</b>. Det du köper får du ha på dig direkt – och i spegeln kan du byta senare.</p><div class="bl-grid">${items.map(card).join('')}</div>`, [{ label: 'Stäng', onClick: closeModal }]);
+    const card = (it, i) => { const own = G.ownsWardrobe(it.id), on = own && wearing(it); return `<button type="button" class="bl-card${on ? ' on' : own ? ' own' : ''}" data-i="${i}"><span class="bl-pre"></span><b>${nameOf(it)}</b><span class="bl-tag">${on ? '✓ PÅ DIG' : own ? '✓ DIN' : fmt(G.clothesPrice(it))}</span></button>`; };
+    const dlg = openModal(D.title, `<p class="sp">Du har <b>${fmt(G.money)}</b>. Klicka på något så provar du det på dig – vrid figuren och välj färg innan du köper.</p><div class="bl-grid">${items.map(card).join('')}</div>`, [{ label: 'Stäng', onClick: closeModal }]);
     dlg.classList.add('dlg-furn');
-    dlg.querySelectorAll('[data-pre]').forEach((d) => { const it = itemById(d.dataset.pre); d.append(preview(lookForItem(it, A.avatar.look, { colors: !wearing(it) }), it.slot === 'bag' ? 'bag' : 'neck')); });
-    dlg.querySelectorAll('[data-it]').forEach((b) => (b.onclick = () => {
-      const it = itemById(b.dataset.it);
-      if (!G.ownsWardrobe(it.id)) {
-        const r = G.buyWardrobe(it.id);
-        if (!r.ok) { toast(r.msg === 'Du har inte råd – dags att jobba ett pass!' ? '💸 Du har inte råd än – plugga en lektion till!' : r.msg, 'bad'); return; }
-        play('buy'); toast(`✨ ${it.name.replace(/­/g, '')} för ${fmt(r.price)}!`, 'good'); setLook(lookForItem(it, A.avatar.look, { colors: true }));
-      } else if (wearing(it)) setLook(lookWithoutSlot(it.slot, A.avatar.look));
-      else setLook(lookForItem(it, A.avatar.look, { colors: true }));
-      catalog(cat);
-    }));
+    dlg.querySelectorAll('.bl-card').forEach((b) => {
+      const it = items[+b.dataset.i];
+      b.querySelector('.bl-pre').append(preview(lookForItem(it, A.avatar.look, { colors: !wearing(it) }), it.slot === 'bag' ? 'bag' : 'neck'));
+      b.onclick = () => { play('click'); openBuy(A, it, { where: `BLING BLING · ${D.title.replace(/^\S+\s/, '')}`, back: () => catalog(cat), onBought: () => say(pickOf(['SNYGGT! DET PASSAR DIG.', 'VILKET FYND!', 'DU BLEV JÄTTEFIN!']), keeper.x, keeper.y - 40) }); };
+    });
   }
   // ---------- ateljén ----------
   const DEF = { neck: { kedja: 'guld', hange: 'hjarta', sten: 'rosa', parlor: '2' }, bag: { modell: 'hand', farg: 'rosa', monster: 'prickar', berlock: 'pompom' } };
   const SEL = { neck: { ...DEF.neck }, bag: { ...DEF.bag } };
+  const DIRI = { neck: { i: 0, user: false }, bag: { i: 0, user: false } };
   let anim = 0;
   function designer(kind) {
     const GR = kind === 'neck' ? NECK : BAG, sel = SEL[kind], initial = String(A.avatar.name || 'A').trim()[0] || 'A';
-    const total = priceOf(GR, sel);
+    const total = priceOf(GR, sel), m = kind === 'neck' ? neckLook(sel) : bagLook(sel), withLook = () => ({ ...A.avatar.look, ...m.look });
+    const dr = DIRI[kind]; if (!dr.user) dr.i = bestDir(A.avatar.look, withLook());   // tills man vrider själv: där väskan syns bäst
     const groups = Object.entries(GR).map(([k, g]) => `<div class="bl-grp"><div class="sk-lbl">${g.label}</div><div class="bl-opts">${g.opts.map(([id, name, pr]) => {
       const dot = k === 'sten' && id !== 'ingen' ? `<i style="background:${GEMS[id][0]}"></i>` : k === 'farg' ? `<i style="background:${BAGC[id]}"></i>` : '';
       return `<button type="button" class="btn btn-small${sel[k] === id ? ' btn-gold' : ''}" data-k="${k}" data-v="${id}">${dot}${esc(name)}<small>${pr ? `${pr} kr` : 'gratis'}</small></button>`;
     }).join('')}</div></div>`).join('');
     const mine = store.list().filter((d) => d.kind === kind), key = JSON.stringify(sel), same = mine.find((d) => JSON.stringify(d.sel) === key);
-    const dlg = openModal(kind === 'neck' ? '📿 Designa ditt halsband' : '👜 Designa din väska', `<div class="bl-design"><div class="bl-show"><div class="bl-canvas"></div>
+    const dlg = openModal(kind === 'neck' ? '📿 Designa ditt halsband' : '👜 Designa din väska', `<div class="bl-design">${stageHtml(kind === 'neck' ? 'Med halsbandet' : 'Med väskan')}
+      <div class="bl-show"><div class="bl-canvas"></div>
       <div class="bl-sum"><span>Kostar</span><b>${fmt(total)}</b><span class="sp">Du har ${fmt(G.money)}</span></div>
       <ul class="bl-list">${Object.entries(GR).map(([k, g]) => { const o = optOf(g, sel[k]); return `<li><span>${esc(g.label)}: ${esc(o[1])}</span><b>${o[2]} kr</b></li>`; }).join('')}</ul></div>
-      <div class="bl-pick">${groups}</div></div>
-      ${mine.length ? `<div class="sk-lbl">Dina egna ${kind === 'neck' ? 'halsband' : 'väskor'}</div><div class="bl-mine">${mine.map((d, i) => `<button type="button" class="btn btn-small" data-mine="${i}">${kind === 'neck' ? '📿' : '👜'} ${esc(d.name)}</button>`).join('')}</div>` : ''}`,
+      <div class="bl-pick">${groups}
+      ${mine.length ? `<div class="sk-lbl">Dina egna ${kind === 'neck' ? 'halsband' : 'väskor'}</div><div class="bl-mine">${mine.map((d, i) => `<button type="button" class="btn btn-small" data-mine="${i}">${kind === 'neck' ? '📿' : '👜'} ${esc(d.name)}</button>`).join('')}</div>` : ''}</div></div>`,
       [same ? { label: 'Ta på – den är redan din', cls: 'btn-go', onClick: () => { setLook({ ...A.avatar.look, ...same.look }); cancelAnimationFrame(anim); closeModal(); play('ok'); toast(`✨ Du har på dig ${same.name}.`, 'good'); } }
         : { label: G.money >= total ? `Köp för ${fmt(total)}` : `Du behöver ${fmt(total - G.money)} till`, cls: 'btn-go', disabled: G.money < total, onClick: () => buyDesign(kind, total) },
        { label: 'Stäng', onClick: () => { cancelAnimationFrame(anim); closeModal(); } }]);
-    dlg.classList.add('dlg-furn');
+    dlg.classList.add('bl-wide');
+    stage(dlg, withLook, dr);
     const host = dlg.querySelector('.bl-canvas'), cv = document.createElement('canvas'); cv.width = 96 * 3; cv.height = 72 * 3; host.append(cv);
     const art = kind === 'neck' ? drawNecklace(sel, initial) : drawBag(sel), g = cv.getContext('2d'); g.imageSmoothingEnabled = false;
     const tw = (now) => { g.drawImage(art, 0, 0, cv.width, cv.height); for (let i = 0; i < 6; i++) { const ph = (now / 600 + i * 1.7) % 4; if (ph > 1) continue; const x = (hash(i, Math.floor(now / 2400 + i), 11) * 80 + 8) * 3, y = (hash(i, Math.floor(now / 2400 + i), 12) * 50 + 8) * 3, s = Math.sin(ph * Math.PI) * 6; g.fillStyle = 'rgba(255,255,255,0.9)'; g.fillRect(x - s, y - 1, s * 2, 3); g.fillRect(x - 1, y - s, 3, s * 2); } if (dlg.isConnected) anim = requestAnimationFrame(tw); };
     cancelAnimationFrame(anim); anim = requestAnimationFrame(tw);
     dlg.querySelectorAll('[data-k]').forEach((b) => (b.onclick = () => { sel[b.dataset.k] = b.dataset.v; play('click'); designer(kind); }));
-    dlg.querySelectorAll('[data-mine]').forEach((b) => (b.onclick = () => { const d = mine[+b.dataset.mine]; setLook({ ...A.avatar.look, ...d.look }); toast(`✨ Du har på dig ${d.name}.`, 'good'); designer(kind); }));
+    dlg.querySelectorAll('[data-mine]').forEach((b) => (b.onclick = () => { const d = mine[+b.dataset.mine]; Object.assign(sel, d.sel); play('click'); designer(kind); }));   // tillbaka till en egen design (Ta på-knappen kommer fram)
   }
   function buyDesign(kind, total) {
     if (G.money < total) return;
@@ -501,17 +523,18 @@ export function makeShopBling(A, opts = {}) {
     toast(`✨ ${kind === 'neck' ? 'Ditt eget halsband är klart' : 'Din egen väska är klar'}: ${name}!`, 'good');
     say(kind === 'neck' ? 'VILKET FINT HALSBAND! DET HAR DU GJORT SJÄLV!' : 'SNYGG VÄSKA! DEN ÄR HELT DIN EGEN!', keeper.x, keeper.y - 40);
   }
-  // ---------- spegeln: allt man äger här och sina egna designer ----------
+  // ---------- spegeln: allt man äger här och sina egna designer, på den vridbara figuren ----------
+  const MIR = { i: 0, user: true };
   function mirror() {
     const owned = Object.values(CATS).flatMap((c) => c.ids).map(itemById).filter((it) => it && G.ownsWardrobe(it.id));
     const designs = store.list();
-    const dlg = openModal('🪞 Spegeln', `<div class="who"><div class="bl-pre bl-me"></div><div><p class="sk-big">${esc(String(A.avatar.name || 'Du'))}</p><p class="sp">Ta på och av det du har köpt här och dina egna designer.</p></div></div>
+    const dlg = openModal('🪞 Spegeln', `<div class="bl-mirror">${stageHtml(String(A.avatar.name || 'Du'), true)}<div class="bl-mir-r"><p class="sp">Ta på och av det du har köpt här och dina egna designer – figuren visar hur du ser ut.</p>
       ${owned.length ? `<div class="sk-lbl">Köpt i butiken</div><div class="bl-mine">${owned.map((it) => `<button type="button" class="btn btn-small${wearing(it) ? ' btn-gold' : ''}" data-own="${it.id}">${wearing(it) ? '✓ ' : ''}${esc(it.name.replace(/­/g, ''))}</button>`).join('')}</div>` : '<p class="sp">Du har inte köpt något här än. Titta i glasmontrarna och på väskväggen!</p>'}
-      ${designs.length ? `<div class="sk-lbl">Dina egna designer</div><div class="bl-mine">${designs.map((d, i) => `<button type="button" class="btn btn-small" data-des="${i}">${d.kind === 'neck' ? '📿' : '👜'} ${esc(d.name)}</button>`).join('')}</div>` : ''}`,
+      ${designs.length ? `<div class="sk-lbl">Dina egna designer</div><div class="bl-mine">${designs.map((d, i) => `<button type="button" class="btn btn-small" data-des="${i}">${d.kind === 'neck' ? '📿' : '👜'} ${esc(d.name)}</button>`).join('')}</div>` : ''}</div></div>`,
       [{ label: 'Klar', cls: 'btn-go', onClick: closeModal }]);
-    dlg.querySelector('.bl-me').append(preview(A.avatar.look, 'me'));
-    dlg.querySelectorAll('[data-own]').forEach((b) => (b.onclick = () => { const it = itemById(b.dataset.own); setLook(wearing(it) ? lookWithoutSlot(it.slot, A.avatar.look) : lookForItem(it, A.avatar.look, { colors: true })); mirror(); }));
-    dlg.querySelectorAll('[data-des]').forEach((b) => (b.onclick = () => { setLook({ ...A.avatar.look, ...designs[+b.dataset.des].look }); mirror(); }));
+    stage(dlg, () => A.avatar.look, MIR);
+    dlg.querySelectorAll('[data-own]').forEach((b) => (b.onclick = () => { const it = itemById(b.dataset.own); play('click'); setLook(wearing(it) ? lookWithoutSlot(it.slot, A.avatar.look) : lookForItem(it, A.avatar.look, { colors: true })); mirror(); }));
+    dlg.querySelectorAll('[data-des]').forEach((b) => (b.onclick = () => { play('click'); setLook({ ...A.avatar.look, ...designs[+b.dataset.des].look }); mirror(); }));
   }
 
   const spotAt = (x, y) => Object.entries(SP).find(([, s]) => x >= s.r[0] && x <= s.r[2] && y >= s.r[1] && y <= s.r[3]);

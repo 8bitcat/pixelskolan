@@ -199,30 +199,45 @@ figcaption b { color: var(--ink); font-weight: 700; }
 .sf .sk-me .sk-lbl { margin-top: 0; }
 .sf .sk-me .sk-big { margin: 0 0 6px; }
 .sf .sk-me .sk-btns { justify-content: flex-start; }
-/* BLING BLING (bling.js): montrarna/väskväggen som kort med figuren, ateljén med bild + delar och pris */
+/* BLING BLING (bling.js): korten i montrarna (klick = klädaffärens provdialog), ateljén med provfiguren, närbilden och priset, spegeln */
 .sf .bl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 8px; }
-.sf .bl-card { display: flex; flex-direction: column; align-items: center; gap: 3px; background: #fff; border: 3px solid var(--ink); padding: 6px 4px; text-align: center; }
+.sf .bl-card { display: flex; flex-direction: column; align-items: center; gap: 4px; background: #fff; border: 3px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); padding: 6px 4px; text-align: center; font: inherit; color: inherit; cursor: pointer; }
+.sf .bl-card:hover, .sf .bl-card:focus-visible { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); outline: none; }
 .sf .bl-card.on { background: #fde7f1; border-color: #b83a78; }
 .sf .bl-card b { font-size: var(--f2); line-height: 1; hyphens: manual; overflow-wrap: anywhere; }
-.sf .bl-card span { font-size: var(--f1); color: var(--muted); }
+.sf .bl-tag { font-size: var(--f2); line-height: 1; background: #f0d048; border: 2px solid var(--ink); padding: 1px 5px 0; }
+.sf .bl-card.own .bl-tag { background: #45b964; color: #fff; }
+.sf .bl-card.on .bl-tag { background: #f07ab0; color: #fff; }
 .sf .bl-pre canvas { display: block; max-width: 100%; image-rendering: pixelated; background: linear-gradient(#fbe6ef, #f3cfe0); border: 2px solid var(--ink); }
-.sf .bl-design { display: flex; gap: 12px; align-items: flex-start; }
-.sf .bl-show { flex: 0 0 min(288px, 42%); display: flex; flex-direction: column; gap: 6px; position: sticky; top: 0; }
-.sf .bl-canvas canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: 38vh; image-rendering: pixelated; border: 3px solid var(--ink); }
+.sf .dlg.bl-wide { width: min(1000px, 100%); }
+.sf .bl-design { display: grid; grid-template-columns: auto minmax(0, 288px) minmax(0, 1fr); gap: 12px; align-items: start; }
+.sf .bl-try, .sf .bl-show { position: sticky; top: 0; display: flex; flex-direction: column; gap: 6px; }
+.sf .bl-stage { display: flex; align-items: flex-end; justify-content: center; gap: 6px; padding: 10px 12px 0; border: 3px solid var(--ink); box-shadow: 3px 3px 0 var(--ink); background: linear-gradient(#fbe6ef 0 72%, #e8b84a 72% 73%, #f3cfe0 73% 100%); }
+.sf .bl-fig { display: flex; flex-direction: column; align-items: center; }
+.sf .bl-fig canvas { display: block; image-rendering: pixelated; image-rendering: crisp-edges; }
+.sf .bl-fig small { font-size: var(--f1); line-height: 1; background: var(--ink); color: #fff; padding: 2px 6px 1px; margin-bottom: 6px; white-space: nowrap; }
+.sf .bl-arrow { font-size: var(--f2); padding-bottom: 40px; }
+.sf .bl-turn { display: flex; gap: 6px; align-items: center; justify-content: center; }
+.sf .bl-view { font-size: var(--f1); min-width: 74px; text-align: center; }
+.sf .bl-canvas canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: 34vh; image-rendering: pixelated; border: 3px solid var(--ink); }
 .sf .bl-sum { display: flex; align-items: baseline; gap: 8px; flex-wrap: wrap; background: #2a1a2e; color: #ffd23f; padding: 4px 8px; border: 3px solid var(--ink); }
 .sf .bl-sum b { font: var(--f3) var(--head); line-height: 1; }
 .sf .bl-sum .sp { color: #f3cfe0; margin: 0; }
 .sf .bl-list { list-style: none; margin: 0; padding: 0; font-size: var(--f1); }
 .sf .bl-list li { display: flex; justify-content: space-between; gap: 6px; border-bottom: 1px dashed var(--paper2); padding: 1px 0; }
-.sf .bl-pick { flex: 1 1 auto; min-width: 0; }
+.sf .bl-pick { min-width: 0; }
 .sf .bl-grp .sk-lbl { margin: 6px 0 4px; }
+.sf .bl-grp:first-child .sk-lbl { margin-top: 0; }
 .sf .bl-opts, .sf .bl-mine { display: flex; flex-wrap: wrap; gap: 5px; }
 .sf .bl-opts .btn { display: inline-flex; flex-direction: column; align-items: flex-start; gap: 1px; text-align: left; }
 .sf .bl-opts .btn small { font-size: var(--f1); opacity: .75; }
 .sf .bl-opts .btn i { display: block; width: 14px; height: 8px; border: 2px solid var(--ink); }
 .sf .bl-mine { margin-bottom: 4px; }
-@media (max-height: 520px) { .sf .bl-list { display: none; } .sf .bl-sum b { font-size: var(--f2); } }
-@container (max-width: 760px) { .sf .bl-design { flex-direction: column; } .sf .bl-show { position: static; flex-basis: auto; width: min(288px, 100%); } }
+.sf .bl-mirror { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
+.sf .bl-mir-r { flex: 1 1 220px; min-width: 0; }
+.sf .bl-mir-r .sp:first-child { margin-top: 0; }
+@media (max-height: 520px) { .sf .bl-list { display: none; } .sf .bl-sum b { font-size: var(--f2); } .sf .bl-canvas canvas { max-height: 30vh; } .sf .bl-stage { padding-top: 6px; } .sf .bl-arrow { padding-bottom: 24px; } }
+@container (max-width: 760px) { .sf .bl-design { grid-template-columns: auto minmax(0, 1fr); } .sf .bl-show { grid-column: 1; position: static; } .sf .bl-pick { grid-column: 2; grid-row: 1 / span 2; } .sf .bl-canvas canvas { max-height: 24vh; } }
 @container (max-width: 760px) { .sf .sp-kb, .sf .sp-keys { gap: 3px; } .sf .sp-keys .btn { font-size: var(--f1); padding: 4px 0; } }
 .sf .sk-hist { border-collapse: collapse; margin: 8px 0; font-size: var(--f2); }
 .sf .sk-hist th, .sf .sk-hist td { border: 2px solid var(--ink); padding: 2px 8px; text-align: left; }
