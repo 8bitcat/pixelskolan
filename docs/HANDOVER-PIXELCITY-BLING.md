@@ -109,3 +109,44 @@ Båda kräver en lokal server för repot, till exempel `python -m http.server 88
 
   Den skriver `bl-<enhet>-*.png`.
 - **`node tools/bling-ark.cjs [BASE]`** skriver `bl-art.png` med alla hängen (utan sten, med ametist och med rubin) och väskmodellerna i olika färger och mönster.
+
+---
+
+## Tillägg 2026-10-12: DREAM LAND (pärla för pärla och strykmärken)
+
+Pixelcity har redan BLING BLING som egen butik (`js/scenes/shop-bling.js`, v0.106.0). I Pixelskolan har Carl därefter bett om mer:
+
+> *"Kan vi göra så att man själv får sätta märken som butiken Dream Land, döp om den till Dream Land och att man kan designa halsbandet pärla för pärla och sätta på iron on patches på väskan, eller sina vanliga kläder … ta inte bort det gamla, lägg bara till detta."*
+
+Det är byggt och live i Pixelskolan (commit `bf108a1`). Om Carl vill ha samma sak i Pixelcity finns det här att porta.
+
+**Nytt i butiken** (`bling.js`):
+- **Pärlbaren** (`beadBarSprite`, plats `parlor`, `beadDesigner`/`buyBeads`, rad ~594–660):
+  - Man väljer längd (12/16/20 pärlor) och tråd (genomskinlig 0, silver 30, guld 60 kr).
+  - Sedan trär man pärla för pärla. Pärlan hamnar där markeringen blinkar, och man trycker på en plats i halsbandet för att byta just den pärlan.
+  - Pärltyper: glas 5 kr, pärlemor och metall 10–15 kr, kristaller 20 kr, former 8–10 kr, bokstavspärlor A–Ö 6 kr.
+  - Verktyg: Ta bort, Upprepa mönstret, Slumpa och Töm.
+  - Sparas som design av typen `kind: 'beads'`. Namnet blir det första ordet i bokstavspärlor, till exempel "Pärlhalsband MIRA".
+- **Strykbordet** (`ironSprite`, plats `stryk`, `patchDesigner`/`ironOn`/`areaArt`, rad ~660–750), som Dream Lands designverktyg:
+  - Man väljer väskan, tröjan eller byxorna och trycker på ett märke. Märket hamnar på plagget och man drar det dit man vill ha det.
+  - Det får plats högst 6 märken per plagg.
+  - Nya märken kostar 10–40 kr. Märken som redan sitter fast kan man flytta och ta bort gratis.
+  - Väskan ritas med `drawBag` (`BAG_BODY` = väskans yta). Tröjan och byxorna eller kjolen ritas med `garmentArt` i `dream.js`.
+- **`dream.js`** (235 rader) innehåller:
+  - 29 motiv i pixelkonst med kantsöm och kontur (`patchImg`);
+  - ordmärken och bokstavs- och siffermärken;
+  - kategorierna Bästsäljare, Crush, Djur, Godis, Natur & rymd, Glitter, Ord och ABC;
+  - pärlorna (`drawBead`), pärlhalsbandet på bysten (`drawBeadNecklace`) och plaggbilderna.
+  - Arket med alla märken ritas av `tools/dream-ark.cjs`.
+
+**Figuren** (det som gör att det syns på karaktären) är två små tillägg i Snabbfilens egna filer. Pixelskolans kopior är redan ändrade:
+- `js/core/people.js`:
+  - `decorate(L, R, view, each, put)` anropas efter `hook('last')` i `render`, före konturen.
+  - `look.patches` (`[{ a: 'top' | 'bottom' | 'bag', u, v, c: [färg, glans], p }]`) blir 2×2 pixlar på plaggets egna etiketterade pixlar. Tröjan och byxorna visas bara framifrån, väskan från alla håll.
+  - `look.beads` (`['#rrggbb', …]`) färgar halsbandets pixlar i ordning från vänster, men bara när `neck === 'pearls'`.
+- `js/core/avatar.js`: `cleanBeads`/`cleanPatches` i `cleanLook` gör att fälten sparas, överlever figurskaparen och följer med till kompisar online. De skickas bara med när de finns, så andra figurer påverkas inte.
+- Ett annat halsband ur montrarna eller ateljén sätts med `beads: null`. Annars skulle catalog-pärlhalsbandet få pärlfärgerna.
+
+**Gör Snabbfilen tilläggen i `people.js` och `avatar.js`** skrivs Pixelskolans kopior över utan problem nästa gång `sf/` kopieras om. Annars måste Pixelskolan föra in dem igen för hand. Det står i Pixelskolans README.
+
+**Att tänka på:** "Dream Land" är också namnet på en riktig butik (drm-lnd.com, varumärket DRMZ). I App Store kan ett lånat butiksnamn ge problem med riktlinje 5.2, samma risk som med KBK-filmen. Fråga Carl innan namnet används i Pixelcity-appen. Ett alternativ är *DRÖMLAND*.
