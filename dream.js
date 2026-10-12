@@ -233,3 +233,126 @@ export function drawBeadNecklace(st, selIdx = -1, blink = false) {
   });
   return { canvas: P.flush(), slots, w: W, h: H };
 }
+
+// ---------- mobilskalen: skalen, berlockerna (blanka 3D-figurer som Dream Lands) och mobilbanden ----------
+// Berlockerna är egna bilder: samma motiv som märkena men emaljblanka (ljus kant uppe/vänster, mörk nere/höger,
+// kontur och skugga), glitterstenar med fasetter, figurer och tjocka bokstäver.
+const CH_MOTIF = {
+  dino: ['......wwwwww', '......wkwwww', '......wwwwww', '......www...', '......wwwww.', 'w....wwww...', 'ww..wwwwww..', 'wwwwwwwww...', '.wwwwwww....', '..wwwww.....', '...ww.ww....', '...w...w....'],
+  alien: ['..gggggg..', '.gggggggg.', 'gggggggggg', 'gkkggggkkg', 'gkkkggkkkg', 'ggkkggkkgg', 'gggggggggg', '.gggggggg.', '..ggGGgg..', '...gggg...', '....gg....'],
+  spoke: ['...wwww...', '.wwwwwwww.', '.wwwwwwww.', 'wwkwwwwkww', 'wwkwwwwkww', 'wpwwkkwwpw', 'wwwwkkwwww', 'wwwwwwwwww', 'wwwwwwwwww', '.ww.ww.ww.'],
+  groda: ['.ggg....ggg.', 'gwkwg..gwkwg', 'gggggggggggg', 'gggggggggggg', 'gpggggggggpg', 'ggkkkkkkkkgg', '.gggggggggg.', '..gggggggg..'],
+};
+for (const [k, rows] of Object.entries(CH_MOTIF)) if (rows.some((r) => r.length !== rows[0].length)) console.warn(`[dream] berlocken ${k}: raderna är olika långa`);
+const GEM = {
+  diamant: ['..wabbbab..', '.aabbabbbc.', 'aaabbabbbcc', '.aabbbbbcc.', '..abbbbbc..', '...abbbc...', '....abc....', '.....b.....'],
+  hjarta: ['.aaa..bbb.', 'awaabbbbbc', 'aaabbbbbcc', 'aabbbbbbcc', '.abbbbbcc.', '..abbbcc..', '...abcc...', '....bc....'],
+  stjarna: ['.....a.....', '....aab....', '....abb....', 'aaaaabbbbbc', '.aaawbbbbc.', '..aabbbcc..', '..abbbbcc..', '.abbc.bbcc.', '.ac.....cc.', 'a.........c'],
+  smaragd: ['.aaaaaa.', 'awabbbbc', 'aabbbbcc', 'aabbbbcc', 'aabbbbcc', 'aabbbbcc', 'aabbbbcc', 'aabbbbcc', '.cccccc.'],
+  droppe: ['...a...', '..aab..', '..abb..', '.aabbc.', '.awbbc.', 'aabbbcc', 'aabbbcc', 'aabbbcc', '.abbcc.', '..bcc..'],
+  rund: ['..aaabb..', '.awaabbc.', 'aaabbbbcc', 'aabbbbbcc', 'abbbbbbbc', 'abbbbbbcc', 'aabbbbccc', '.abbbccc.', '..bcccc..'],
+};
+for (const [k, rows] of Object.entries(GEM)) if (rows.some((r) => r.length !== rows[0].length)) console.warn(`[dream] stenen ${k}: raderna är olika långa`);
+const GEMC = { rosa: [0xffd8ec, 0xf5a3c7, 0xd76a9a], iris: [0xffffff, 0xd8f0ff, 0xb8a8f0], turkos: [0xb8f4f0, 0x3ccfc8, 0x1a8a8a], lila: [0xd8c0ff, 0x9a62d8, 0x6a3aa8],
+  hallon: [0xffb0c8, 0xe8306a, 0xa81848], gron: [0xb8f0c8, 0x3fbf6a, 0x23885a], svart: [0x6a6a7a, 0x2a2a34, 0x16161c], champagne: [0xfff0d0, 0xe8c890, 0xb8945a], klar: [0xffffff, 0xe8f2fa, 0xb8c8d8] };
+export const CHARM_CATS = [
+  { id: 'best', label: '⭐ Bästsäljare' }, { id: 'glitter', label: '💎 Glitter' }, { id: 'crush', label: '💗 Crush' }, { id: 'figur', label: '🐾 Figurer' },
+  { id: 'godis', label: '🍩 Godis' }, { id: 'natur', label: '🌈 Natur & rymd' }, { id: 'abc', label: '🔤 Bokstäver' }, { id: 'num', label: '🔢 Siffror' },
+];
+const CHM = (id, name, price, cats, o = {}) => ({ id, name, price, cats, ...o });
+const PASTEL = [[0xf8b8d8, 0xd86a9a], [0xa8e8d0, 0x3aa880], [0xfff0a0, 0xd8a820], [0xd8c0f8, 0x8a62c8], [0xffc8a8, 0xd8784a], [0xb8dcff, 0x4a88d8]];
+export const CHARMS = [
+  CHM('c-hjarta', 'Hjärta', 15, ['best', 'crush'], { motif: 'hjarta' }), CHM('c-smiley', 'Smiley', 15, ['best', 'figur'], { motif: 'smiley' }),
+  CHM('c-regnbage', 'Regnbåge', 15, ['best', 'natur'], { motif: 'regnbage' }), CHM('c-jordgubbe', 'Jordgubbe', 15, ['best', 'godis'], { motif: 'jordgubbe' }),
+  CHM('c-dino', 'Pixeldino', 20, ['best', 'figur'], { motif: 'dino', ch: true }), CHM('c-alien', 'Rymdvarelse', 20, ['figur'], { motif: 'alien', ch: true }),
+  CHM('c-spoke', 'Spöke', 20, ['figur'], { motif: 'spoke', ch: true }), CHM('c-groda', 'Groda', 20, ['figur'], { motif: 'groda', ch: true }),
+  CHM('c-nalle', 'Nalle', 15, ['figur'], { motif: 'nalle' }), CHM('c-katt', 'Katt', 15, ['figur'], { motif: 'katt' }), CHM('c-kanin', 'Kanin', 15, ['figur'], { motif: 'kanin' }),
+  CHM('c-flamingo', 'Flamingo', 15, ['figur'], { motif: 'flamingo' }), CHM('c-fjaril', 'Fjäril', 15, ['best', 'natur'], { motif: 'fjaril' }),
+  CHM('c-glass', 'Glass', 15, ['godis'], { motif: 'glass' }), CHM('c-munk', 'Munk', 15, ['godis'], { motif: 'munk' }), CHM('c-cupcake', 'Cupcake', 15, ['godis'], { motif: 'cupcake' }),
+  CHM('c-korsbar', 'Körsbär', 15, ['godis', 'crush'], { motif: 'korsbar' }), CHM('c-lappar', 'Läppar', 15, ['crush'], { motif: 'lappar' }), CHM('c-rosett', 'Rosett', 15, ['crush'], { motif: 'rosett' }),
+  CHM('c-ros', 'Ros', 15, ['crush', 'natur'], { motif: 'ros' }), CHM('c-blomma', 'Prästkrage', 15, ['natur'], { motif: 'blomma' }), CHM('c-stjarna', 'Stjärna', 15, ['natur'], { motif: 'stjarna' }),
+  CHM('c-blixt', 'Blixt', 15, ['natur'], { motif: 'blixt' }), CHM('c-planet', 'Planet', 15, ['natur'], { motif: 'planet' }), CHM('c-raket', 'Raket', 15, ['natur'], { motif: 'raket' }),
+  CHM('c-svamp', 'Svamp', 15, ['natur'], { motif: 'svamp' }), CHM('c-sol', 'Sol', 15, ['natur'], { motif: 'sol' }), CHM('c-disco', 'Discokula', 20, ['glitter'], { motif: 'disco' }),
+  ...[['diamant', 'rosa', 'Rosa diamant'], ['stjarna', 'iris', 'Regnbågsstjärna'], ['hjarta', 'iris', 'Regnbågshjärta'], ['stjarna', 'rosa', 'Rosa stjärnsten'], ['hjarta', 'hallon', 'Hallonhjärta'],
+    ['smaragd', 'lila', 'Lila smaragd'], ['droppe', 'gron', 'Grön droppe'], ['diamant', 'turkos', 'Turkos diamant'], ['rund', 'lila', 'Lila sten'], ['droppe', 'klar', 'Kristalldroppe'],
+    ['smaragd', 'svart', 'Svart smaragd'], ['rund', 'champagne', 'Champagnesten'], ['diamant', 'klar', 'Klar diamant'], ['droppe', 'hallon', 'Rosa droppe']]
+    .map(([g, c, n], i) => CHM(`c-${g}-${c}`, n, 20, i < 3 ? ['glitter', 'best'] : ['glitter'], { gem: g, gc: c })),
+  ...[['LOVE', 0xf07ab0, 0xffffff], ['BFF', 0xf8b8d8, 0xc83a7a], ['QUEEN', 0xe8b84a, 0x2a2230], ['WOW', 0x9ad8f8, 0x1d4a9a]].map(([w, bg, fg]) => CHM('c-t-' + w.toLowerCase(), w, 20, ['crush'], { text: [w, bg, fg] })),
+  ...[...'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ'].map((ch, i) => CHM(`c-l-${i}`, `Bokstaven ${ch}`, 10, ['abc'], { big: ch, pc: PASTEL[i % PASTEL.length] })),
+  ...[...'0123456789'].map((ch, i) => CHM(`c-n-${ch}`, `Siffran ${ch}`, 10, ['num'], { big: ch, pc: PASTEL[(i + 2) % PASTEL.length] })),
+];
+export const CHARM_BY = Object.fromEntries(CHARMS.map((c) => [c.id, c]));
+// motivet som rader + färger (berlockerna lånar märkenas motiv; glitterstenarna har tre fasettfärger)
+function charmCells(cm) {
+  if (cm.gem) { const [a, b, c] = GEMC[cm.gc]; return { rows: GEM[cm.gem], pal: { a, b, c, w: 0xffffff }, gem: true }; }
+  if (cm.text) { const t = textMotif(...cm.text); return { rows: t.rows, pal: { ...C, ...t.pal } }; }
+  if (cm.big) {   // tjock bokstav: BIG dubbelt så stor, med en 3D-kant snett nedåt höger
+    const [fill, side] = cm.pc, w = textW(BIG, cm.big) * 2 + 2, up = (BIG[cm.big]?.up?.length || 0) * 2, h = 14 + up + 2;
+    const g = Array.from({ length: h }, () => Array(w).fill('.'));
+    eachTextPixel(BIG, cm.big, 0, up, 2, (x, y) => { for (const d of [1, 2]) if (g[y + d]?.[x + d] === '.') g[y + d][x + d] = 'S'; });
+    eachTextPixel(BIG, cm.big, 0, up, 2, (x, y) => { if (g[y]) g[y][x] = 'F'; });
+    return { rows: g.map((r) => r.join('')), pal: { F: fill, S: side } };
+  }
+  return { rows: (cm.ch ? CH_MOTIF : MOTIF)[cm.motif], pal: C };
+}
+function colorsByCount(rows, pal) { const n = new Map(); for (const r of rows) for (const ch of r) if (ch !== '.') n.set(ch, (n.get(ch) || 0) + 1); return [...n.entries()].sort((a, b) => b[1] - a[1]).map(([ch]) => pal[ch] ?? 0xffffff); }
+const CIMG = new Map();
+export function charmImg(id) {
+  if (CIMG.has(id)) return CIMG.get(id);
+  const cm = CHARM_BY[id]; if (!cm) return null;
+  const { rows, pal, gem } = charmCells(cm), w = rows[0].length + 3, h = rows.length + 3, P = new Pix(w, h);
+  const on = (i, j) => (rows[j]?.[i] ?? '.') !== '.';
+  for (let j = 0; j < rows.length; j++) for (let i = 0; i < rows[0].length; i++) if (on(i, j)) P.px(i + 2, j + 2, 0x000000, 0.28);   // skuggan
+  for (let j = 0; j < rows.length; j++) for (let i = 0; i < rows[0].length; i++) {
+    if (!on(i, j)) continue;
+    let c = pal[rows[j][i]] ?? 0xff00ff;
+    if (!gem) { if (!on(i, j - 1) || !on(i - 1, j)) c = mix(c, 0xffffff, 0.38); else if (!on(i, j + 1) || !on(i + 1, j)) c = mul(c, 0.8); }   // emaljens glans
+    P.px(i + 1, j + 1, c);
+  }
+  const main = colorsByCount(rows, pal)[0];
+  for (let j = -1; j <= rows.length; j++) for (let i = -1; i <= rows[0].length; i++) if (!on(i, j) && (on(i - 1, j) || on(i + 1, j) || on(i, j - 1) || on(i, j + 1))) P.px(i + 1, j + 1, gem ? mul(pal.c, 0.7) : mix(mul(main, 0.42), 0x2a1a30, 0.4));   // konturen
+  const img = P.flush(); CIMG.set(id, img); return img;
+}
+export const charmColor = (id) => { const cm = CHARM_BY[id]; if (!cm) return '#ffffff'; const { rows, pal, gem } = charmCells(cm); return hexOf(gem ? pal.b : colorsByCount(rows, pal)[0]); };
+
+export const CASES = [['rosa', 'Sockervadd', 60, 0xf07ab0], ['lila', 'Lila dis', 60, 0x9a74d8], ['svart', 'Rymdsvart', 60, 0x34323e], ['bla', 'Himmelsblå', 60, 0x6fb4e8],
+  ['vit', 'Molnvit', 60, 0xdfe6f0], ['mint', 'Mintgrön', 60, 0x6fd0aa], ['glitter', 'Glitterskal', 80, 0xf0a0d0]];
+export const STRAPS = [['inget', 'Inget band', 0, null], ['parlor', 'Pärlband', 40, 0xf6f0e6], ['regnbage', 'Regnbågspärlor', 40, 0xe8394f], ['hjarta', 'Hjärtband', 50, 0xf8a4c8], ['guld', 'Guldkedja', 60, 0xe8b84a]];
+// Mobilen bakifrån med skalet (80 × 136): genomskinlig färg, kameraön, knapparna och mobilbandet under. zone = där berlockerna får sitta.
+export function drawPhone(st) {
+  const W = 80, H = 136, P = new Pix(W, H);
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) P.px(x, y, mix(0xfbf6ee, 0xf3eadf, y / H + (bayer(x, y) - 0.5) * 0.05));
+  const cs = CASES.find((c) => c[0] === st.case) || CASES[0], base = cs[3], x0 = 18, x1 = 62, y0 = 4, y1 = 100, r = 8;
+  const inside = (x, y, inset = 0) => {
+    const ax = x0 + inset, bx = x1 - inset, ay = y0 + inset, by = y1 - inset, rr = Math.max(1, r - inset);
+    if (x < ax || x >= bx || y < ay || y >= by) return false;
+    const cx = x < ax + rr ? ax + rr : x >= bx - rr ? bx - rr - 1 : x, cy = y < ay + rr ? ay + rr : y >= by - rr ? by - rr - 1 : y;
+    return (x - cx) ** 2 + (y - cy) ** 2 <= rr * rr;
+  };
+  for (let y = 0; y < H; y++) for (let x = 0; x < W; x++) {
+    if (!inside(x, y)) continue;
+    let c = !inside(x, y, 3) ? (inside(x, y, 1) ? base : mul(base, 0.7)) : mix(base, 0xffffff, 0.6);
+    if (inside(x, y, 3) && x > x0 + 6 && x < x0 + 10) c = mix(c, 0xffffff, 0.35);   // glansen i plasten
+    if (st.case === 'glitter' && inside(x, y, 3) && hash(x, y, 31) > 0.86) c = hash(x, y, 32) > 0.5 ? 0xffffff : 0xffd8f0;
+    if (!inside(x, y, 1) && x < x0 + 4) c = mix(base, 0xffffff, 0.25);
+    P.px(x, y, c);
+  }
+  for (const by of [22, 34, 44]) P.rect(x1, by, 2, by === 22 ? 6 : 8, mul(base, 0.75));   // knapparna
+  for (let y = 8; y < 32; y++) for (let x = 22; x < 42; x++) { const e = ((x - 31.5) / 10) ** 2 + ((y - 19.5) / 12) ** 2; if (e <= 1) P.px(x, y, e > 0.8 ? mul(base, 0.75) : 0x3a3a46); }   // kameraön
+  for (const [cx, cy] of [[28, 15], [28, 25]]) { for (let y = -3; y <= 3; y++) for (let x = -3; x <= 3; x++) { const d = x * x + y * y; if (d <= 10) P.px(cx + x, cy + y, d > 6 ? 0x16161c : d > 2 ? 0x2a3a5a : 0x5a7ab8); } P.px(cx - 1, cy - 1, 0xffffff); }
+  P.rect(35, 13, 3, 3, 0xfff6c0);
+  const sp = STRAPS.find((q) => q[0] === st.strap) || STRAPS[0];
+  if (sp[3] != null) {   // mobilbandet: fästet, ringen och två pärlslingor
+    P.rect(37, 100, 6, 4, mix(base, 0xffffff, 0.4)); P.box(37, 100, 6, 4, mul(base, 0.7));
+    for (let a = 0; a < 24; a++) { const t = (a / 24) * Math.PI * 2; P.px(Math.round(40 + Math.cos(t) * 4), Math.round(109 + Math.sin(t) * 4), sp[0] === 'guld' ? 0xe8b84a : 0xc8ccd6); }
+    const RB = [0xe8394f, 0xf0902e, 0xf6d02f, 0x3fae5a, 0x3a6ad5, 0x9a62d8];
+    for (const side of [-1, 1]) for (let k = 0; k < 8; k++) {
+      const t = k / 7, x = Math.round(40 + side * (3 + t * 9)), y = Math.round(114 + t * 18);
+      if (sp[0] === 'guld') { P.px(x, y, k % 2 ? 0xfff0b0 : 0xe8b84a); P.px(x, y + 1, 0xb9862a); continue; }
+      const c = sp[0] === 'regnbage' ? RB[(k + (side > 0 ? 3 : 0)) % 6] : sp[0] === 'hjarta' ? (k % 2 ? 0xf8a4c8 : 0xffffff) : k % 3 === 2 ? 0xd8f0ff : 0xe8e4ea;
+      P.rect(x - 1, y - 1, 3, 3, c); P.px(x - 1, y - 1, 0xffffff); P.px(x + 1, y + 1, mul(c, 0.7));
+    }
+    if (sp[0] === 'hjarta') ['.##.##.', '#######', '#######', '.#####.', '..###..', '...#...'].forEach((row, j) => [...row].forEach((ch, i) => { if (ch === '#') P.px(46 + i, 124 + j, j < 2 && i < 3 ? 0xffffff : mix(0xf8d0e8, 0xd8f0ff, (i + j) / 12)); }));
+  }
+  return { canvas: P.flush(), zone: [22, 10, 58, 96] };
+}

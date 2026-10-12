@@ -51,6 +51,16 @@ export const WARDROBE_ACC = [
   { id: 'hat-devil', slot: 'hat', look: { hat: 'devil' }, name: 'Djävuls\u00adhorn', price: 150, dept: 'unisex', icon: '😈', colors: { cap: '#d83a4a' } },
   { id: 'hat-unicorn', slot: 'hat', look: { hat: 'unicorn' }, name: 'Enhörnings\u00adhorn', price: 220, dept: 'tjej', icon: '🦄', colors: { cap: '#f2a0b8' } },
   { id: 'hat-halo', slot: 'hat', look: { hat: 'halo' }, name: 'Gloria', price: 300, dept: 'unisex', icon: '😇' },
+  // ---- Pixelskolans mössor (butiken DREAM LAND, people/acc.js) ----
+  { id: 'hat-catbeanie', slot: 'hat', look: { hat: 'catBeanie' }, name: 'Katt­mössa', price: 180, dept: 'unisex', icon: '🐱', colors: { cap: '#2b2a33' } },
+  { id: 'hat-bearbeanie', slot: 'hat', look: { hat: 'bearBeanie' }, name: 'Björn­mössa', price: 180, dept: 'unisex', icon: '🐻', colors: { cap: '#a8743e' } },
+  { id: 'hat-frogbeanie', slot: 'hat', look: { hat: 'frogBeanie' }, name: 'Grod­mössa', price: 190, dept: 'unisex', icon: '🐸', colors: { cap: '#46a35a' } },
+  { id: 'hat-doublepom', slot: 'hat', look: { hat: 'doublePom' }, name: 'Mössa med två tofsar', price: 170, dept: 'unisex', icon: '🧶', colors: { cap: '#f07ab0' } },
+  { id: 'hat-docker', slot: 'hat', look: { hat: 'docker' }, name: 'Fiskar­mössa', price: 140, dept: 'unisex', icon: '🧢', colors: { cap: '#d83a4a' } },
+  { id: 'hat-chullo', slot: 'hat', look: { hat: 'chullo' }, name: 'Öronlapps­mössa', price: 220, dept: 'unisex', icon: '🧣', colors: { cap: '#3a7bd5' } },
+  { id: 'hat-dinobeanie', slot: 'hat', look: { hat: 'dinoBeanie' }, name: 'Dino­mössa', price: 200, dept: 'unisex', icon: '🦖', colors: { cap: '#5cc070' } },
+  { id: 'hat-unibeanie', slot: 'hat', look: { hat: 'uniBeanie' }, name: 'Enhörnings­mössa', price: 220, dept: 'unisex', icon: '🦄', colors: { cap: '#f4f1ea' } },
+  { id: 'hat-cablebeanie', slot: 'hat', look: { hat: 'cableBeanie' }, name: 'Flät­mössa', price: 190, dept: 'unisex', icon: '🧶', colors: { cap: '#e8dcc8' } },
 
   // ---- glasögon ----
   { id: 'glasses-round', slot: 'glasses', look: { glasses: 'round' }, name: 'Runda glasögon', price: 150, dept: 'unisex', icon: '👓', legacy: 'glasses:round' },

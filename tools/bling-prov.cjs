@@ -26,7 +26,11 @@ const OUT = 'bl-' + DEV + '-';
   let cv = await page.$('#stage canvas');
   const log = { push: (l) => console.log(JSON.stringify(l)) };
   const waitFor = async (fn, ms = 15000) => { const t0 = Date.now(); while (Date.now() - t0 < ms) { const s = await st(); if (fn(s)) return s; await page.waitForTimeout(200); } return await st(); };
-  const clickS = async (sx, sy) => { const r = await cv.boundingBox(); await page.mouse.click(r.x + sx * r.width / 384, r.y + sy * r.height / 216); };
+  const camOf = async () => (await page.evaluate(() => window.SF?.scene?._debug?.cam?.())) || 0;
+  const clickS = async (wx, wy) => {   // butikens punkter: ligger platsen utanför bild går figuren först ditåt (kameran följer)
+    for (let k = 0; k < 5; k++) { const c = await camOf(); if (wx >= c + 10 && wx <= c + 374) break; const r = await cv.boundingBox(), sx = Math.max(12, Math.min(372, wx - c)); await page.mouse.click(r.x + sx * r.width / 384, r.y + 150 * r.height / 216); await page.waitForTimeout(1800); }
+    const c = await camOf(), r = await cv.boundingBox(); await page.mouse.click(r.x + (wx - c) * r.width / 384, r.y + wy * r.height / 216);
+  };
   const hitAt = (x, y) => page.evaluate(([x, y]) => { const h = window.__ps.hit(x, y); return h && (h.t + ':' + (h.label || '')); }, [x, y]);
   // fasaden
   await page.evaluate(() => { window.__ps.floor(1); window.__ps.cam(560); }); await page.waitForTimeout(1800);

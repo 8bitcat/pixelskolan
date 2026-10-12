@@ -116,7 +116,7 @@ function load() {
     ({ STARS = 0, LESSONS = 0, PLACED = [] } = s); D.lvl = { ...LVL0, ...(s.lvl || {}) }; D.best = s.best && typeof s.best === 'object' ? s.best : {}; D.tabell = Math.max(1, Math.min(10, s.tabell | 0 || 5)); D.hist = s.hist && typeof s.hist === 'object' ? s.hist : {}; KLASS = cleanKlass(s.KLASS) || '3A';
     D.grade = s.grade === 2 || s.grade === 3 ? s.grade : gradeOf(KLASS) && gradeOf(KLASS) <= 2 ? 2 : 3;
     PLACED = (Array.isArray(PLACED) ? PLACED : []).filter((p) => p && typeof p.k === 'string');   // (stjärnbutikens gamla möbler följer inte med)
-    BLING = (Array.isArray(s.BLING) ? s.BLING : []).filter((d) => d && (d.kind === 'neck' || d.kind === 'bag' || d.kind === 'beads') && d.look && typeof d.name === 'string');
+    BLING = (Array.isArray(s.BLING) ? s.BLING : []).filter((d) => d && (d.kind === 'neck' || d.kind === 'bag' || d.kind === 'beads' || d.kind === 'phone') && d.look && typeof d.name === 'string');
     return true;
   } catch { return false; }
 }
@@ -1484,7 +1484,7 @@ function renderBelow() {
   const el = $('sk-below'), btn = (a, t, cls = '', tip = '') => `<button type="button" class="btn btn-small ${cls}" data-b="${a}"${tip ? ` title="${tip}" aria-label="${tip}"` : ''}>${t}</button>`;
   let p, b = '';
   if (!ME) p = 'Börja med att göra din figur och din klass.';
-  else if (SHOP && SHOP.id === 'bling') p = `Du är i DREAM LAND. Smyckena ligger i glasmontrarna, väskorna på väggen. Vid borden designar du ett eget halsband eller en egen väska, i pärlbaren trär du ett halsband pärla för pärla och vid strykbordet sätter du strykmärken på väskan, tröjan eller byxorna. I spegeln byter du det du har. Du har ${fmt(G.money)}.`;
+  else if (SHOP && SHOP.id === 'bling') p = `Du är i DREAM LAND. Smyckena ligger i glasmontrarna, väskorna på väggen. Vid borden designar du ett eget halsband eller en egen väska, i pärlbaren trär du ett halsband pärla för pärla och vid strykbordet sätter du strykmärken på väskan, tröjan eller byxorna och byter färg på dem. Längst bort finns mössorna och mobilskalen du designar själv. I spegeln byter du det du har. Du har ${fmt(G.money)}.`;
   else if (SHOP) p = `Du är i ${SHOPLABEL[SHOP.id].charAt(0) + SHOPLABEL[SHOP.id].slice(1).toLowerCase()}, Snabbfilens egen butik. Klicka på det du vill titta på. Dörren tar dig ut i gallerian igen. Du har ${fmt(G.money)}.`;
   else if (P.scene === 'klass') { p = P.seated ? 'Du sitter i bänken och ser tavlan på nära håll. Skriv svaret med knapparna i rutan – det hamnar på tavlan – och tryck på den gröna Klar. Efter fem uppgifter blir det rast.' : `Klicka på den lediga bänken för att börja. Efter fem uppgifter blir det rast, och varje stjärna blir ${KR_PER_STJARNA} kr. Den blå dörren leder till Galleria Stjärnan.`; if (!P.seated) b += btn('sit', '🪑 Sätt dig', 'btn-go'); b += btn('shop', '🏬 Gallerian') + btn('class', '🧑 Figur och klass'); }
   else if (P.scene === 'galleria') { p = FLOOR === 0 ? 'Entréplanet. Åk rulltrappan eller hissen upp: plan 1 har klädaffären, skobutiken och DREAM LAND, plan 2 Leksakslådan och Möbeljätten. Dörrarna leder till skolan och hem.' : `Plan ${FLOOR}. Klicka på en butik för att gå in. Rulltrapporna och hissen tar dig mellan våningarna.`; b += btn('toclass', '🏫 Skolan') + btn('home', '🏠 Hem'); }

@@ -678,6 +678,8 @@ function render(L0, dir, frame) {
 // look.beads = ['#rrggbb', …] färgar pärlhalsbandets (neck 'pearls') pixlar i trädd ordning från vänster.
 // look.patches = [{ a: 'top' | 'bottom' | 'bag', u, v (0–1 i plaggets yta), c: [färg, glans] }]: varje märke blir
 // 2×2 pixlar på plaggets egna pixlar (tröjan och byxorna framifrån – märkena sitter fram – väskan från alla håll).
+// look.mobil = [skalets färg, berlock, berlock, mobilbandets färg | null]: mobilen i handen när figuren står still
+// framifrån (går man ligger den i fickan).
 const PATCH_TAGS = { top: [TAG.torso, TAG.top], bottom: [TAG.pants], bag: [TAG.bag] };
 function decorate(L, R, view, each, put) {
   if (Array.isArray(L.beads) && L.beads.length && L.neck === 'pearls') {
@@ -685,6 +687,15 @@ function decorate(L, R, view, each, put) {
     px.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
     R.tag = TAG.neck;
     px.forEach(([x, y], i) => put(x, y, toInt(L.beads[Math.floor((i * L.beads.length) / px.length)], 0xffffff)));
+  }
+  if (Array.isArray(L.mobil) && L.mobil[0] && view === 'front' && !R.sit && !R.carry && !R.eat && !R.walkA && !R.walkB) {
+    const c = L.mobil.map((h) => toInt(h, -1)), x0 = 12 + R.tw - 1, y1 = R.torsoTop + R.armLen;
+    R.tag = TAG.extra;
+    for (let j = 0; j < 4; j++) for (let i = 0; i < 3; i++) put(x0 + i, y1 - 3 + j, i === 2 || j === 3 ? mul(c[0], 0.72) : c[0]);
+    if (c[1] >= 0) put(x0, y1 - 3, c[1]);
+    if (c[2] >= 0) put(x0 + 1, y1 - 1, c[2]);
+    put(x0 + 2, y1 - 2, R.skin.base);                                     // fingrarna runt skalet
+    if (c[3] >= 0) { put(x0 + 1, y1 + 1, c[3]); put(x0 + 1, y1 + 2, c[3]); put(x0, y1 + 2, c[3]); }   // mobilbandet
   }
   if (Array.isArray(L.patches) && L.patches.length) {
     for (const a of ['bottom', 'top', 'bag']) {

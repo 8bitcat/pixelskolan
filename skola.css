@@ -152,8 +152,14 @@
 .sf .dl-patch canvas, .sf .dl-bead canvas { display: block; image-rendering: pixelated; }
 .sf .dl-patch b { font-size: var(--f1); line-height: 1; text-align: center; }
 .sf .dl-patch small, .sf .dl-bead small { font-size: var(--f1); line-height: 1; background: #f0d048; border: 2px solid var(--ink); padding: 1px 4px 0; }
+.sf .dl-sws { display: flex; flex-wrap: wrap; gap: 5px; margin-bottom: 6px; }
+.sf .dl-sw { width: 26px; height: 26px; padding: 0; border: 3px solid var(--ink); background: var(--c); box-shadow: 2px 2px 0 var(--ink); cursor: pointer; }
+.sf .dl-sw.on { outline: 3px solid #ffd23f; outline-offset: 1px; transform: translate(-1px, -1px); }
+.sf .bl-pick .sk-lbl small { font: var(--f1) var(--font); color: var(--muted); text-transform: none; letter-spacing: 0; }
 .sf .dl-beads { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 5px; }
 @media (max-height: 520px) { .sf .bl-list { display: none; } .sf .bl-sum b { font-size: var(--f2); } .sf .bl-canvas canvas, .sf .dl-canvas canvas { max-height: 30vh; } .sf .dl-tip { display: none; } .sf .bl-stage { padding-top: 6px; } .sf .bl-arrow { padding-bottom: 24px; } }
+.sf .bl-show .dl-phone canvas { max-height: 58vh; }
+@media (max-height: 520px) { .sf .bl-show .dl-phone canvas { max-height: 50vh; } }
 @container (max-width: 760px) { .sf .bl-design { grid-template-columns: auto minmax(0, 1fr); } .sf .bl-show { grid-column: 1; position: static; } .sf .bl-pick { grid-column: 2; grid-row: 1 / span 2; } .sf .bl-canvas canvas { max-height: 24vh; } }
 @container (max-width: 760px) { .sf .sp-kb, .sf .sp-keys { gap: 3px; } .sf .sp-keys .btn { font-size: var(--f1); padding: 4px 0; } }
 .sf .sk-hist { border-collapse: collapse; margin: 8px 0; font-size: var(--f2); }
