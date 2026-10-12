@@ -76,6 +76,22 @@ function cleanName(v) {
   return Array.from(s).slice(0, NAME_MAX).join('').trim();
 }
 
+// Egna pärlor och strykmärken (Pixelskolans butik DREAM LAND, ritas i people.js decorate) – bara med när de finns.
+const cleanBeads = (v) => { if (!Array.isArray(v)) return {}; const b = v.map((c) => col(c, null)).filter(Boolean).slice(0, 32); return b.length ? { beads: b } : {}; };
+const PATCH_AREAS = ['top', 'bottom', 'bag'];
+const num01 = (v) => (v != null && Number.isFinite(+v) ? Math.max(0, Math.min(1, Math.round(+v * 100) / 100)) : null);
+function cleanPatches(v) {
+  if (!Array.isArray(v)) return {};
+  const out = [];
+  for (const p of v.slice(0, 18)) {
+    if (!p || !PATCH_AREAS.includes(p.a)) continue;
+    const u = num01(p.u), w = num01(p.v), c = Array.isArray(p.c) ? p.c.map((x) => col(x, null)) : [];
+    if (u == null || w == null || !c[0]) continue;
+    out.push({ a: p.a, u, v: w, c: [c[0], c[1] || c[0]], ...(typeof p.p === 'string' && /^[a-z0-9-]{1,24}$/.test(p.p) ? { p: p.p } : {}) });
+  }
+  return out.length ? { patches: out } : {};
+}
+
 // Validerar varje fält mot registren/färgformatet. Okänt ⇒ standard. Resultatet innehåller
 // alltid alla fält (gamla + nya), så redigeraren kan jämföra direkt.
 export function cleanLook(raw) {
@@ -110,6 +126,7 @@ export function cleanLook(raw) {
     neck: reg('neck', L.neck, 'none'), neckColor: col(L.neckColor, null), jewel: reg('jewel', L.jewel, 'none'),
     // ryggnumret på fotbollströjan (lagets spelare) – bara med när det finns, så att andra figurer är oförändrade
     ...(Number.isInteger(L.shirtNum) && L.shirtNum >= 0 && L.shirtNum <= 99 ? { shirtNum: L.shirtNum } : {}),
+    ...cleanBeads(L.beads), ...cleanPatches(L.patches),
   };
 }
 

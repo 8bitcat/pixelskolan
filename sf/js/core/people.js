@@ -652,6 +652,7 @@ function render(L0, dir, frame) {
   hook('afterHair');
   draw('hat'); draw('phones'); draw('jewel');
   hook('last');
+  decorate(L, R, view, each, put);
 
   // ---------- kontur ----------
   // Varje genomskinlig pixel intill figuren får en mörk ton av grannen. Grannen väljs i
@@ -671,6 +672,37 @@ function render(L0, dir, frame) {
   }
   cx.putImageData(img, 0, 0);
   return cv;
+}
+
+// ---------- egna pärlor och strykmärken (Pixelskolan, butiken DREAM LAND) ----------
+// look.beads = ['#rrggbb', …] färgar pärlhalsbandets (neck 'pearls') pixlar i trädd ordning från vänster.
+// look.patches = [{ a: 'top' | 'bottom' | 'bag', u, v (0–1 i plaggets yta), c: [färg, glans] }]: varje märke blir
+// 2×2 pixlar på plaggets egna pixlar (tröjan och byxorna framifrån – märkena sitter fram – väskan från alla håll).
+const PATCH_TAGS = { top: [TAG.torso, TAG.top], bottom: [TAG.pants], bag: [TAG.bag] };
+function decorate(L, R, view, each, put) {
+  if (Array.isArray(L.beads) && L.beads.length && L.neck === 'pearls') {
+    const px = []; each(TAG.neck, (x, y) => px.push([x, y]));
+    px.sort((a, b) => a[0] - b[0] || a[1] - b[1]);
+    R.tag = TAG.neck;
+    px.forEach(([x, y], i) => put(x, y, toInt(L.beads[Math.floor((i * L.beads.length) / px.length)], 0xffffff)));
+  }
+  if (Array.isArray(L.patches) && L.patches.length) {
+    for (const a of ['bottom', 'top', 'bag']) {
+      const list = L.patches.filter((p) => p && p.a === a);
+      if (!list.length || (a !== 'bag' && view !== 'front')) continue;
+      const pts = []; for (const t of PATCH_TAGS[a]) each(t, (x, y) => pts.push([x, y]));
+      if (pts.length < 6) continue;
+      let x0 = SW, x1 = -1, y0 = SH, y1 = -1;
+      for (const [x, y] of pts) { if (x < x0) x0 = x; if (x > x1) x1 = x; if (y < y0) y0 = y; if (y > y1) y1 = y; }
+      const on = new Set(pts.map(([x, y]) => y * SW + x));
+      R.tag = PATCH_TAGS[a][0];
+      for (const p of list) {
+        const cx = Math.round(x0 + p.u * Math.max(0, x1 - x0 - 1)), cy = Math.round(y0 + p.v * Math.max(0, y1 - y0 - 1));
+        for (const [dx, dy, hi] of [[0, 0, 1], [1, 0, 0], [0, 1, 0], [1, 1, 0]]) if (on.has((cy + dy) * SW + cx + dx)) put(cx + dx, cy + dy, toInt(p.c?.[hi ? 1 : 0], 0xffffff));
+      }
+    }
+  }
+  R.tag = TAG.none;
 }
 
 function spriteFor(look, dir, frame) {

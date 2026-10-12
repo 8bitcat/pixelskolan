@@ -2,7 +2,7 @@
 // (Carl 2026-10-07: "det kan vara affärer vägg i vägg … mängder av detaljer"). Man går inte in i dem,
 // men expediten står bakom disken och svarar när man klickar. Målade med Snabbfilens penna
 // (floor-pix.js); expediterna är spelets figurer (people.js).
-// BLING BLING (bling.js) är den enda man går in i: fasaden ritas här, butiken är en egen scen (UNITS.bling.shop).
+// DREAM LAND (bling.js, hette BLING BLING) är den enda man går in i: fasaden ritas här, butiken är en egen scen (UNITS.bling.shop).
 // Varje butik har en bakre bild (rummet bakom glaset, målas in i gallerians vägg), en expedit som
 // ritas levande och en främre bild (disken, glaset med reflexer och det som står ute på golvet).
 import { Pix, SMALL, BIG, textW, text as pixText, mix, mul, hash, bayer } from './sf/js/core/floor-pix.js';
@@ -16,8 +16,8 @@ export const UNITS = {
     lines: ['HEJ HEJ! TIDNINGEN KOM NYSS.', 'GLASSEN FINNS I FRYSEN UTANFÖR.', 'VILL DU HA ETT SERIEMAGASIN?'] },
   godis: { label: 'GODISBUTIKEN', sign: 'GODIS', col: 0xe0457e, edge: 0xa02858, ink: 0xffffff, wall: 0xfff0f5, flo: 0xd8c4cc, door: 34, keeper: 84,
     lines: ['PLOCKGODIS PÅ LÖRDAG!', 'MIN FAVORIT ÄR SURA REMMAR. VAD GILLAR DU?', 'KOM IHÅG ATT BORSTA TÄNDERNA SEN!'] },
-  bling: { label: 'BLING BLING', sign: 'BLING BLING', col: 0x2a1a2e, edge: 0xb9862a, ink: 0xffd23f, wall: 0xf7dce8, flo: 0xf6eef2, door: 54, keeper: 101, shop: 'bling', sparkle: true,
-    lines: ['VÄLKOMMEN IN!', 'DU KAN DESIGNA ETT EGET HALSBAND HOS OSS!'] },
+  bling: { label: 'DREAM LAND', sign: 'DREAM LAND', col: 0xb48ae6, edge: 0xd8559a, ink: 0xffffff, wall: 0xf7dce8, flo: 0xf6eef2, door: 54, keeper: 101, shop: 'bling', sparkle: true,
+    lines: ['VÄLKOMMEN IN!', 'HOS OSS TRÄR DU HALSBAND PÄRLA FÖR PÄRLA!', 'STRYK MÄRKEN PÅ DIN VÄSKA ELLER TRÖJA!'] },
   foto: { label: 'FOTOAUTOMATEN', booth: true, lines: ['BLIXT! FYRA BILDER.', 'LE STORT!'] },
   bankomat: { label: 'BANKOMATEN', atm: true },
 };
@@ -199,7 +199,7 @@ function godisOut(P, u, g) {   // en jätteklubba vid dörren
   for (let y = -5; y <= 5; y++) for (let xx = -5; xx <= 5; xx++) { const r = Math.hypot(xx, y); if (r > 5.4) continue; const a = Math.atan2(y, xx) - r * 0.6; P.px(x + xx, g - 25 + y, r > 4.6 ? 0x2a6aba : (Math.floor((a + 7) / (Math.PI / 3)) & 1) ? 0x46b04a : 0xffffff); }
 }
 
-// ---------- BLING BLING: smycken till vänster, väskor till höger (butiken inne: bling.js) ----------
+// ---------- DREAM LAND: smycken till vänster, väskor till höger (butiken inne: bling.js) ----------
 const GOLD = 0xe8b84a, GOLDD = 0xb9862a, GOLDL = 0xfff0b0, PLUM = 0x2a1a2e;
 const BAGCOL = [0xf07ab0, 0xd8394a, 0x3a7bd5, 0xf2c94e, 0x9a62d8, 0x2ab0b0, 0x2b2a33, 0xf0902e];
 const sparkle = (P, x, y, c = 0xffffff) => { P.px(x, y, c); P.px(x - 1, y, c, 0.6); P.px(x + 1, y, c, 0.6); P.px(x, y - 1, c, 0.6); P.px(x, y + 1, c, 0.6); };
@@ -325,7 +325,7 @@ function atmBack(P, u, g) {
 }
 
 const THEME = { blommor: [blommorBack, blommorFront, blommorOut], kiosk: [kioskBack, kioskFront, kioskOut], godis: [godisBack, godisFront, godisOut], bling: [blingBack, blingFront, blingOut] };
-// BLING BLINGs expedit är samma person som står i kassan inne i butiken (bling.js)
+// DREAM LANDs expedit är samma person som står i kassan inne i butiken (bling.js)
 const KEEPER = { bling: () => ({ ...makeLookRich(), hair: '#ecd489', style: 'bun', top: 'tee', shirt: '#f07ab0', kid: false, bottom: 'skirt', pants: '#2b2a33', neck: 'pearls', jewel: 'hoops' }) };
 
 // bygger butikens bilder (en gång): { back, front, ox, keeper, blocks }

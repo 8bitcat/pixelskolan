@@ -236,7 +236,19 @@ figcaption b { color: var(--ink); font-weight: 700; }
 .sf .bl-mirror { display: flex; gap: 14px; align-items: flex-start; flex-wrap: wrap; }
 .sf .bl-mir-r { flex: 1 1 220px; min-width: 0; }
 .sf .bl-mir-r .sp:first-child { margin-top: 0; }
-@media (max-height: 520px) { .sf .bl-list { display: none; } .sf .bl-sum b { font-size: var(--f2); } .sf .bl-canvas canvas { max-height: 30vh; } .sf .bl-stage { padding-top: 6px; } .sf .bl-arrow { padding-bottom: 24px; } }
+.sf .dl-canvas canvas { display: block; width: auto; height: auto; max-width: 100%; max-height: 38vh; image-rendering: pixelated; border: 3px solid var(--ink); touch-action: none; cursor: pointer; }
+.sf .dl-tools, .sf .dl-areas, .sf .dl-cats { display: flex; flex-wrap: wrap; gap: 5px; align-items: center; }
+.sf .dl-tools .sp { margin: 0; }
+.sf .dl-cats { margin-bottom: 6px; }
+.sf .dl-tip { margin: 0 0 6px; }
+.sf .dl-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(78px, 1fr)); gap: 6px; }
+.sf .dl-patch, .sf .dl-bead { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 4px 2px; background: #fff; border: 3px solid var(--ink); box-shadow: 2px 2px 0 var(--ink); font: inherit; color: inherit; cursor: pointer; }
+.sf .dl-patch:hover, .sf .dl-bead:hover, .sf .dl-patch:focus-visible, .sf .dl-bead:focus-visible { transform: translate(-1px, -1px); box-shadow: 3px 3px 0 var(--ink); outline: none; background: #fde7f1; }
+.sf .dl-patch canvas, .sf .dl-bead canvas { display: block; image-rendering: pixelated; }
+.sf .dl-patch b { font-size: var(--f1); line-height: 1; text-align: center; }
+.sf .dl-patch small, .sf .dl-bead small { font-size: var(--f1); line-height: 1; background: #f0d048; border: 2px solid var(--ink); padding: 1px 4px 0; }
+.sf .dl-beads { display: grid; grid-template-columns: repeat(auto-fill, minmax(48px, 1fr)); gap: 5px; }
+@media (max-height: 520px) { .sf .bl-list { display: none; } .sf .bl-sum b { font-size: var(--f2); } .sf .bl-canvas canvas, .sf .dl-canvas canvas { max-height: 30vh; } .sf .dl-tip { display: none; } .sf .bl-stage { padding-top: 6px; } .sf .bl-arrow { padding-bottom: 24px; } }
 @container (max-width: 760px) { .sf .bl-design { grid-template-columns: auto minmax(0, 1fr); } .sf .bl-show { grid-column: 1; position: static; } .sf .bl-pick { grid-column: 2; grid-row: 1 / span 2; } .sf .bl-canvas canvas { max-height: 24vh; } }
 @container (max-width: 760px) { .sf .sp-kb, .sf .sp-keys { gap: 3px; } .sf .sp-keys .btn { font-size: var(--f1); padding: 4px 0; } }
 .sf .sk-hist { border-collapse: collapse; margin: 8px 0; font-size: var(--f2); }

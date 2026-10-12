@@ -89,7 +89,7 @@ const adultLook = () => cleanLook({ ...makeLookRich(), kid: false, phones: false
 const TEACHER_LOOK = () => cleanLook({ skin: '#eec3a0', hair: '#6b4226', style: 'bun', top: 'sweater', shirt: '#2aa39a', accent: '#f4f1ea', bottom: 'skirt', pants: '#2d3a5c', shoes: '#6b3e1e', glasses: 'round', kid: false, build: 5 });
 const newAv = (name, look) => cleanAvatar({ name, look, color: pick(MARKER_COLORS) });
 let ME = null, CLASS = [], TEACHER = null, STARS = 0, LESSONS = 0, PLACED = [], KLASS = '2B';
-let BLING = [];   // egna halsband och väskor från BLING BLINGs ateljé: { kind, sel, look, price, name, parts }
+let BLING = [];   // egna halsband, pärlhalsband och väskor från DREAM LANDs ateljé (hette BLING BLING): { kind, sel, look, price, name }
 // Plånboken, garderoben, leksakerna och möbelförrådet är Snabbfilens eget Game-objekt (sparas under
 // pixelskolan:snabbfilen_save1 tack vare iso.js). Kläderna i figurskaparen = det man köpt + basplaggen.
 const G = Game.load();
@@ -116,7 +116,7 @@ function load() {
     ({ STARS = 0, LESSONS = 0, PLACED = [] } = s); D.lvl = { ...LVL0, ...(s.lvl || {}) }; D.best = s.best && typeof s.best === 'object' ? s.best : {}; D.tabell = Math.max(1, Math.min(10, s.tabell | 0 || 5)); D.hist = s.hist && typeof s.hist === 'object' ? s.hist : {}; KLASS = cleanKlass(s.KLASS) || '3A';
     D.grade = s.grade === 2 || s.grade === 3 ? s.grade : gradeOf(KLASS) && gradeOf(KLASS) <= 2 ? 2 : 3;
     PLACED = (Array.isArray(PLACED) ? PLACED : []).filter((p) => p && typeof p.k === 'string');   // (stjärnbutikens gamla möbler följer inte med)
-    BLING = (Array.isArray(s.BLING) ? s.BLING : []).filter((d) => d && (d.kind === 'neck' || d.kind === 'bag') && d.look && typeof d.name === 'string');
+    BLING = (Array.isArray(s.BLING) ? s.BLING : []).filter((d) => d && (d.kind === 'neck' || d.kind === 'bag' || d.kind === 'beads') && d.look && typeof d.name === 'string');
     return true;
   } catch { return false; }
 }
@@ -254,7 +254,7 @@ const LIFT_X = 356;                                 // hissdörrens vänsterkant
 // Trapphuset (Carl 2026-10-07: "det kan vara affärer vägg i vägg men när det är trapphus stora fönster i
 // bakgrunden så man inte måste gå så långt"): rulltrapporna och hissen står framför en glasvägg från golv
 // till tak, butikerna ligger vägg i vägg på båda sidor och våningarna blev kortare. units = småbutikerna
-// (smabutiker.js) mellan spelets riktiga. BLING BLING (bling.js, Carl 2026-10-11) är en småbutik man går in i:
+// (smabutiker.js) mellan spelets riktiga. DREAM LAND (bling.js, Carl 2026-10-11/12, hette BLING BLING) är en småbutik man går in i:
 // smycken och väskor och en ateljé där man designar sitt eget halsband och sin egen väska.
 const TRAP = { x0: 170, x1: 602 };
 const FLOORS = [
@@ -265,8 +265,8 @@ const FLOORS = [
 const TOPF = FLOORS.length - 1;
 let FLOOR = 0;                                       // våningen man är på i gallerian
 const FL = () => FLOORS[FLOOR];
-const SHOPLABEL = { ...Object.fromEntries(FLOORS.flatMap((f) => f.shops.map((h) => [h.id, h.label]))), bling: 'BLING BLING' };
-const unitShop = (u) => UNITS[u.id].shop || null;   // småbutiken man går in i (BLING BLING)
+const SHOPLABEL = { ...Object.fromEntries(FLOORS.flatMap((f) => f.shops.map((h) => [h.id, h.label]))), bling: 'DREAM LAND' };
+const unitShop = (u) => UNITS[u.id].shop || null;   // småbutiken man går in i (DREAM LAND)
 const floorOfShop = (id) => FLOORS.findIndex((f) => f.shops.some((h) => h.id === id) || (f.units || []).some((u) => unitShop(u) === id));
 const shopDoorX = (f, id) => { const h = f.houses?.find((x) => x.id === id); if (h) return h.door.x; const u = (f.units || []).find((x) => unitShop(x) === id); return u ? u.x + UNITS[u.id].door + 10 : 100; };
 // Butikerna, fasaderna, rulltrapporna och möbelritningen laddas i bakgrunden när skolan har startat (~2,8 MB).
@@ -373,8 +373,8 @@ function galleriaBG(f) {
     for (let x = nx - 6; x < nx + tw + 8; x += 4) P.px(x, 19, 0xfff4c0);
     const bx = 82, by = 44; P.rect(bx, by, 80, 74, 0x2a2440); P.box(bx, by, 80, 74, 0x9aa0a8);
     pixText(P, SMALL, 'VÅNINGAR', bx + 6, by + 5, 0xffd23f);
-    const rows = [['2', 'LEKSAKSLÅDAN'], ['2', 'MÖBELJÄTTEN'], ['1', 'KLÄDAFFÄREN'], ['1', 'SKOBUTIKEN'], ['1', 'BLING BLING'], ['1', 'GODIS'], ['0', 'BLOMMOR + KIOSK']];
-    rows.forEach(([n, t2], i) => { P.rect(bx + 5, by + 14 + i * 8, 7, 7, 0xf6cf2a); pixText(P, SMALL, n, bx + 7, by + 15 + i * 8, 0x1d51a0); pixText(P, SMALL, t2, bx + 15, by + 15 + i * 8, t2 === 'BLING BLING' ? 0xffb8dc : 0xf4f1ea); });
+    const rows = [['2', 'LEKSAKSLÅDAN'], ['2', 'MÖBELJÄTTEN'], ['1', 'KLÄDAFFÄREN'], ['1', 'SKOBUTIKEN'], ['1', 'DREAM LAND'], ['1', 'GODIS'], ['0', 'BLOMMOR + KIOSK']];
+    rows.forEach(([n, t2], i) => { P.rect(bx + 5, by + 14 + i * 8, 7, 7, 0xf6cf2a); pixText(P, SMALL, n, bx + 7, by + 15 + i * 8, 0x1d51a0); pixText(P, SMALL, t2, bx + 15, by + 15 + i * 8, t2 === 'DREAM LAND' ? 0xffb8dc : 0xf4f1ea); });
     const stx = 520, sty = 34;   // stjärnan: gul, med blank kant, i två linor från taket
     P.vl(stx - 6, 7, 20, 0x8a8e96); P.vl(stx + 6, 7, 20, 0x8a8e96);
     const pts = Array.from({ length: 10 }, (_, i) => { const a = -Math.PI / 2 + i * Math.PI / 5, r = i & 1 ? 5.5 : 13; return [Math.cos(a) * r, Math.sin(a) * r]; });
@@ -1044,7 +1044,7 @@ const viewOf = (f) => (VIEWS[f.n] ||= makeView({ n: f.n, w: f.w, viewW: W, ...GL
 const unitOf = (u) => (u.art ||= makeUnit(u, GBASE));
 function unitClick(u) {   // gå fram till butiken: expediten svarar (fotoautomaten blixtrar, bankomaten visar pengarna)
   const U = unitOf(u), [ax, ay] = U.spot, id = unitShop(u);
-  if (id) {   // BLING BLING: in genom dörren, som i spelets butiker
+  if (id) {   // DREAM LAND: in genom dörren, som i spelets butiker
     const hy = GBASE + 7;
     walkTo(ax, hy, () => { if (near(ax, hy)) { P.dir = 'up'; setTimeout(() => { if (P.scene === 'galleria' && !SHOP && near(ax, hy)) enterShop(id); }, 180); } });
     return;
@@ -1265,7 +1265,7 @@ window.SF = A;   // Snabbfilens moduler läser spelet härifrån (musiken välje
 const musicScene = () => { if (!SHOP) A.sceneName = P.scene === 'galleria' ? 'mat' : 'room'; };
 const BLING_STORE = { list: () => BLING, add(d) { BLING.push(d); if (BLING.length > 40) BLING.shift(); save(); } };
 const SHOP_OPTS = { bling: () => ({ store: BLING_STORE }) };
-const SHOP_MUSIC = { bling: 'klader' };   // BLING BLING spelar klädaffärens låt
+const SHOP_MUSIC = { bling: 'klader' };   // DREAM LAND spelar klädaffärens låt
 function enterShop(id) {
   if (!SHOPLIB?.make[id]) return;
   A.avatar = cleanAvatar({ ...ME }); A.game = G; A.pxs = scale; A.sceneName = SHOP_MUSIC[id] || id;
@@ -1484,10 +1484,10 @@ function renderBelow() {
   const el = $('sk-below'), btn = (a, t, cls = '', tip = '') => `<button type="button" class="btn btn-small ${cls}" data-b="${a}"${tip ? ` title="${tip}" aria-label="${tip}"` : ''}>${t}</button>`;
   let p, b = '';
   if (!ME) p = 'Börja med att göra din figur och din klass.';
-  else if (SHOP && SHOP.id === 'bling') p = `Du är i BLING BLING. Smyckena ligger i glasmontrarna, väskorna på väggen. Vid borden designar du ett eget halsband eller en egen väska – varje del kostar olika mycket. I spegeln byter du det du har. Du har ${fmt(G.money)}.`;
+  else if (SHOP && SHOP.id === 'bling') p = `Du är i DREAM LAND. Smyckena ligger i glasmontrarna, väskorna på väggen. Vid borden designar du ett eget halsband eller en egen väska, i pärlbaren trär du ett halsband pärla för pärla och vid strykbordet sätter du strykmärken på väskan, tröjan eller byxorna. I spegeln byter du det du har. Du har ${fmt(G.money)}.`;
   else if (SHOP) p = `Du är i ${SHOPLABEL[SHOP.id].charAt(0) + SHOPLABEL[SHOP.id].slice(1).toLowerCase()}, Snabbfilens egen butik. Klicka på det du vill titta på. Dörren tar dig ut i gallerian igen. Du har ${fmt(G.money)}.`;
   else if (P.scene === 'klass') { p = P.seated ? 'Du sitter i bänken och ser tavlan på nära håll. Skriv svaret med knapparna i rutan – det hamnar på tavlan – och tryck på den gröna Klar. Efter fem uppgifter blir det rast.' : `Klicka på den lediga bänken för att börja. Efter fem uppgifter blir det rast, och varje stjärna blir ${KR_PER_STJARNA} kr. Den blå dörren leder till Galleria Stjärnan.`; if (!P.seated) b += btn('sit', '🪑 Sätt dig', 'btn-go'); b += btn('shop', '🏬 Gallerian') + btn('class', '🧑 Figur och klass'); }
-  else if (P.scene === 'galleria') { p = FLOOR === 0 ? 'Entréplanet. Åk rulltrappan eller hissen upp: plan 1 har klädaffären, skobutiken och BLING BLING, plan 2 Leksakslådan och Möbeljätten. Dörrarna leder till skolan och hem.' : `Plan ${FLOOR}. Klicka på en butik för att gå in. Rulltrapporna och hissen tar dig mellan våningarna.`; b += btn('toclass', '🏫 Skolan') + btn('home', '🏠 Hem'); }
+  else if (P.scene === 'galleria') { p = FLOOR === 0 ? 'Entréplanet. Åk rulltrappan eller hissen upp: plan 1 har klädaffären, skobutiken och DREAM LAND, plan 2 Leksakslådan och Möbeljätten. Dörrarna leder till skolan och hem.' : `Plan ${FLOOR}. Klicka på en butik för att gå in. Rulltrapporna och hissen tar dig mellan våningarna.`; b += btn('toclass', '🏫 Skolan') + btn('home', '🏠 Hem'); }
   else { p = 'Klicka på klädskåpet för att byta kläder. Möblerna från Möbeljätten står i förrådet: välj en och klicka på golvet (tavlor och lampor på väggen).'; b += btn('shop', '🏬 Gallerian') + btn('toclass', '🏫 Skolan'); }
   if (ME) b += btn('mute', isMuted() ? '🔇' : '🔊', '', isMuted() ? 'Ljudet är av' : 'Ljudet är på') + btn('reset', '↺', '', 'Börja om från början');
   HELP = p;
