@@ -251,12 +251,31 @@ export const KROPP = [['Hur många gånger om dagen borstar man tänderna?', 'Tv
   ['Hur många sinnen har vi?', 'Fem', 'Tre', 'Tio'], ['Vad behöver kroppen när den är trött?', 'Sömn', 'Godis', 'Läsk'], ['Vad skyddar hjärnan?', 'Skallen', 'Magen', 'Knät']];
 
 // ======================= NIVÅERNA =======================
+// Uppställning i rutnät med minnes- och växlingssiffror (Carl 2026-10-12, som i Glostrainer). Lätt: talen står
+// uppställda. Svår (setup): talet står på en rad och man ställer upp det själv – rätt på första försöket ger en
+// stjärna. small = tvåsiffriga tal (årskurs 2). Skolan (skola.js gridState/chalkGrid) sköter rutnätet.
+export function gridAdd(hard = false, small = false) {
+  let a, b;
+  if (small) do { a = rnd(15, 79); b = rnd(12, 89); } while (a + b > 99 || (a % 10) + (b % 10) < 10);
+  else do { a = rnd(105, 789); b = hard && Math.random() < 0.5 ? rnd(12, 98) : rnd(105, 889); } while (a + b > 999 || ((a % 10) + (b % 10) < 10 && (Math.floor(a / 10) % 10) + (Math.floor(b / 10) % 10) < 10));
+  return { input: 'grid', topic: hard ? 'STÄLL UPP OCH RÄKNA: PLUS' : 'UPPSTÄLLNING: PLUS', grid: { a, b, op: '+', setup: hard }, say: `${a} plus ${b}. ${hard ? 'Ställ upp och räkna.' : 'Räkna med uppställning.'}`, ans: a + b,
+    hint: 'Börja med entalen längst till höger. Blir det tio eller mer skriver du entalssiffran under strecket och minnessiffran 1 i översta raden ovanför nästa kolumn.', done: `${a} + ${b} = ${a + b}.` };
+}
+export function gridSub(hard = false, small = false) {
+  let a, b;
+  const tio = (n) => Math.floor(n / 10) % 10;
+  if (small) do { a = rnd(31, 98); b = rnd(12, a - 10); } while (a % 10 >= b % 10);
+  else do { a = rnd(300, 999); b = hard && Math.random() < 0.5 ? rnd(12, 98) : rnd(101, a - 40); } while (!(a % 10 < b % 10 || tio(a) < tio(b)) || (!hard && tio(a) === 0 && a % 10 < b % 10));   // (lätt: ingen växling över en nolla)
+  return { input: 'grid', topic: hard ? 'STÄLL UPP OCH RÄKNA: MINUS' : 'UPPSTÄLLNING: MINUS', grid: { a, b, op: '−', setup: hard }, say: `${a} minus ${b}. ${hard ? 'Ställ upp och räkna.' : 'Räkna med uppställning.'}`, ans: a - b,
+    hint: 'Börja med entalen. Räcker det inte växlar du: stryk siffran till vänster genom att skriva en mindre ovanför den, och skriv 10 ovanför kolumnen du räknar i.', done: `${a} − ${b} = ${a - b}.` };
+}
 export const LEVELS = {
   matte: [
     { name: 'Tiokompisar', gen: tio }, { name: 'Tvillingar', gen: tvilling }, { name: 'Plus över tiotalet', gen: plus20 }, { name: 'Minus över tiotalet', gen: minus20 },
     { name: 'Dubbelt och hälften', gen: dubbelt }, { name: 'Udda och jämnt', gen: udda }, { name: 'Tiotal och ental', gen: tiotal }, { name: 'Plus och minus till 100', gen: hundra },
     { name: 'Pengar och växel', gen: pengar }, { name: 'Dela lika', gen: dela }, { name: 'Mäta: cm, m, kg, liter', gen: mata }, { name: 'Former och kroppar', gen: former },
     { name: 'Stapeldiagram', gen: diagram }, { name: 'Bråk: halv, tredjedel, fjärdedel', gen: brak }, { name: 'Tabellerna 2, 5 och 10', gen: tabell2510 },
+    { name: 'Uppställning: plus', gen: () => gridAdd(false, true) }, { name: 'Uppställning: minus', gen: () => gridSub(false, true) },
   ],
   klocka: [{ name: 'Hel och halv', gen: () => klocka(1) }, { name: 'Kvart över och kvart i', gen: () => klocka(2) }, { name: 'Fem minuter i taget', gen: () => klocka(3) }, { name: 'Digital tid', gen: digital }],
   svenska: [

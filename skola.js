@@ -13,7 +13,7 @@ import { FRAMES } from './sf/js/data/frames.js';
 import { Game, fmt } from './sf/js/game.js';
 import { LEVELS as UPP, setContext, numOpts } from './uppgifter.js';
 import { LEVELS3 } from './uppgifter3.js';
-import { toggleMute, isMuted } from './sf/js/core/sound.js';
+import { toggleMute, isMuted, play } from './sf/js/core/sound.js';
 import { musicTick } from './sf/js/core/music.js';
 import { SLOTS, wornItem } from './sf/js/data/wardrobe.js';
 import { makeView, drawView } from './utsikt.js';
@@ -94,26 +94,34 @@ let BLING = [];   // egna halsband, pärlhalsband och väskor från DRÖMLANDs a
 // pixelskolan:snabbfilen_save1 tack vare iso.js). Kläderna i figurskaparen = det man köpt + basplaggen.
 const G = Game.load();
 const KR_PER_STJARNA = 100;
+// Övningar man gör mycket av ger mindre pengar (Carl 2026-10-12: "så man inte gör saker som är för lätt hela tiden"):
+// varje nivå räknar lektionerna man gjort på den (D.plays[id] = { n, t }), och två glöms bort för varje dag som går.
+// Stjärnorna (betyget) blir aldrig färre – bara kronorna per stjärna.
+const PAY = [100, 100, 80, 60, 40, 20];
+const playsOf = (id) => { const p = D.plays[id]; if (!p) return 0; return Math.max(0, (p.n | 0) - 2 * Math.floor((Date.now() - (+p.t || 0)) / 864e5)); };
+const payFor = (id) => PAY[Math.min(PAY.length - 1, playsOf(id))];
+const played = (id) => { D.plays[id] = { n: playsOf(id) + 1, t: Date.now() }; };
+const payNote = (per) => (per < KR_PER_STJARNA ? `<p class="sp">💰 Du har gjort det här många gånger, så just nu ger det ${per} kr per stjärna. Prova något svårare – nästa nivå ger ${KR_PER_STJARNA} kr. Om några dagar är den här värd mer igen.</p>` : '');
 const ownedIds = () => G.ownedWardrobeIds();
 const LVL0 = { matte: 1, ganger: 5, klocka: 1, svenska: 1, engelska: 1, no: 1 };
 // grade = årskursen (2 eller 3, väljs i början): nivåerna och stjärnorna sparas per årskurs (matte / matte3 …).
 // typed = svaret man skriver på tavlan, bad = det skrivna svaret var fel (visas rött tills man skriver igen).
-const D = { tab: 'matte', grade: 3, tabell: 5, hist: {}, best: {}, lvl: { ...LVL0 }, streak: 0, miss: 0, q: null, tried: false, solved: false, locked: false, last: '', rast: false, typed: '', bad: false };
+const D = { tab: 'matte', grade: 3, tabell: 5, hist: {}, best: {}, plays: {}, g: null, lvl: { ...LVL0 }, streak: 0, miss: 0, q: null, tried: false, solved: false, locked: false, last: '', rast: false, typed: '', bad: false };
 // klassens namn som man skriver in själv (2B, 3A …): versaler, siffror och bokstäver, högst fyra tecken
 const cleanKlass = (v) => String(v || '').toUpperCase().replace(/[^0-9A-ZÅÄÖ]/g, '').slice(0, 4);
 const gradeOf = (k) => { const m = /^\d/.exec(k); return m ? +m[0] : 0; };
 function fresh() {
   ME = null; CLASS = DEF_NAMES.map((n) => newAv(n, kidLook())); TEACHER = newAv('Fröken Maja', TEACHER_LOOK()); KLASS = '3A'; D.grade = 3;
-  STARS = 0; LESSONS = 0; PLACED = []; BLING = []; D.lvl = { ...LVL0 }; D.tabell = 5; D.hist = {}; D.best = {}; D.rast = false;
+  STARS = 0; LESSONS = 0; PLACED = []; BLING = []; D.lvl = { ...LVL0 }; D.tabell = 5; D.hist = {}; D.best = {}; D.plays = {}; D.rast = false;
 }
-function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ME, CLASS, TEACHER, STARS, LESSONS, PLACED, BLING, KLASS, grade: D.grade, lvl: D.lvl, tabell: D.tabell, hist: D.hist, best: D.best })); } catch { /* lagring avstängd */ } G.save(); }
+function save() { try { localStorage.setItem(SAVE_KEY, JSON.stringify({ ME, CLASS, TEACHER, STARS, LESSONS, PLACED, BLING, KLASS, grade: D.grade, lvl: D.lvl, tabell: D.tabell, hist: D.hist, best: D.best, plays: D.plays })); } catch { /* lagring avstängd */ } G.save(); }
 function load() {
   try {
     const s = JSON.parse(localStorage.getItem(SAVE_KEY) || 'null');
     if (!s || !s.ME || !s.ME.name) return false;
     ME = cleanAvatar(s.ME); CLASS = (s.CLASS || []).map(cleanAvatar); TEACHER = cleanAvatar(s.TEACHER);
     if (CLASS.length !== 7) return false;
-    ({ STARS = 0, LESSONS = 0, PLACED = [] } = s); D.lvl = { ...LVL0, ...(s.lvl || {}) }; D.best = s.best && typeof s.best === 'object' ? s.best : {}; D.tabell = Math.max(1, Math.min(10, s.tabell | 0 || 5)); D.hist = s.hist && typeof s.hist === 'object' ? s.hist : {}; KLASS = cleanKlass(s.KLASS) || '3A';
+    ({ STARS = 0, LESSONS = 0, PLACED = [] } = s); D.lvl = { ...LVL0, ...(s.lvl || {}) }; D.best = s.best && typeof s.best === 'object' ? s.best : {}; D.plays = s.plays && typeof s.plays === 'object' ? s.plays : {}; D.tabell = Math.max(1, Math.min(10, s.tabell | 0 || 5)); D.hist = s.hist && typeof s.hist === 'object' ? s.hist : {}; KLASS = cleanKlass(s.KLASS) || '3A';
     D.grade = s.grade === 2 || s.grade === 3 ? s.grade : gradeOf(KLASS) && gradeOf(KLASS) <= 2 ? 2 : 3;
     PLACED = (Array.isArray(PLACED) ? PLACED : []).filter((p) => p && typeof p.k === 'string');   // (stjärnbutikens gamla möbler följer inte med)
     BLING = (Array.isArray(s.BLING) ? s.BLING : []).filter((d) => d && (d.kind === 'neck' || d.kind === 'bag' || d.kind === 'beads' || d.kind === 'phone') && d.look && typeof d.name === 'string');
@@ -621,11 +629,13 @@ function chalkClose(b) {
   const wS = (str) => (slot ? str.replace(SLOT_RE, `$1${slot.s || ' '}$2`) : str);   // bredden med svaret ifyllt
   const ty = Math.max(b.y0 + 7, pillB + 4);   // första raden under skylten uppe till vänster
   if (D.rast || !q) { ch('RAST!', b.x0 + 12, ty + 4, 2); ch('BUTIKERNA PÅ STORGATAN ÄR ÖPPNA', b.x0 + 12, ty + 26, 1, CY); ch(`BRA JOBBAT ${KLASS}!`, b.x0 + 12, ty + 38); return; }
-  ch(q.topic, b.x0 + 9, ty, 1, CBL);
+  const tight = !!D.g && b.y1 - 4 - (ty + 15) < 66;   // låg tavla (liggande mobil) och uppställning: rubriken står redan i rutan under
+  if (!tight) ch(q.topic, b.x0 + 9, ty, 1, CBL);
   if (D.solved) ch('RÄTT!', b.x1 - 9 - textW(CHALK, 'RÄTT!'), b.y0 + 7, 1, CG);
-  const top = ty + 15, bot = b.y1 - 6, mid = (top + bot) >> 1;
+  const top = tight ? ty : ty + 15, bot = b.y1 - 6, mid = (top + bot) >> 1;
   const v = q.visual || {};
-  if (v.column) chalkColumn(b, top, q, slot, blink);   // uppställning
+  if (D.g) chalkGrid(b, top, q, blink, tight);                  // uppställning i rutnät (minnes- och växlingssiffror)
+  else if (v.column) chalkColumn(b, top, q, slot, blink);   // uppställning (den gamla, bara svaret)
   else if (v.clock) {   // klockan: urtavlan till höger
     const R = Math.max(20, Math.min(60, Math.floor((bh - 10) / 2))), cx = b.x1 - 16 - R, cy = b.y0 + (bh >> 1), tw = cx - R - 16 - (b.x0 + 12);
     const qs = q.question || 'VAD ÄR KLOCKAN?', k = k2(qs, tw);
@@ -694,6 +704,112 @@ function chalkColumn(b, top, q, slot, blink) {
   if (!D.solved && !D.bad && blink && s.length < nd) fill(right - (s.length + 1) * dw + 1, yA + 15, dw - 3, 2, CY);
   const tip = D.solved ? `${a} ${op === '+' ? '+' : '-'} ${c} = ${q.ans}` : 'ENTALEN FÖRST', tx = right + 18;
   if (tx + textW(CHALK, tip) < b.x1 - 8) ctxText(ctx, CHALK, tip, tx, yA + 4, D.solved ? CY : CBL);
+}
+// ---------- uppställning i rutnät med minnes- och växlingssiffror (Carl 2026-10-12, som i Glostrainer) ----------
+// Raderna: minnes-/växlingssiffror överst (högst två siffror per ruta, "10" vid växling), första talet, andra talet,
+// strecket och svaret. Man trycker på en ruta på tavlan eller flyttar med pilarna och skriver med knapparna; i
+// svarsraden hoppar markören åt vänster (entalen först), i talraderna åt höger. På den svåra nivån står talet på en
+// rad och man ställer upp det själv först (rätt på första försöket = en stjärna, LES.setup). Vid minus stryks
+// siffran man växlar från: står det 10 eller mer ovanför en kolumn stryks talet till vänster, och en ensam siffra
+// ovanför ett tal stryker talet under (det nya värdet står ovanför). Bara svaret rättas.
+function gridState(q) {
+  const { a, b, op, setup } = q.grid, as = String(a), bs = String(b), cs = String(q.ans);
+  const n = Math.max(as.length, bs.length, cs.length) + 1;   // en tom kolumn till vänster, som på rutat papper
+  const row = (s) => Array.from({ length: n }, (_, i) => { const k = i - (n - s.length); return k >= 0 ? s[k] : ''; });
+  return { n, op, setup, carry: Array(n).fill(''), a: setup ? Array(n).fill('') : row(as), b: setup ? Array(n).fill('') : row(bs), ans: Array(n).fill(''),
+    want: { a: row(as), b: row(bs), ans: row(cs) }, phase: setup ? 'setup' : 'calc', cur: setup ? { r: 'a', c: 0 } : { r: 'ans', c: n - 1 }, tries: 0, star: false, rects: [] };
+}
+const gridRows = () => (D.g.phase === 'setup' ? ['a', 'b'] : ['carry', 'ans']);
+const gridTip = () => (D.g.phase === 'setup'
+  ? 'Ställ upp talen: tryck på rutan där talet ska börja och skriv. Entalen ska stå under entalen, tiotalen under tiotalen. Tryck sedan på Klar.'
+  : `Räkna från entalen. ${D.g.op === '+' ? 'Minnessiffran' : 'Växlingen'} skriver du i översta raden – tryck på rutan där. Tryck på Klar när svaret står under strecket.`);
+function gridKey(k) {
+  const G = D.g, rows = gridRows(), c = G.cur;
+  const move = (dc) => { c.c = Math.max(0, Math.min(G.n - 1, c.c + dc)); };
+  if (k === 'ok') return gridSubmit();
+  if (k === 'left') return move(-1);
+  if (k === 'right') return move(1);
+  if (k === 'up' || k === 'down') { const i = rows.indexOf(c.r); c.r = rows[Math.max(0, Math.min(rows.length - 1, (i < 0 ? 0 : i) + (k === 'up' ? -1 : 1)))]; return; }
+  if (D.bad) D.bad = false;
+  const cells = G[c.r];
+  if (k === 'del') {
+    if (c.r === 'carry') { cells[c.c] = cells[c.c].slice(0, -1); return; }
+    if (!cells[c.c]) move(c.r === 'ans' ? 1 : -1);
+    cells[c.c] = '';
+    return;
+  }
+  if (!/^\d$/.test(k)) return;
+  if (c.r === 'carry') { cells[c.c] = cells[c.c].length === 1 ? cells[c.c] + k : k; return; }   // "1" + "0" = 10 (växling)
+  cells[c.c] = k;
+  move(c.r === 'ans' ? -1 : 1);
+}
+function gridTap(x, y) {
+  const G = D.g; if (!G || D.locked) return false;
+  const hitR = G.rects.find((r) => x >= r.x - 1 && x <= r.x + r.w && y >= r.y - 1 && y <= r.y + r.h);
+  if (!hitR || !gridRows().includes(hitR.r)) return false;
+  G.cur = { r: hitR.r, c: hitR.c }; play('click');
+  return true;
+}
+function gridSubmit() {
+  const G = D.g, q = D.q;
+  if (G.phase === 'setup') {
+    const same = (r) => G[r].every((v, i) => v === G.want[r][i]);
+    if (same('a') && same('b')) {
+      G.phase = 'calc'; G.cur = { r: 'ans', c: G.n - 1 };
+      if (!G.tries) { G.star = true; LES.setup = (LES.setup | 0) + 1; feedback('Rätt uppställt!', 'Du får en stjärna till. Räkna nu – börja med entalen.', 'ok'); teacherSay('RÄTT UPPSTÄLLT! EN STJÄRNA TILL!'); play('ok'); }
+      else { feedback('Nu står det rätt!', 'Räkna nu – börja med entalen.', 'ok'); teacherSay('BRA! NU RÄKNAR VI.'); }
+      return;
+    }
+    G.tries++;
+    if (G.tries >= 2) { G.a = [...G.want.a]; G.b = [...G.want.b]; G.phase = 'calc'; G.cur = { r: 'ans', c: G.n - 1 }; feedback('Så här ska det stå:', 'entalen under entalen, tiotalen under tiotalen. Räkna nu!', 'no'); teacherSay('TITTA HUR DET SKA STÅ, {P}.'); return; }
+    feedback('Inte riktigt.', 'Entalen ska stå under entalen och tiotalen under tiotalen. Börja det andra talet längre till höger om det är kortare.', 'no'); teacherSay('NÄSTAN! ENTALEN UNDER ENTALEN.');
+    return;
+  }
+  if (!G.ans.some(Boolean)) return;
+  answer(null, null, G.ans.every((v, i) => v === G.want.ans[i]));
+}
+function chalkGrid(b, top, q, blink, tight = false) {
+  const G = D.g, dw = 14, avail = b.y1 - 4 - top;
+  const lh = tight ? 14 : Math.max(14, Math.min(19, Math.floor((avail - 20) / 3.6))), chH = tight ? 8 : Math.max(9, Math.min(12, lh - 6));
+  const x0 = b.x0 + 34, right = x0 + G.n * dw, yLab = top - 1, yC = top + (tight ? 0 : 6), yA = yC + chH + 1, yB = yA + lh, yL = yB + lh + 1, yS = yL + 4;
+  const rows = gridRows(), solved = D.solved;
+  G.rects = [];
+  const cellBox = (x, y, h, on, sel) => {
+    if (sel && (blink || reduce)) { fill(x, y + h - 1, dw - 2, 2, CY); fill(x, y, 1, h, CY); fill(x + dw - 3, y, 1, h, CY); fill(x, y, dw - 2, 1, CY); }
+    else if (on) { for (let i = 0; i < dw - 2; i += 2) fill(x + i, y + h - 1, 1, 1, '#6f8a7c'); }
+  };
+  const lab = ['TH', 'H', 'T', 'E'];
+  if (!tight) for (let i = 0; i < G.n; i++) { const l = lab[lab.length - (G.n - i)]; if (l && i > 0) ctxText(ctx, SMALL, l, x0 + i * dw + ((dw - 2 - textW(SMALL, l)) >> 1), yLab, CBL); }
+  const draw = (r, y, h, k, col) => {
+    for (let i = 0; i < G.n; i++) {
+      const x = x0 + i * dw, on = rows.includes(r) && !solved, sel = on && G.cur.r === r && G.cur.c === i;
+      G.rects.push({ r, c: i, x, y, w: dw - 2, h });
+      cellBox(x, y, h, on, sel);
+      const v = G[r][i]; if (!v) continue;
+      const w = textW(CHALK, v, k); ctxText(ctx, CHALK, v, x + ((dw - 2 - w) >> 1), y + ((h - 7 * k) >> 1), typeof col === 'function' ? col(i) : col, k);
+    }
+  };
+  draw('carry', yC, chH, 1, CBL);
+  draw('a', yA, lh, 2, CW);
+  draw('b', yB, lh, 2, CW);
+  ctxText(ctx, CHALK, G.op === '+' ? '+' : '-', x0 - 13, yB + ((lh - 14) >> 1), CW, 2);
+  fill(x0 - 14, yL, G.n * dw + 12, 2, CW);
+  draw('ans', yS, lh, 2, () => (solved ? CY : D.bad ? '#ff9a8a' : CW));
+  if (G.op !== '+') for (let i = 0; i < G.n; i++) {   // växling: siffran man tar från stryks
+    const v = G.carry[i]; if (!v) continue;
+    const j = v.length >= 2 ? i - 1 : i;
+    if (j >= 0 && G.a[j]) { const x = x0 + j * dw; cLine(x + 1, yA + lh - 3, x + dw - 4, yA + 1, '#ff8a7a'); cLine(x + 2, yA + lh - 3, x + dw - 3, yA + 1, '#ff8a7a'); }
+  }
+  // till höger: uppgiften (svår nivå), vad man ska göra nu och svaret
+  const tx = right + 22, tw = b.x1 - 8 - tx; let ty2 = top + 2;
+  const line = (s, col, k = 1) => { if (textW(CHALK, s, k) > tw && k === 2) k = 1; if (textW(CHALK, s, k) <= tw) { ctxText(ctx, CHALK, s, tx, ty2, col, k); ty2 += 7 * k + 6; } else for (const r of wrapChalk(s, tw)) { ctxText(ctx, CHALK, r, tx, ty2, col); ty2 += 10; } };
+  const task = `${q.grid.a} ${G.op === '+' ? '+' : '-'} ${q.grid.b}`;
+  if (q.grid.setup) line(solved ? `${task} = ${q.ans}` : task, solved ? CY : CW, 2);
+  else if (solved) line(`${task} = ${q.ans}`, CY, 2);
+  if (!solved) {
+    if (G.phase === 'setup') { line('STÄLL UPP TALEN', CY); line('ENTALEN UNDER ENTALEN', CBL); }
+    else { if (G.star) line('RÄTT UPPSTÄLLT! +1 STJÄRNA', CG); line('RÄKNA: ENTALEN FÖRST', CBL); line(G.op === '+' ? 'MINNESSIFFRAN ÖVERST' : 'VÄXLA I ÖVERSTA RADEN', CBL); }
+  }
 }
 // radbryt kritan (stora typsnittet) på ord så att raden får plats i bredden w
 function wrapChalk(text, w) {
@@ -865,7 +981,7 @@ function lessonPanel() {
       <div class="sp-row">${TABS.map(([k, l]) => `<button type="button" class="btn btn-small${D.tab === k ? ' btn-gold' : ''}" data-tab="${k}">${l}</button>`).join('')}<span class="sp-topic">${esc(q.topic)}</span><span class="sp-spacer"></span><button type="button" class="btn btn-small btn-gold" data-sp="levels">🎯 Nivåer</button>${'speechSynthesis' in window ? '<button type="button" class="btn btn-small" data-sp="say">Läs upp</button>' : ''}<button type="button" class="btn btn-small" data-sp="stand">Res dig</button></div>
       ${D.tab === 'ganger' ? `<div class="sp-row sp-tab"><span class="sp-topic">Tabell ${D.tabell}:</span><button type="button" class="btn btn-small" data-mode="drill">⏱ Huvudräkning</button><button type="button" class="btn btn-small" data-mode="secret">🏴‍☠️ Hemligt meddelande</button></div>` : ''}
       ${mode ? keysHtml(mode) : `<div class="sp-row sp-answers">${q.opts.map((o, i) => `<button type="button" class="btn" data-ans="${i}">${esc(o.label)}${o.sub ? `<small>${esc(o.sub)}</small>` : ''}</button>`).join('')}</div>`}
-      <p class="sp-fb" aria-live="polite">${mode ? esc(q.rtl ? 'Skriv entalen först: siffrorna hamnar från höger, som när du räknar på papper. Tryck sedan på Klar.' : mode === 'time' ? 'Skriv klockslaget, till exempel 14:30, och tryck på Klar.' : mode === 'word' ? 'Skriv med bokstäverna och tryck på Klar.' : 'Skriv svaret med siffrorna och tryck på Klar.') : ''}</p>
+      <p class="sp-fb" aria-live="polite">${mode ? esc(D.g ? gridTip() : q.rtl ? 'Skriv entalen först: siffrorna hamnar från höger, som när du räknar på papper. Tryck sedan på Klar.' : mode === 'time' ? 'Skriv klockslaget, till exempel 14:30, och tryck på Klar.' : mode === 'word' ? 'Skriv med bokstäverna och tryck på Klar.' : 'Skriv svaret med siffrorna och tryck på Klar.') : ''}</p>
     </div>`;
   panel.hidden = false; measureVis(true);   // (ny fråga: tavlan anpassar sig efter rutans höjd)
 }
@@ -888,11 +1004,11 @@ function goSit() { if (P.scene !== 'klass' || P.seated || !ME) return; walkTo(SE
 function sitDown() { P.seated = true; P.path = []; D.rast = false; doorGlow = LESSONS > 0; LES = { results: [] }; fadeT = performance.now(); newQ(); measureVis(true); teacherSay(`HEJ {P}! VI BÖRJAR MED ${TABNAME[D.tab]}.`); renderBelow(); }
 function standUp() { if (!P.seated) return; MODE = 'lesson'; DRILL = null; SECRET = null; P.seated = false; P.x = SEAT.ax; P.y = SEAT.ay; P.dir = 'down'; panel.hidden = true; fadeT = performance.now(); renderBelow(); }
 function newQ() {
-  let q, n = 0;
+  let q, n = 0; D.g = null;
   const { lv } = levelOf(D.tab); if (D.tab === 'ganger') D.tabell = lv.t || 5;
-  const sig = (x) => (x.prompt || '') + JSON.stringify(x.board || '') + JSON.stringify(x.visual || {}) + x.ans;
+  const sig = (x) => (x.prompt || '') + JSON.stringify(x.board || '') + JSON.stringify(x.visual || {}) + JSON.stringify(x.grid || '') + x.ans;
   do { q = lv.gen(); n++; } while (sig(q) === D.last && n < 8);
-  D.last = sig(q); D.q = q; D.tried = false; D.solved = false; D.locked = false; D.typed = ''; D.bad = false;
+  D.last = sig(q); D.q = q; D.tried = false; D.solved = false; D.locked = false; D.typed = ''; D.bad = false; D.g = q.grid ? gridState(q) : null;
   if (P.seated) { if (MODE === 'lesson') lessonPanel(); else modePanel(); }
 }
 function answer(btn, val, ok = val === D.q.ans) {
@@ -923,6 +1039,7 @@ const ansText = (q) => (inputOf(q) === 'word' ? String(q.ans).toUpperCase() : St
 const KEYROWS = ['QWERTYUIOPÅ', 'ASDFGHJKLÖÄ', 'ZXCVBNM'];
 function keysHtml(mode) {
   const key = (c, cls = '') => `<button type="button" class="btn${cls}" data-key="${c}">${c === 'del' ? '⌫' : c === 'ok' ? '✓ Klar' : c}</button>`;
+  if (mode === 'grid') return `<div class="sp-kb"><div class="sp-keys">${[...'1234567890'].map((c) => key(c)).join('')}${key('del', ' sp-del')}</div><div class="sp-keys">${[['up', '↑'], ['down', '↓'], ['left', '←'], ['right', '→']].map(([c, l]) => `<button type="button" class="btn sp-arrow" data-key="${c}" aria-label="Flytta ${l}">${l}</button>`).join('')}${key('ok', ' btn-go sp-ok')}</div></div>`;
   if (mode === 'word') return `<div class="sp-kb">${KEYROWS.map((r, i) => `<div class="sp-keys">${[...r].map((c) => key(c)).join('')}${i === 2 ? key('del', ' sp-del') + key('ok', ' btn-go sp-ok') : ''}</div>`).join('')}</div>`;
   return `<div class="sp-kb"><div class="sp-keys">${[...'1234567890'].map((c) => key(c)).join('')}${mode === 'time' ? key(':') : ''}${key('del', ' sp-del')}${key('ok', ' btn-go sp-ok')}</div></div>`;
 }
@@ -934,6 +1051,7 @@ function parseTime(t) {
 function typeKey(k) {
   const q = D.q, mode = inputOf(q);
   if (!mode || D.locked || !P.seated || MODE !== 'lesson' || D.rast) return;
+  if (D.g) return gridKey(k);
   if (k === 'ok') return submitTyped();
   if (D.bad) { D.bad = false; D.typed = ''; }
   if (k === 'del') { D.typed = q.rtl ? D.typed.slice(1) : D.typed.slice(0, -1); return; }
@@ -952,21 +1070,23 @@ function submitTyped() {
 window.addEventListener('keydown', (e) => {
   if (MODE !== 'lesson' || !P.seated || modalUp() || SHOP || D.rast || !inputOf(D.q) || e.ctrlKey || e.metaKey || e.altKey) return;
   const k = e.key.length === 1 ? e.key.toUpperCase() : e.key;
-  if (k === 'Enter') typeKey('ok'); else if (k === 'Backspace') typeKey('del'); else if (/^[0-9:A-ZÅÄÖ]$/.test(k)) typeKey(k); else return;
+  const arrow = { ArrowUp: 'up', ArrowDown: 'down', ArrowLeft: 'left', ArrowRight: 'right' }[e.key];
+  if (k === 'Enter') typeKey('ok'); else if (k === 'Backspace') typeKey('del'); else if (arrow && D.g) typeKey(arrow); else if (/^[0-9:A-ZÅÄÖ]$/.test(k)) typeKey(k); else return;
   e.preventDefault();
 });
 const starIco = '<span class="sk-star" aria-label="stjärnor"></span>';
 function endLesson() {
   const firstTry = LES.results.filter((r) => r === 'star').length, earned = 1 + (firstTry >= 3 ? 1 : 0) + (firstTry === 5 ? 1 : 0);
-  const kr = earned * KR_PER_STJARNA;
   const { L, i: li, key } = levelOf(D.tab), bk = (D.best[key] ||= {}), better = earned > (bk[li] | 0);
+  const setupStars = LES.setup | 0, id = `${key}:${li}`, per = payFor(id), kr = (earned + setupStars) * per;   // (+ en stjärna per rätt uppställning)
+  played(id);
   bk[li] = Math.max(bk[li] | 0, earned);
-  STARS += earned; G.money += kr; LESSONS++; D.rast = true; doorGlow = true; save(); updatePill();
+  STARS += earned + setupStars; G.money += kr; LESSONS++; D.rast = true; doorGlow = true; save(); updatePill();
   loadShops().catch(() => {});
   panel.hidden = true;
   teacherSay(`RAST! DU FICK ${earned} ${earned > 1 ? 'STJÄRNOR' : 'STJÄRNA'}, {P}.`);
   setTimeout(() => kidSay(rnd(0, 2), pick(RAST_LINES)), 1200);
-  openModal('🔔 Rast!', `<div class="who"><div class="sk-face"></div><div><p class="sk-big">${firstTry} av 5 rätt på första försöket.</p><p>Du fick <b>${earned} ${starIco}</b> och varje stjärna blir ${KR_PER_STJARNA} kr: <b>${fmt(kr)}</b> i plånboken. Nu har du ${fmt(G.money)}.</p><p>Nivå ${li}, ${esc(L[li - 1].name)}: ${starsHtml(bk[li])}${better ? ' <b>Nytt rekord!</b>' : ''}</p><p class="sp">Galleria Stjärnan ligger bakom den blå dörren bredvid ${esc(TEACHER.name)}: kläder, skor, leksaker och möbler på tre våningar.</p></div></div>`, [
+  openModal('🔔 Rast!', `<div class="who"><div class="sk-face"></div><div><p class="sk-big">${firstTry} av 5 rätt på första försöket.</p><p>Du fick <b>${earned} ${starIco}</b>${setupStars ? ` och <b>${setupStars} ${starIco}</b> till för att du ställde upp rätt` : ''}. Varje stjärna blir ${per} kr: <b>${fmt(kr)}</b> i plånboken. Nu har du ${fmt(G.money)}.</p>${payNote(per)}<p>Nivå ${li}, ${esc(L[li - 1].name)}: ${starsHtml(bk[li])}${better ? ' <b>Nytt rekord!</b>' : ''}</p><p class="sp">Galleria Stjärnan ligger bakom den blå dörren bredvid ${esc(TEACHER.name)}: kläder, skor, leksaker och möbler på tre våningar.</p></div></div>`, [
     { label: 'En lektion till', onClick: () => { closeModal(); D.rast = false; LES = { results: [] }; newQ(); teacherSay('EN LEKTION TILL? VAD BRA, {P}!'); } },
     ...(li < L.length ? [{ label: `Nästa nivå: ${L[li].name}`, onClick: () => { closeModal(); D.rast = false; D.lvl[key] = li + 1; save(); LES = { results: [] }; newQ(); teacherSay(`NIVÅ ${li + 1}: ${L[li].name.toUpperCase()}!`); } }] : []),
     { label: 'Gå till gallerian', cls: 'btn-go', onClick: () => { closeModal(); standUp(); goGalleria(); } },
@@ -1403,6 +1523,7 @@ cv.addEventListener('click', (e) => {
   if (h.t === 'seat') goSit();
   else if (h.t === 'teacher') teacherSay(P.seated ? 'TITTA PÅ TAVLAN, {P}!' : D.rast ? 'DET ÄR RAST! GALLERIAN ÄR BAKOM DÖRREN.' : 'SÄTT DIG I DEN LEDIGA BÄNKEN SÅ BÖRJAR VI.');
   else if (h.t === 'kid') kidSay(h.i, pick(D.rast ? RAST_LINES : P.seated ? LESSON_LINES : FREE_LINES));
+  else if (h.t === 'board' && D.g && P.seated && gridTap(x, y)) { /* en ruta i uppställningen */ }
   else if (h.t === 'board') teacherSay(P.seated ? 'SVARA I RUTAN, {P}!' : 'UPPGIFTEN KOMMER NÄR DU SITTER.');
   else if (h.t === 'door') { if (P.seated) standUp(); goGalleria(); }
   else if (h.t === 'house' && LEFT && LEFT.id === h.h.id && performance.now() < LEFT.until) walkTo(h.h.door.x, GBASE + 34);   // nyss ute: några steg ut i gallerian
@@ -1486,7 +1607,7 @@ function renderBelow() {
   if (!ME) p = 'Börja med att göra din figur och din klass.';
   else if (SHOP && SHOP.id === 'bling') p = `Du är i DRÖMLAND. Smyckena ligger i glasmontrarna, väskorna på väggen. Vid borden designar du ett eget halsband eller en egen väska, i pärlbaren trär du ett halsband pärla för pärla och vid strykbordet sätter du strykmärken på väskan, tröjan eller byxorna och byter färg på dem. Längst bort finns mössorna och mobilskalen du designar själv. I spegeln byter du det du har. Du har ${fmt(G.money)}.`;
   else if (SHOP) p = `Du är i ${SHOPLABEL[SHOP.id].charAt(0) + SHOPLABEL[SHOP.id].slice(1).toLowerCase()}, Snabbfilens egen butik. Klicka på det du vill titta på. Dörren tar dig ut i gallerian igen. Du har ${fmt(G.money)}.`;
-  else if (P.scene === 'klass') { p = P.seated ? 'Du sitter i bänken och ser tavlan på nära håll. Skriv svaret med knapparna i rutan – det hamnar på tavlan – och tryck på den gröna Klar. Efter fem uppgifter blir det rast.' : `Klicka på den lediga bänken för att börja. Efter fem uppgifter blir det rast, och varje stjärna blir ${KR_PER_STJARNA} kr. Den blå dörren leder till Galleria Stjärnan.`; if (!P.seated) b += btn('sit', '🪑 Sätt dig', 'btn-go'); b += btn('shop', '🏬 Gallerian') + btn('class', '🧑 Figur och klass'); }
+  else if (P.scene === 'klass') { p = P.seated ? 'Du sitter i bänken och ser tavlan på nära håll. Skriv svaret med knapparna i rutan – det hamnar på tavlan – och tryck på den gröna Klar. Efter fem uppgifter blir det rast.' : `Klicka på den lediga bänken för att börja. Efter fem uppgifter blir det rast, och varje stjärna blir upp till ${KR_PER_STJARNA} kr – en nivå du gjort många gånger ger mindre, så prova gärna en svårare. Den blå dörren leder till Galleria Stjärnan.`; if (!P.seated) b += btn('sit', '🪑 Sätt dig', 'btn-go'); b += btn('shop', '🏬 Gallerian') + btn('class', '🧑 Figur och klass'); }
   else if (P.scene === 'galleria') { p = FLOOR === 0 ? 'Entréplanet. Åk rulltrappan eller hissen upp: plan 1 har klädaffären, skobutiken och DRÖMLAND, plan 2 Leksakslådan och Möbeljätten. Dörrarna leder till skolan och hem.' : `Plan ${FLOOR}. Klicka på en butik för att gå in. Rulltrapporna och hissen tar dig mellan våningarna.`; b += btn('toclass', '🏫 Skolan') + btn('home', '🏠 Hem'); }
   else { p = 'Klicka på klädskåpet för att byta kläder. Möblerna från Möbeljätten står i förrådet: välj en och klicka på golvet (tavlor och lampor på väggen).'; b += btn('shop', '🏬 Gallerian') + btn('toclass', '🏫 Skolan'); }
   if (ME) b += btn('mute', isMuted() ? '🔇' : '🔊', '', isMuted() ? 'Ljudet är av' : 'Ljudet är på') + btn('reset', '↺', '', 'Börja om från början');
@@ -1538,8 +1659,8 @@ const levelOf = (tab) => { const L = LEVELS[D.grade][tab], key = LVKEY(tab), i =
 const starsHtml = (n) => `<span class="lv-stars" aria-label="${n} av 3 stjärnor">${[0, 1, 2].map((k) => `<i class="${k < n ? 'on' : ''}"></i>`).join('')}</span>`;
 function levelsDialog() {
   const tab = D.tab, { L, i: cur, key } = levelOf(tab), best = D.best[key] || {};
-  const dlg = openModal(`🎯 Nivåer · ${TABS.find((x) => x[0] === tab)[1]} · åk ${D.grade}`, `<p class="sp">Välj vilken nivå du vill träna. Stjärnorna är det bästa du har fått på nivån (tre stjärnor = fem rätt på första försöket).</p>
-    <div class="sk-levels">${L.map((lv, k) => `<button type="button" class="btn sk-lv${k + 1 === cur ? ' on' : ''}" data-lv="${k + 1}"><b>${k + 1}</b><span>${esc(lv.name)}</span>${starsHtml(best[k + 1] | 0)}</button>`).join('')}</div>`, [{ label: 'Stäng', onClick: closeModal }]);
+  const dlg = openModal(`🎯 Nivåer · ${TABS.find((x) => x[0] === tab)[1]} · åk ${D.grade}`, `<p class="sp">Välj vilken nivå du vill träna. Stjärnorna är det bästa du har fått på nivån (tre stjärnor = fem rätt på första försöket). Kronorna visar vad en stjärna ger just nu – nivåer du gjort många gånger ger mindre.</p>
+    <div class="sk-levels">${L.map((lv, k) => { const per = payFor(`${key}:${k + 1}`); return `<button type="button" class="btn sk-lv${k + 1 === cur ? ' on' : ''}" data-lv="${k + 1}"><b>${k + 1}</b><span>${esc(lv.name)}</span>${starsHtml(best[k + 1] | 0)}<small class="sk-pay${per < KR_PER_STJARNA ? ' low' : ''}">${per} kr/⭐</small></button>`; }).join('')}</div>`, [{ label: 'Stäng', onClick: closeModal }]);
   dlg.querySelectorAll('[data-lv]').forEach((bt) => (bt.onclick = () => {
     D.lvl[key] = +bt.dataset.lv; save(); closeModal();
     if (P.seated && MODE === 'lesson') { LES = { results: [] }; newQ(); teacherSay(`NIVÅ ${D.lvl[key]}: ${levelOf(tab).lv.name.toUpperCase()}!`); }
@@ -1588,7 +1709,7 @@ function finishDrill() {
   const earned = 1 + (R.ok >= 23 ? 1 : 0) + (better && isFinite(best) ? 1 : 0);
   DRILL = null; MODE = 'lesson';
   const rows = hist.map((h, i) => `<tr><td>${'ABCDEF'[i]}</td><td>${esc(h.d)}</td><td>${h.ok === 25 ? 'Alla' : h.ok}</td><td>${fmtTime(h.ms)}</td></tr>`).join('');
-  giveReward(earned, `${R.ok} av 25 rätt på ${fmtTime(ms)}.`, `${better && isFinite(best) ? `<p><b>Nytt rekord!</b> Förra bästa tiden var ${fmtTime(best)}.</p>` : ''}<table class="sk-hist"><tr><th></th><th>Datum</th><th>Antal rätt</th><th>Tid</th></tr>${rows}</table>`, 'HUVUDRÄKNING KLAR');
+  giveReward(earned, `${R.ok} av 25 rätt på ${fmtTime(ms)}.`, `${better && isFinite(best) ? `<p><b>Nytt rekord!</b> Förra bästa tiden var ${fmtTime(best)}.</p>` : ''}<table class="sk-hist"><tr><th></th><th>Datum</th><th>Antal rätt</th><th>Tid</th></tr>${rows}</table>`, 'HUVUDRÄKNING KLAR', null, `drill:${D.tabell}`);
 }
 
 // ---------- kapten Rödskäggs hemliga meddelande ----------
@@ -1615,7 +1736,7 @@ function secretAnswer(btn, v) {
 function finishSecret() {
   const S = SECRET; MODE = 'lesson';
   speak(S.msg.toLowerCase());
-  giveReward(2, `Meddelandet: <b>${esc(S.msg)}!</b>`, '<p class="sp">Kapten Rödskägg tackar för hjälpen.</p>', 'MEDDELANDET KNÄCKT', () => { SECRET = null; });
+  giveReward(2, `Meddelandet: <b>${esc(S.msg)}!</b>`, '<p class="sp">Kapten Rödskägg tackar för hjälpen.</p>', 'MEDDELANDET KNÄCKT', () => { SECRET = null; }, `secret:${D.tabell}`);
 }
 
 // ---------- rutan i bilden för huvudräkningen och meddelandet ----------
@@ -1675,12 +1796,13 @@ function chalkMode(b, ch) {
   }
   return false;
 }
-function giveReward(earned, lead, more, boardWord, after) {
-  const kr = earned * KR_PER_STJARNA;
+function giveReward(earned, lead, more, boardWord, after, id = null) {
+  const per = id ? payFor(id) : KR_PER_STJARNA, kr = earned * per;
+  if (id) played(id);
   STARS += earned; G.money += kr; LESSONS++; D.rast = true; doorGlow = true; save(); updatePill(); loadShops().catch(() => {});
   panel.hidden = true;
   teacherSay(`${boardWord}! DU FICK ${earned} ${earned > 1 ? 'STJÄRNOR' : 'STJÄRNA'}, {P}.`);
-  openModal('🔔 Rast!', `<div class="who"><div class="sk-face"></div><div><p class="sk-big">${lead}</p>${more}<p>Du fick <b>${earned} ${starIco}</b> = <b>${fmt(kr)}</b> i plånboken. Nu har du ${fmt(G.money)}.</p></div></div>`, [
+  openModal('🔔 Rast!', `<div class="who"><div class="sk-face"></div><div><p class="sk-big">${lead}</p>${more}<p>Du fick <b>${earned} ${starIco}</b> = <b>${fmt(kr)}</b> i plånboken. Nu har du ${fmt(G.money)}.</p>${payNote(per)}</div></div>`, [
     { label: 'Fortsätt öva', onClick: () => { closeModal(); after?.(); D.rast = false; LES = { results: [] }; newQ(); } },
     { label: 'Gå till gallerian', cls: 'btn-go', onClick: () => { closeModal(); after?.(); standUp(); goGalleria(); } },
   ]);
@@ -1713,5 +1835,5 @@ requestAnimationFrame(loop);
 window.__ps = {
   state: () => ({ scene: P.scene, seated: P.seated, x: P.x, y: P.y, stars: STARS, money: G.money, wardrobe: G.wardrobe.length, toys: Object.keys(G.toys || {}).length, storage: G.storage.length, placed: PLACED, floor: FLOOR, shop: SHOP && SHOP.id, ride: RIDE && (RIDE.kind + ':' + (RIDE.st || RIDE.d)), me: ME && ME.name, kid: ME && ME.look.kid, ans: D.q && D.q.opts ? D.q.opts.findIndex((o) => o.value === D.q.ans) : -1, input: inputOf(D.q), typed: D.typed, want: D.q && inputOf(D.q) ? ansText(D.q) : null, grade: D.grade, klass: KLASS, lesson: LES.results.length, panel: !panel.hidden, modal: modalUp(), bubbles: BUBS.map((b) => b.str), cam: camX, npcs: P.scene === 'galleria' && SHOPLIB ? crowdFor(FL()).map((n) => [Math.round(n.x), Math.round(n.y), n.mode]) : [] }),
   give: (n) => { G.money += n; G.save(); updatePill(); }, goScene, walkTo, enterShop, rideUp, rideDown, liftTo: (n) => { P.x = LIFT_X + 13; P.y = GBASE + 9; RIDE = { kind: 'lift', st: 'open', t: 0, to: n }; },
-  lib: () => !!SHOPLIB, hit, G, cam: (x) => { CAM_OVR = x; }, floor: (n) => { switchFloor(n); P.x = LIFT_X + 13; P.y = GBASE + 12; }, floorW: () => FL().w, lvl: (tab, i) => { D.tab = tab; D.lvl[LVKEY(tab)] = i; LES = { results: [] }; newQ(); }, levels: () => Object.fromEntries(Object.entries(LEVELS[D.grade]).map(([k, L]) => [k, L.length])), grade: (g) => setGrade(g), type: (k) => typeKey(k), q: () => D.q,
+  lib: () => !!SHOPLIB, hit, G, cam: (x) => { CAM_OVR = x; }, floor: (n) => { switchFloor(n); P.x = LIFT_X + 13; P.y = GBASE + 12; }, floorW: () => FL().w, lvl: (tab, i) => { D.tab = tab; D.lvl[LVKEY(tab)] = i; LES = { results: [] }; newQ(); }, levels: () => Object.fromEntries(Object.entries(LEVELS[D.grade]).map(([k, L]) => [k, L.length])), grade: (g) => setGrade(g), type: (k) => typeKey(k), q: () => D.q, g: () => D.g && { ...D.g, rects: D.g.rects.slice() }, les: () => ({ ...LES }), plays: () => D.plays, pay: (id) => payFor(id),
 };

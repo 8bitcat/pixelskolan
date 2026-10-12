@@ -95,6 +95,9 @@
 .sf .sp-keys .sp-del { flex: 1.4 1 0; }
 .sf .sp-keys .sp-ok { flex: 2.6 1 0; }
 /* årskursen och din figur */
+.sf .sp-keys .sp-arrow { flex: 1 1 0; }
+.sf .sk-pay { font-size: var(--f1); line-height: 1; background: #f0d048; border: 2px solid var(--ink); padding: 1px 4px 0; }
+.sf .sk-pay.low { background: #f4d8c8; color: var(--muted); }
 .sf .sk-grade { display: flex; flex-wrap: wrap; gap: 12px; margin: 8px 0 4px; }
 .sf .sk-gr { display: flex; flex-direction: column; align-items: center; gap: 6px; min-width: 150px; padding: 14px 22px; }
 .sf .sk-gr b { font: var(--f4) var(--head); color: var(--red); line-height: 1; }

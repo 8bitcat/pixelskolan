@@ -5,7 +5,7 @@
 // svenska med stavning, ordklasser, böjningar och läsförståelse; engelska; NO och SO.
 // Samma format som uppgifter.js. Svar med tal skrivs med siffror på tavlan (input 'num'), klockslag med
 // 'time' och vissa ord med 'word'.
-import { rnd, pick, shuffle, textOpts, quiz, cap, pad, ctx, phrase, klocka, former, diagram, dubbel, sjtj, slut, storBokstav, ordklass, sammansatt, las, engelska, diktamen, EN, TRAFIK, ARSTID, MATRATT } from './uppgifter.js';
+import { rnd, pick, shuffle, textOpts, quiz, cap, pad, ctx, phrase, klocka, former, diagram, dubbel, sjtj, slut, storBokstav, ordklass, sammansatt, las, engelska, diktamen, EN, TRAFIK, ARSTID, MATRATT, gridAdd, gridSub } from './uppgifter.js';
 
 const N = (q) => ({ input: 'num', ...q });
 const names = () => { const c = ctx(); return shuffle(c.kids.map((k) => String(k).trim().split(/\s+/)[0].toUpperCase()).filter(Boolean)); };
@@ -65,15 +65,7 @@ function hela() {
   const ans = op === '+' ? a + b : a - b;
   return N({ topic: 'HELA TIOTAL OCH HUNDRATAL', prompt: `${a} ${op} ${b} = ?`, say: `${a} ${op === '+' ? 'plus' : 'minus'} ${b}`, ans, hint: a % 100 === 0 && b % 100 === 0 ? `Räkna hundratal: ${a / 100} ${op} ${b / 100} hundratal.` : `Räkna med tiotal: ${a / 10} ${op} ${b / 10} tiotal.`, done: `${a} ${op} ${b} = ${ans}.` });
 }
-// uppställning: talen under varandra, svaret skrivs från entalen (höger) och åt vänster
-function uppAdd() {
-  let a, b; do { a = rnd(105, 789); b = rnd(105, 889); } while (a + b > 999 || ((a % 10) + (b % 10) < 10 && (Math.floor(a / 10) % 10) + (Math.floor(b / 10) % 10) < 10));
-  return N({ topic: 'UPPSTÄLLNING: ADDITION', visual: { column: [a, b, '+'] }, rtl: true, say: `${a} plus ${b}. Räkna med uppställning.`, ans: a + b, hint: 'Börja med entalen längst till höger. Blir det tio eller mer skriver du entalssiffran och lägger en minnessiffra på tiotalen.', done: `${a} + ${b} = ${a + b}.` });
-}
-function uppSub() {
-  let a, b; do { a = rnd(300, 999); b = rnd(101, a - 40); } while (!((a % 10) < (b % 10) || (Math.floor(a / 10) % 10) < (Math.floor(b / 10) % 10)));
-  return N({ topic: 'UPPSTÄLLNING: SUBTRAKTION', visual: { column: [a, b, '−'] }, rtl: true, say: `${a} minus ${b}. Räkna med uppställning.`, ans: a - b, hint: 'Börja med entalen. Räcker det inte växlar du: ta ett tiotal från grannen och gör det till tio ental.', done: `${a} − ${b} = ${a - b}.` });
-}
+// uppställning: rutnätet med minnes- och växlingssiffror (gridAdd/gridSub i uppgifter.js)
 function likhet() {
   const r = rnd(0, 4);
   if (r === 0) { const a = rnd(5, 45), x = rnd(3, 35); return N({ topic: 'LIKHETSTECKNET', prompt: `${a} + ? = ${a + x}`, say: `${a} plus hur mycket blir ${a + x}?`, ans: x, hint: `Räkna från ${a} upp till ${a + x}.`, done: `${a} + ${x} = ${a + x}.` }); }
@@ -323,10 +315,11 @@ const SAMHALLE = [['Vilka stiftar lagarna i Sverige?', 'Riksdagen', 'Polisen', '
 export const LEVELS3 = {
   matte: [
     { name: 'Talen till 1000', gen: tal1000 }, { name: 'Talraden till 1000', gen: talraden }, { name: 'Talföljder och mönster', gen: monster }, { name: 'Huvudräkning: plus till 100', gen: plus100 },
-    { name: 'Huvudräkning: minus till 100', gen: minus100 }, { name: 'Hela tiotal och hundratal', gen: hela }, { name: 'Uppställning: addition', gen: uppAdd }, { name: 'Uppställning: subtraktion', gen: uppSub },
+    { name: 'Huvudräkning: minus till 100', gen: minus100 }, { name: 'Hela tiotal och hundratal', gen: hela }, { name: 'Uppställning: addition', gen: () => gridAdd() }, { name: 'Uppställning: subtraktion', gen: () => gridSub() },
     { name: 'Likhetstecknet', gen: likhet }, { name: 'Tabellerna 1–10', gen: tab10 }, { name: 'Division', gen: division }, { name: 'Dubbelt och hälften', gen: dubbelt3 },
     { name: 'Bråk: del av antal', gen: brakAntal }, { name: 'Pengar', gen: pengar3 }, { name: 'Mäta: enheter', gen: enheter }, { name: 'Stapeldiagram', gen: diagram3 },
     { name: 'Former och kroppar', gen: former3 }, { name: 'Problemlösning', gen: problem }, { name: 'Avrundning och överslag', gen: avrunda }, { name: 'Chans och slump', gen: quiz('CHANS OCH SLUMP', CHANS) },
+    { name: 'Ställ upp själv: addition', gen: () => gridAdd(true) }, { name: 'Ställ upp själv: subtraktion', gen: () => gridSub(true) },
   ],
   klocka: [
     { name: 'Fem minuter i taget', gen: () => klocka(3) }, { name: 'Skriv tiden med siffror', gen: klockaMin }, { name: '24-timmarsklockan', gen: digital24 },
