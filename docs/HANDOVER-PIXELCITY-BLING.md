@@ -150,3 +150,15 @@ Det är byggt och live i Pixelskolan (commit `bf108a1`). Om Carl vill ha samma s
 **Gör Snabbfilen tilläggen i `people.js` och `avatar.js`** skrivs Pixelskolans kopior över utan problem nästa gång `sf/` kopieras om. Annars måste Pixelskolan föra in dem igen för hand. Det står i Pixelskolans README.
 
 **Att tänka på:** "Dream Land" är också namnet på en riktig butik (drm-lnd.com, varumärket DRMZ). I App Store kan ett lånat butiksnamn ge problem med riktlinje 5.2, samma risk som med KBK-filmen. Fråga Carl innan namnet används i Pixelcity-appen. Ett alternativ är *DRÖMLAND*.
+
+## Tillägg 2026-10-12, del 2: mobilskal, mössor och färg (commit `d5a8300`)
+
+Carl bad i Pixelskolan om *"designa mobilskal, mössor olika sorter och att man kan byta färg på byxorna och tröjorna"*. Det är byggt och live där:
+
+- **Mössor:** nio nya mössor ligger sist i `HAT_REG` i `js/core/people/acc.js`: `catBeanie`, `bearBeanie`, `frogBeanie`, `doublePom`, `docker`, `chullo`, `dinoBeanie`, `uniBeanie` och `cableBeanie`. Katalogposterna `hat-*beanie` med flera ligger sist bland hattarna i `js/data/wardrobe-acc.js`.
+  - De använder bara `look.cap` och fasta färger, alltså inte `accent`, som hör till tröjan.
+  - Det här är Snabbfilens egna filer, så posterna kan kopieras rakt in i Pixelcity. Accessoarbutiken visar då mössorna automatiskt, eftersom den ställer fram hela katalogen.
+- **Mobilskal:** `drawPhone`, `CHARMS`/`charmImg`, `CASES` och `STRAPS` ligger i `dream.js`. Dialogen är `phoneDesigner`/`buyPhone` i `bling.js`.
+  - Figuren får `look.mobil = [skal, berlock, berlock, mobilband]`. `decorate` i `people.js` ritar mobilen i handen när figuren står still framifrån, och `cleanMobil` i `avatar.js` sparar fältet.
+- **Färg:** strykbordets dialog har färgval för tröjan (`shirt`), byxorna (`pants`, eller `shirt` för klänning) och väskan (`bagColor`). Det är gratis. Figurskaparen har samma val, men där är de lätta att missa.
+- **Butiken** i Pixelskolan är nu 576 px bred med en kamera som följer figuren (`RW`, `camX` i `bling.js`).
