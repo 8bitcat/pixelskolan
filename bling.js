@@ -1,4 +1,4 @@
-// DREAM LAND (hette BLING BLING) – smycken och väskor i Galleria Stjärnan (Pixelskolan, Carl 2026-10-11: "en butik med smycken
+// DRÖMLAND (hette BLING BLING, sedan DREAM LAND) – smycken och väskor i Galleria Stjärnan (Pixelskolan, Carl 2026-10-11: "en butik med smycken
 // där man kan designa sitt eget halsband och sin egen väska … massa smycken i glaslådor och på andra sidan
 // massa väskor … de olika delarna kostar olika mycket").
 // En egen butiksscen med samma gränssnitt som Snabbfilens butiker (enter/exit/update/draw/down/move/up),
@@ -8,7 +8,7 @@
 //   fram:    ateljén – DESIGNA HALSBAND (kedja, hänge, sten, pärlor) och DESIGNA VÄSKA (modell, färg, mönster,
 //            berlock); varje del har sitt pris och det färdiga sätts på figuren (närmaste modell i spelet + färgen)
 //   spegeln: smyckeskrinet – allt man äger och sina egna designer, ta på och av
-// DREAM LAND (Carl 2026-10-12: "döp om den till dream land … designa halsbandet pärla för pärla och sätta på iron on
+// DRÖMLAND (Carl 2026-10-12: "döp om den till dream land … designa halsbandet pärla för pärla och sätta på iron on
 // patches på väskan, eller sina vanliga kläder … ta inte bort det gamla"): pärlbaren på mattan (halsband pärla för
 // pärla) och strykbordet (strykmärken som man själv drar dit, på väskan, tröjan eller byxorna). Märkena och pärlorna
 // syns på figuren – people.js ritar look.patches/look.beads. Bilderna och sortimentet: dream.js.
@@ -265,14 +265,14 @@ function paintBG() {
   P.rect(DOOR.x0 - 3, 44, DOOR.x1 - DOOR.x0 + 6, WALL - 44, GOLD); P.rect(DOOR.x0 - 2, 45, DOOR.x1 - DOOR.x0 + 4, 1, GOLDL);
   for (let y = 47; y < WALL - 1; y++) for (let x = DOOR.x0; x < DOOR.x1; x++) { let c = mix(0xbfe6f6, 0xe8f6fc, (y - 47) / 41); if (x === (DOOR.x0 + DOOR.x1) >> 1) c = GOLDD; if ((x - y + 400) % 11 < 2) c = mix(c, 0xffffff, 0.6); P.px(x, y, c); }
   P.rect(190, 60, 1, 10, GOLDD); P.rect(193, 60, 1, 10, GOLDD);
-  P.rect(183, 35, 18, 8, 0x2a8a4a); P.box(183, 35, 18, 8, 0x1a5a2a); pixText(P, SMALL, 'UT', 188, 36, 0xffffff);
-  // skylten DREAM LAND (vit text med rosa skugga på lila till rosa)
-  const nm = 'DREAM LAND', tw = textW(BIG, nm, 2), nx = 192 - (tw >> 1);
-  for (let y = 11; y < 33; y++) for (let x = nx - 8; x < nx + tw + 8; x++) P.px(x, y, mix(0xc8a8f0, 0xf3a6d0, (y - 11) / 22 + (bayer(x, y) - 0.5) * 0.08));   // lila till rosa
-  P.box(nx - 8, 11, tw + 16, 22, 0xffffff); P.box(nx - 7, 12, tw + 14, 20, GOLD);
-  pixText(P, BIG, nm, nx, 17, 0xc83a7a, 1, 2); pixText(P, BIG, nm, nx, 15, 0xffffff, 1, 2);
-  for (let x = nx; x < nx + tw; x++) for (let y = 25; y < 29; y++) if (P.get(x, y) === 0xffffff) P.px(x, y, 0xffe0f0);
-  for (const [sx, sy] of [[nx - 4, 15], [nx + tw + 3, 15], [nx - 4, 28], [nx + tw + 3, 28]]) stamp(P, ['.#.', '###', '.#.'], sx - 1, sy - 1, 0xffffff);
+  P.rect(183, 36, 18, 8, 0x2a8a4a); P.box(183, 36, 18, 8, 0x1a5a2a); pixText(P, SMALL, 'UT', 188, 37, 0xffffff);
+  // skylten DRÖMLAND (vit text med rosa skugga på lila till rosa; plats ovanför för Ö-prickarna)
+  const nm = 'DRÖMLAND', tw = textW(BIG, nm, 2), nx = 192 - (tw >> 1);
+  for (let y = 8; y < 35; y++) for (let x = nx - 10; x < nx + tw + 10; x++) P.px(x, y, mix(0xc8a8f0, 0xf3a6d0, (y - 8) / 27 + (bayer(x, y) - 0.5) * 0.08));   // lila till rosa
+  P.box(nx - 10, 8, tw + 20, 27, 0xffffff); P.box(nx - 9, 9, tw + 18, 25, GOLD);
+  pixText(P, BIG, nm, nx, 18, 0xc83a7a, 1, 2); pixText(P, BIG, nm, nx, 16, 0xffffff, 1, 2);
+  for (let x = nx; x < nx + tw; x++) for (let y = 26; y < 30; y++) if (P.get(x, y) === 0xffffff) P.px(x, y, 0xffe0f0);
+  for (const [sx, sy] of [[nx - 5, 14], [nx + tw + 4, 14], [nx - 5, 29], [nx + tw + 4, 29]]) stamp(P, ['.#.', '###', '.#.'], sx - 1, sy - 1, 0xffffff);
   // vänstra väggen: SMYCKEN och byster med halsband på en hylla
   const plate = (x, s) => { const w = textW(SMALL, s) + 10; P.rect(x, 14, w, 11, GOLD); P.box(x, 14, w, 11, GOLDD); P.hl(x + 1, 15, w - 2, GOLDL); pixText(P, SMALL, s, x + 5, 17, 0x5a3a10); return w; };
   plate(54, 'SMYCKEN'); plate(288, 'VÄSKOR'); plate(416, 'MÖSSOR'); plate(505, 'MOBILSKAL');
@@ -467,7 +467,7 @@ export function makeShopBling(A, opts = {}) {
     mobilvagg: { r: [484, 22, 574, 74], go: [528, 100], label: 'MOBILSKAL', act: () => phoneDesigner() },
     mobil: { r: [468, 182, 542, 214], go: [505, 176], face: 'down', label: 'DESIGNA MOBILSKAL', act: () => phoneDesigner() },
     spegel: { r: [142, 32, 170, 90], go: [156, 98], label: 'SPEGELN', act: () => mirror() },
-    kassa: { r: [222, 88, 286, 114], go: [254, 118], label: 'KASSAN', act: () => say(pickOf(['VÄLKOMMEN TILL DREAM LAND!', 'DESIGNA ETT EGET HALSBAND VID BORDET!', 'TRÄ ETT HALSBAND PÄRLA FÖR PÄRLA I PÄRLBAREN!', 'STRYK MÄRKEN PÅ VÄSKAN ELLER TRÖJAN VID STRYKBORDET!', 'DESIGNA ETT EGET MOBILSKAL LÄNGST BORT!', 'NYA MÖSSOR: KATT, GRODA, DINO OCH ENHÖRNING!', 'VID STRYKBORDET BYTER DU FÄRG PÅ KLÄDERNA.', 'VI HAR FÅTT NYA VÄSKOR PÅ VÄGGEN!', 'SPEGELN VISAR ALLT DU ÄGER.']), keeper.x, keeper.y - 40) },
+    kassa: { r: [222, 88, 286, 114], go: [254, 118], label: 'KASSAN', act: () => say(pickOf(['VÄLKOMMEN TILL DRÖMLAND!', 'DESIGNA ETT EGET HALSBAND VID BORDET!', 'TRÄ ETT HALSBAND PÄRLA FÖR PÄRLA I PÄRLBAREN!', 'STRYK MÄRKEN PÅ VÄSKAN ELLER TRÖJAN VID STRYKBORDET!', 'DESIGNA ETT EGET MOBILSKAL LÄNGST BORT!', 'NYA MÖSSOR: KATT, GRODA, DINO OCH ENHÖRNING!', 'VID STRYKBORDET BYTER DU FÄRG PÅ KLÄDERNA.', 'VI HAR FÅTT NYA VÄSKOR PÅ VÄGGEN!', 'SPEGELN VISAR ALLT DU ÄGER.']), keeper.x, keeper.y - 40) },
   };
   const blocked = (x, y) => y < WALL + 6 || y > H - 3 || x < 4 || x > RW - 4 || F.some((f) => x >= f.rect[0] - 3 && x <= f.rect[2] + 3 && y >= f.rect[1] - 2 && y <= f.rect[3] + 2);
   // A* på 4 px-rutnät (som i gallerian)
@@ -562,7 +562,7 @@ export function makeShopBling(A, opts = {}) {
       const it = items[+b.dataset.i];
       b.querySelector('.bl-pre').append(preview(lookForItem(it, A.avatar.look, { colors: !wearing(it) }), it.slot === 'bag' ? 'bag' : 'neck'));
       const it2 = it.slot === 'neck' ? { ...it, look: { ...it.look, beads: null } } : it;   // (egna pärlor gäller bara pärlhalsbandet från pärlbaren)
-      b.onclick = () => { play('click'); openBuy(A, it2, { where: `DREAM LAND · ${D.title.replace(/^\S+\s/, '')}`, back: () => catalog(cat), onBought: () => say(pickOf(['SNYGGT! DET PASSAR DIG.', 'VILKET FYND!', 'DU BLEV JÄTTEFIN!']), keeper.x, keeper.y - 40) }); };
+      b.onclick = () => { play('click'); openBuy(A, it2, { where: `DRÖMLAND · ${D.title.replace(/^\S+\s/, '')}`, back: () => catalog(cat), onBought: () => say(pickOf(['SNYGGT! DET PASSAR DIG.', 'VILKET FYND!', 'DU BLEV JÄTTEFIN!']), keeper.x, keeper.y - 40) }); };
     });
   }
   // ---------- ateljén ----------
@@ -885,7 +885,7 @@ export function makeShopBling(A, opts = {}) {
 
   const spotAt = (x, y) => Object.entries(SP).find(([, s]) => x >= s.r[0] && x <= s.r[2] && y >= s.r[1] && y <= s.r[3]);
   return {
-    enter() { me.x = 192; me.y = 100; me.dir = 'down'; me.path = []; camX = 0; say('VÄLKOMMEN TILL DREAM LAND!', keeper.x, keeper.y - 40); },
+    enter() { me.x = 192; me.y = 100; me.dir = 'down'; me.path = []; camX = 0; say('VÄLKOMMEN TILL DRÖMLAND!', keeper.x, keeper.y - 40); },
     exit() { cancelAnimationFrame(anim); cancelAnimationFrame(banim); cancelAnimationFrame(panim); cancelAnimationFrame(manim); },
     update(dt) {
       t += dt;

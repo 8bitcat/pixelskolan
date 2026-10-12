@@ -1,4 +1,4 @@
-// DREAM LAND – strykmärkena och pärlorna (Pixelskolan, Carl 2026-10-12: "att man själv får sätta märken som butiken
+// DRÖMLAND – strykmärkena och pärlorna (Pixelskolan, butiken hette först DREAM LAND; Carl 2026-10-12: "att man själv får sätta märken som butiken
 // Dream Land … designa halsbandet pärla för pärla och sätta på iron on patches på väskan, eller sina vanliga kläder").
 // Här finns bilderna och sortimentet: märkena (broderade, med kantsöm som riktiga strykmärken), pärlorna, plaggen man
 // stryker märken på och pärlhalsbandet på bysten. Dialogerna ligger i butiken (bling.js); figuren ritar märkena och

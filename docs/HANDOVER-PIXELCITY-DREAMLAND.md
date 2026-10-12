@@ -18,7 +18,7 @@ Han har sedan bett om en överlämning till Pixelcity.
 
 ## Fråga Carl innan du börjar
 
-1. **Namnet.** I Pixelskolan heter butiken nu DREAM LAND. Det är också namnet på en riktig butik (drm-lnd.com, varumärket DRMZ), och i App Store kan det ge problem med riktlinje 5.2. Det är samma risk som med KBK-filmens varumärken.
+1. **Namnet.** *(Uppdatering 2026-10-12: Carl döpte om Pixelskolans butik till **DRÖMLAND** – riktiga butiksnamn ska inte in i apparna.)* Butiken hette en stund DREAM LAND. Det är också namnet på en riktig butik (drm-lnd.com, varumärket DRMZ), och i App Store kan det ge problem med riktlinje 5.2. Det är samma risk som med KBK-filmens varumärken.
    - Förslag: behåll BLING BLING i Pixelcity, eller välj *DRÖMLAND*.
    - Lägg bara in de nya delarna och byt inte namn utan klartecken.
 2. **Priserna.** Förra gången dubblade Carl Pixelskolans priser. Förslag: gör likadant med pärlor, strykmärken, berlocker, skal och band, alltså ×2 mot tabellerna här nedan. Mössorna är vanliga katalogvaror (140–220 kr, samma nivå som spelets andra mössor) och kan stå kvar.
