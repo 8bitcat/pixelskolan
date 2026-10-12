@@ -2,6 +2,8 @@
 
 **Från:** Pixelskolan-sessionen, 2026-10-11 · **Till:** sessionen som jobbar med Snabbfilen/Pixelcity (`D:\GamesProjects\snabbfilen`)
 
+> **2026-10-12:** det som är nytt sedan BLING BLING kom till Pixelcity (pärla för pärla, strykmärken och färg, mobilskal, nya mössor, figurens nya fält) står samlat i **`HANDOVER-PIXELCITY-DREAMLAND.md`**. Den ersätter tilläggen längst ner i den här filen.
+
 ## Vad Carl vill
 
 Carl beställde BLING BLING i Pixelskolan: *"en butik med smycken där man kan designa sitt eget halsband och sin egen väska … massa smycken i glaslådor … massa väskor … de olika delarna kostar olika mycket."*
