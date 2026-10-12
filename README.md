@@ -14,10 +14,12 @@ Spela: **https://8bitcat.github.io/pixelskolan** (dator, iPad och iPhone)
 
 Filer:
 
-- `index.html` – spelet · `plan.html` – planen för hur skolan byggs in i Snabbfilen
+- `index.html` – spelet · `plan.html` – planen för hur skolan byggs in i Snabbfilen · `version.js`/`version.json` – versionen · `uppdatera.js` – appen uppdaterar sig själv
 - `skola.js` – skolan och gallerian · `uppgifter.js` – nivåerna för årskurs 2 · `uppgifter3.js` – nivåerna för årskurs 3
 - `utsikt.js` – utsikten genom glasväggen · `smabutiker.js` – småbutikerna i gallerian · `bling.js` – DREAM LAND inifrån (montrarna, väskväggen, ateljén, pärlbaren, strykbordet) · `dream.js` – strykmärkena, pärlorna och plaggbilderna
 - `iso.js` – egen lagring: Pixelskolan skriver aldrig i Snabbfilens figur eller sparfil (samma adress på GitHub Pages)
 - `sf/` – Snabbfilens egna filer (figurerna, figurskaparen, dialogerna, butiksscenerna, fasaderna, rulltrapporna, musiken). **Fyra har Pixelskolans tillägg:** `sf/js/core/people.js` (`decorate`: figuren ritar strykmärkena, pärlorna och mobilen i handen), `sf/js/core/avatar.js` (`cleanBeads`/`cleanPatches`/`cleanMobil`: de sparas), `sf/js/core/people/acc.js` (nio nya mössor sist i `HAT_REG`) och `sf/js/data/wardrobe-acc.js` (mössorna i katalogen). Kopieras `sf/` om från Snabbfilen måste tilläggen följa med, annars försvinner märkena, pärlorna, mobilen och mössorna.
 
 Allt sparas i webbläsaren (localStorage).
+
+**Nya versioner – webben och appen:** `node tools/release.mjs 1.1.1 "Kort rubrik"` skriver `version.js`/`version.json`, taggar `v1.1.1`, pushar (GitHub Pages publicerar webben) och kör `app/paket.mjs`, som lägger spelpaketet `pixelskolan-1.1.1.zip` på GitHub-releasen. iOS-appen (från 1.1) har uppdateringspluginet `@capgo/capacitor-updater` (som Pixelcity): `uppdatera.js` jämför appens version med `version.json` på webben, hämtar paketet och byter när barnet inte är mitt i en lektion, en dialog eller en butik. Nytt App Store-bygge behövs bara när själva appen (pluginen, ikonen, Info.plist) ändras. Prov: `tools/uppdatera-prov.cjs`.

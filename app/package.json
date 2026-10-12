@@ -1,7 +1,7 @@
 {
   "name": "pixelskolan-app",
   "private": true,
-  "appVersion": "1.0",
+  "appVersion": "1.1",
   "type": "module",
   "scripts": {
     "build": "node build.mjs",
@@ -9,7 +9,8 @@
   },
   "dependencies": {
     "@capacitor/core": "^8.5.2",
-    "@capacitor/ios": "^8.5.2"
+    "@capacitor/ios": "^8.5.2",
+    "@capgo/capacitor-updater": "^8.52.1"
   },
   "devDependencies": {
     "@capacitor/cli": "^8.5.2"

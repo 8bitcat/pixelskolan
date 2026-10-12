@@ -244,17 +244,27 @@ const CH_MOTIF = {
   groda: ['.ggg....ggg.', 'gwkwg..gwkwg', 'gggggggggggg', 'gggggggggggg', 'gpggggggggpg', 'ggkkkkkkkkgg', '.gggggggggg.', '..gggggggg..'],
 };
 for (const [k, rows] of Object.entries(CH_MOTIF)) if (rows.some((r) => r.length !== rows[0].length)) console.warn(`[dream] berlocken ${k}: raderna är olika långa`);
+// Glitterstenarna (Carl 2026-10-12: Dream Lands "Bedazzled"): slipade stenar i nio former med fem fasettoner,
+// a ljusast … e mörkast, w = gnistan. Färgerna i GEMC; iris = regnbågsskimrande (AB-kristall).
 const GEM = {
-  diamant: ['..wabbbab..', '.aabbabbbc.', 'aaabbabbbcc', '.aabbbbbcc.', '..abbbbbc..', '...abbbc...', '....abc....', '.....b.....'],
-  hjarta: ['.aaa..bbb.', 'awaabbbbbc', 'aaabbbbbcc', 'aabbbbbbcc', '.abbbbbcc.', '..abbbcc..', '...abcc...', '....bc....'],
-  stjarna: ['.....a.....', '....aab....', '....abb....', 'aaaaabbbbbc', '.aaawbbbbc.', '..aabbbcc..', '..abbbbcc..', '.abbc.bbcc.', '.ac.....cc.', 'a.........c'],
-  smaragd: ['.aaaaaa.', 'awabbbbc', 'aabbbbcc', 'aabbbbcc', 'aabbbbcc', 'aabbbbcc', 'aabbbbcc', 'aabbbbcc', '.cccccc.'],
-  droppe: ['...a...', '..aab..', '..abb..', '.aabbc.', '.awbbc.', 'aabbbcc', 'aabbbcc', 'aabbbcc', '.abbcc.', '..bcc..'],
-  rund: ['..aaabb..', '.awaabbc.', 'aaabbbbcc', 'aabbbbbcc', 'abbbbbbbc', 'abbbbbbcc', 'aabbbbccc', '.abbbccc.', '..bcccc..'],
+  diamant: ['....abwbbcc....', '..aabbabbccdd..', '.aabbbabbbccdd.', 'cccccccccccccdd', '.abbcbbcddcdde.', '..abcbbcddcde..', '...abcbcdcde...', '....bcbcdde....', '.....bccdd.....', '......cdd......', '.......d.......'],
+  stjarna: ['......a......', '.....aab.....', '.....abc.....', '....aabcc....', 'aaaaabbcccddd', '.abbbwbccccd.', '..abbbcccdd..', '...abbccdd...', '..abbcccddd..', '..abc...cdd..', '.abc.....cdd.', '.ac.......de.'],
+  hjarta: ['..aab...bcd..', '.aawbb.bbccd.', 'aawbbbbbbcccd', 'aabbbbcbbcccd', 'abbbbbcbcccdd', '.abbbbcbcccd.', '..abbbccccd..', '...abbcccd...', '....abccd....', '.....acd.....', '......d......'],
+  smaragd: ['..bbbbb..', '.abbbbbd.', 'aabcccbdd', 'aacbwbcdd', 'aacbbbcdd', 'aacbbbcdd', 'aacbbbcdd', 'aacbbbcdd', 'aacbbbcdd', 'aacbbbcdd', 'aacccccdd', '.addddde.', '..eeeee..'],
+  markis: ['...a...', '..aab..', '..abc..', '.aabcd.', '.awbcd.', 'aabbccd', 'abbccdd', 'abbbcdd', 'abbccdd', 'aabccdd', '.abccd.', '.abcdd.', '..bcd..', '..cdd..', '...d...'],
+  rund: ['....abbcc....', '..aabbwbccd..', '.aabbbbbcccd.', '.abbacbcabcd.', 'aabbcbbbcbcdd', 'abbcbbbbbcbcd', 'abcbbbbbbbccd', 'abbcbbbbbcccd', 'aabbcbbbcccdd', '.abccbcbccdd.', '.abcccccccdd.', '..bccccdddd..', '....cdddd....'],
+  droppe: ['....a....', '...aab...', '...abc...', '..aabcd..', '..awbcd..', '.aabbccd.', '.abbcbcd.', 'aabbcbccd', 'abbcbbccd', 'abcbbbcdd', 'aabcbccdd', '.abbccdd.', '..bccdd..', '...ddd...'],
+  triangel: ['......a......', '.....aab.....', '.....abc.....', '....aabcc....', '....abbcc....', '...aabbccd...', '...abbbccd...', '..aabbcccdd..', '..abbcbcccd..', '.aabbcbbccdd.', '.abbbcbcccdd.', 'aabbbcbbcccdd', 'bbccccccdddde'],
+  kvadrat: ['abbbbbbbbbbd', 'aabbbbbbbbdd', 'aaccccccccdd', 'aacbbbbbbcdd', 'aacbwbbbbcdd', 'aacbbbbbbcdd', 'aacbbbbbbcdd', 'aacbbbbbbcdd', 'aacbbbbbbcdd', 'aadddddddddd', 'adeeeeeeeeed', '.eeeeeeeeee.'],
 };
 for (const [k, rows] of Object.entries(GEM)) if (rows.some((r) => r.length !== rows[0].length)) console.warn(`[dream] stenen ${k}: raderna är olika långa`);
-const GEMC = { rosa: [0xffd8ec, 0xf5a3c7, 0xd76a9a], iris: [0xffffff, 0xd8f0ff, 0xb8a8f0], turkos: [0xb8f4f0, 0x3ccfc8, 0x1a8a8a], lila: [0xd8c0ff, 0x9a62d8, 0x6a3aa8],
-  hallon: [0xffb0c8, 0xe8306a, 0xa81848], gron: [0xb8f0c8, 0x3fbf6a, 0x23885a], svart: [0x6a6a7a, 0x2a2a34, 0x16161c], champagne: [0xfff0d0, 0xe8c890, 0xb8945a], klar: [0xffffff, 0xe8f2fa, 0xb8c8d8] };
+const GEMC = {
+  rosa: [0xfff0f6, 0xffd0e4, 0xf5a3c7, 0xd76a9a, 0xa84a78], iris: [0xffffff, 0xe0f2ff, 0xc8d8ff, 0xf0c0e8, 0xb8a8f0], irisrosa: [0xffffff, 0xffe0f4, 0xf8b8e0, 0xc8b0f8, 0x9a8ae0],
+  hallon: [0xffc0d8, 0xff6aa0, 0xe8306a, 0xb81850, 0x7a1036], lila: [0xe8d8ff, 0xc0a0f8, 0x9a62d8, 0x6a3aa8, 0x4a2878], gron: [0xd8ffe0, 0x8ee8a8, 0x3fbf6a, 0x23885a, 0x145a3a],
+  turkos: [0xd8fffa, 0x8af0e8, 0x3ccfc8, 0x1a8a8a, 0x0e5a5a], klar: [0xffffff, 0xf4f8fc, 0xdce6f0, 0xb0bccc, 0x8090a8], svart: [0x9aa2b8, 0x5a6070, 0x32343e, 0x1e1e26, 0x101016],
+  champagne: [0xfff8e8, 0xf8e0b8, 0xe8c890, 0xc09a60, 0x8a6a3a], ljusbla: [0xf0f8ff, 0xc8e0f4, 0xa0c4e4, 0x7090b8, 0x4a6a90], persika: [0xfff0e8, 0xffd0b8, 0xf8b090, 0xd88a68, 0xa86a48],
+  gul: [0xfffff0, 0xfff4b0, 0xf8e070, 0xd0b040, 0x9a8020],
+};
 export const CHARM_CATS = [
   { id: 'best', label: '⭐ Bästsäljare' }, { id: 'glitter', label: '💎 Glitter' }, { id: 'crush', label: '💗 Crush' }, { id: 'figur', label: '🐾 Figurer' },
   { id: 'godis', label: '🍩 Godis' }, { id: 'natur', label: '🌈 Natur & rymd' }, { id: 'abc', label: '🔤 Bokstäver' }, { id: 'num', label: '🔢 Siffror' },
@@ -272,11 +282,14 @@ export const CHARMS = [
   CHM('c-korsbar', 'Körsbär', 15, ['godis', 'crush'], { motif: 'korsbar' }), CHM('c-lappar', 'Läppar', 15, ['crush'], { motif: 'lappar' }), CHM('c-rosett', 'Rosett', 15, ['crush'], { motif: 'rosett' }),
   CHM('c-ros', 'Ros', 15, ['crush', 'natur'], { motif: 'ros' }), CHM('c-blomma', 'Prästkrage', 15, ['natur'], { motif: 'blomma' }), CHM('c-stjarna', 'Stjärna', 15, ['natur'], { motif: 'stjarna' }),
   CHM('c-blixt', 'Blixt', 15, ['natur'], { motif: 'blixt' }), CHM('c-planet', 'Planet', 15, ['natur'], { motif: 'planet' }), CHM('c-raket', 'Raket', 15, ['natur'], { motif: 'raket' }),
-  CHM('c-svamp', 'Svamp', 15, ['natur'], { motif: 'svamp' }), CHM('c-sol', 'Sol', 15, ['natur'], { motif: 'sol' }), CHM('c-disco', 'Discokula', 20, ['glitter'], { motif: 'disco' }),
-  ...[['diamant', 'rosa', 'Rosa diamant'], ['stjarna', 'iris', 'Regnbågsstjärna'], ['hjarta', 'iris', 'Regnbågshjärta'], ['stjarna', 'rosa', 'Rosa stjärnsten'], ['hjarta', 'hallon', 'Hallonhjärta'],
-    ['smaragd', 'lila', 'Lila smaragd'], ['droppe', 'gron', 'Grön droppe'], ['diamant', 'turkos', 'Turkos diamant'], ['rund', 'lila', 'Lila sten'], ['droppe', 'klar', 'Kristalldroppe'],
-    ['smaragd', 'svart', 'Svart smaragd'], ['rund', 'champagne', 'Champagnesten'], ['diamant', 'klar', 'Klar diamant'], ['droppe', 'hallon', 'Rosa droppe']]
-    .map(([g, c, n], i) => CHM(`c-${g}-${c}`, n, 20, i < 3 ? ['glitter', 'best'] : ['glitter'], { gem: g, gc: c })),
+  CHM('c-svamp', 'Svamp', 15, ['natur'], { motif: 'svamp' }), CHM('c-sol', 'Sol', 15, ['natur'], { motif: 'sol' }),
+  ...[['diamant', 'rosa', 'Rosa diamant'], ['stjarna', 'iris', 'Regnbågsstjärna'], ['hjarta', 'iris', 'Regnbågshjärta'], ['stjarna', 'rosa', 'Rosa stjärnsten', 'irisrosa'],
+    ['hjarta', 'hallon', 'Hallonhjärta'], ['smaragd', 'lila', 'Lila smaragd'], ['markis', 'gron', 'Grön markis'], ['diamant', 'turkos', 'Turkos diamant'],
+    ['rund', 'lila', 'Lila sten'], ['droppe', 'klar', 'Kristalldroppe'], ['smaragd', 'svart', 'Svart smaragd'], ['rund', 'champagne', 'Champagnesten'],
+    ['rund', 'ljusbla', 'Ljusblå sten'], ['diamant', 'klar', 'Klar diamant'], ['droppe', 'hallon', 'Rosa droppe'], ['triangel', 'svart', 'Svart triangel'],
+    ['markis', 'persika', 'Persikomarkis'], ['kvadrat', 'gron', 'Grön kvadrat'], ['kvadrat', 'klar', 'Klar kvadrat'], ['triangel', 'gul', 'Gul triangel'], ['droppe', 'gron', 'Grön droppe']]
+    .map(([g, c, n, pal], i) => CHM(`c-${g}-${c}`, n, 20, i < 3 ? ['glitter', 'best'] : ['glitter'], { gem: g, gc: pal || c })),
+  CHM('c-disco', 'Discokula', 20, ['glitter'], { motif: 'disco' }),
   ...[['LOVE', 0xf07ab0, 0xffffff], ['BFF', 0xf8b8d8, 0xc83a7a], ['QUEEN', 0xe8b84a, 0x2a2230], ['WOW', 0x9ad8f8, 0x1d4a9a]].map(([w, bg, fg]) => CHM('c-t-' + w.toLowerCase(), w, 20, ['crush'], { text: [w, bg, fg] })),
   ...[...'ABCDEFGHIJKLMNOPQRSTUVWXYZÅÄÖ'].map((ch, i) => CHM(`c-l-${i}`, `Bokstaven ${ch}`, 10, ['abc'], { big: ch, pc: PASTEL[i % PASTEL.length] })),
   ...[...'0123456789'].map((ch, i) => CHM(`c-n-${ch}`, `Siffran ${ch}`, 10, ['num'], { big: ch, pc: PASTEL[(i + 2) % PASTEL.length] })),
@@ -284,7 +297,7 @@ export const CHARMS = [
 export const CHARM_BY = Object.fromEntries(CHARMS.map((c) => [c.id, c]));
 // motivet som rader + färger (berlockerna lånar märkenas motiv; glitterstenarna har tre fasettfärger)
 function charmCells(cm) {
-  if (cm.gem) { const [a, b, c] = GEMC[cm.gc]; return { rows: GEM[cm.gem], pal: { a, b, c, w: 0xffffff }, gem: true }; }
+  if (cm.gem) { const [a, b, c, d, e] = GEMC[cm.gc]; return { rows: GEM[cm.gem], pal: { a, b, c, d, e, w: 0xffffff }, gem: true }; }
   if (cm.text) { const t = textMotif(...cm.text); return { rows: t.rows, pal: { ...C, ...t.pal } }; }
   if (cm.big) {   // tjock bokstav: BIG dubbelt så stor, med en 3D-kant snett nedåt höger
     const [fill, side] = cm.pc, w = textW(BIG, cm.big) * 2 + 2, up = (BIG[cm.big]?.up?.length || 0) * 2, h = 14 + up + 2;
@@ -310,10 +323,10 @@ export function charmImg(id) {
     P.px(i + 1, j + 1, c);
   }
   const main = colorsByCount(rows, pal)[0];
-  for (let j = -1; j <= rows.length; j++) for (let i = -1; i <= rows[0].length; i++) if (!on(i, j) && (on(i - 1, j) || on(i + 1, j) || on(i, j - 1) || on(i, j + 1))) P.px(i + 1, j + 1, gem ? mul(pal.c, 0.7) : mix(mul(main, 0.42), 0x2a1a30, 0.4));   // konturen
+  for (let j = -1; j <= rows.length; j++) for (let i = -1; i <= rows[0].length; i++) if (!on(i, j) && (on(i - 1, j) || on(i + 1, j) || on(i, j - 1) || on(i, j + 1))) P.px(i + 1, j + 1, gem ? mul(pal.e, 0.75) : mix(mul(main, 0.42), 0x2a1a30, 0.4));   // konturen
   const img = P.flush(); CIMG.set(id, img); return img;
 }
-export const charmColor = (id) => { const cm = CHARM_BY[id]; if (!cm) return '#ffffff'; const { rows, pal, gem } = charmCells(cm); return hexOf(gem ? pal.b : colorsByCount(rows, pal)[0]); };
+export const charmColor = (id) => { const cm = CHARM_BY[id]; if (!cm) return '#ffffff'; const { rows, pal, gem } = charmCells(cm); return hexOf(gem ? pal.c : colorsByCount(rows, pal)[0]); };
 
 export const CASES = [['rosa', 'Sockervadd', 60, 0xf07ab0], ['lila', 'Lila dis', 60, 0x9a74d8], ['svart', 'Rymdsvart', 60, 0x34323e], ['bla', 'Himmelsblå', 60, 0x6fb4e8],
   ['vit', 'Molnvit', 60, 0xdfe6f0], ['mint', 'Mintgrön', 60, 0x6fd0aa], ['glitter', 'Glitterskal', 80, 0xf0a0d0]];
