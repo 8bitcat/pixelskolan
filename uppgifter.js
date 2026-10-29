@@ -114,6 +114,34 @@ export function klocka(l) {
   const am = h % 12, hint = m === 0 ? 'Den långa visaren pekar rakt upp på tolv. Då är det hel timme, och den korta visaren visar vilken.' : m === 30 ? `Halv betyder halvvägs till nästa timme. Den korta visaren står mellan ${hw(h)} och ${hw(h + 1)}.` : m === 15 ? 'Den långa visaren pekar på tre. Kvart över betyder en kvart efter hel timme.' : m === 45 ? 'Den långa visaren pekar på nio. Kvart i betyder en kvart kvar till nästa hela timme.' : 'Räkna femminuterssteg från tolvan med den långa visaren. Den korta visaren visar timmen.';
   return { topic: l === 1 ? 'HEL OCH HALV' : l === 2 ? 'KVART ÖVER OCH KVART I' : 'FEM MINUTER I TAGET', prompt: 'Vad är klockan?', say: 'Vad är klockan?', ans: right, opts: shuffle([right, ...wrong]).map((p) => ({ label: p, value: p })), visual: { clock: [h, m] }, hint, done: `Det är ${right}, alltså ${pad(am)}:${pad(m)} eller ${pad(am + 12)}:${pad(m)}.` };
 }
+// ---------- mer klockan (Carl 2026-10-29: "bygg ut så att vi får ännu mer klockan") ----------
+// Ställ klockan: man vrider visarna själv med knapparna i rutan (eller trycker på urtavlan) tills klockan visar tiden.
+// input 'clock': set = [timme 0–11, minut], step = hur många minuter den långa visaren hoppar per tryck.
+const MIN5 = [0, 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55];
+const minuteHint = (m) => (m === 0 ? 'Hel timme: den långa visaren pekar rakt upp på tolv och den korta visaren på timmen.'
+  : m === 30 ? 'Halv betyder halvvägs till nästa timme: den långa visaren pekar rakt ner på sexan, och den korta står mitt emellan två siffror.'
+  : m === 15 ? 'Kvart över: den långa visaren pekar på trean. Den korta har gått en liten bit förbi timmen.'
+  : m === 45 ? 'Kvart i: den långa visaren pekar på nian, och den korta visaren har nästan kommit fram till nästa timme.'
+  : 'Varje siffra på urtavlan är fem minuter för den långa visaren. Räkna från tolvan: 5, 10, 15 …');
+export function stallKlockan(l, digital = false) {
+  const pm = digital && Math.random() < 0.6, h = digital ? (pm ? rnd(1, 11) : rnd(6, 12)) : rnd(1, 12), m = pick(l === 1 ? [0, 30] : l === 2 ? [0, 15, 30, 45] : MIN5), p = phrase(h, m), hh = pm ? h + 12 : h;   // (digitalt: dagtid, aldrig mitt i natten)
+  const what = digital ? `${pad(hh)}:${pad(m)}` : p;
+  return { topic: 'STÄLL KLOCKAN', input: 'clock', step: l === 1 ? 30 : l === 2 ? 15 : 5, set: [h % 12, m], question: `STÄLL KLOCKAN PÅ ${what.toUpperCase()}`, say: `Ställ klockan på ${digital ? `${hh} och ${m} minuter` : p}.`, ans: p, visual: { clock: [12, 0] },
+    hint: (pm ? `${pad(hh)} på eftermiddagen är ${h} på urtavlan: dra bort 12. ` : '') + minuteHint(m) + ' Flytta visarna med knapparna eller tryck på urtavlan.', done: `${cap(p)}${digital ? ` = ${pad(hh)}:${pad(m)}` : ''}.` };
+}
+const clockWrong = (h, m, right) => { const out = []; for (const [a, b] of [[h - 1, m], [h, (60 - m) % 60], [h + 1, m], [h, (m + 30) % 60], [h + 1, (m + 15) % 60]]) { const p = phrase(a, b); if (p !== right && !out.includes(p)) out.push(p); if (out.length === 2) break; } return out; };
+function medOrd() {   // digital tid till ord: 08:45 = kvart i nio
+  const pm = Math.random() < 0.5, h = pm ? rnd(1, 11) : rnd(6, 12), m = pick([0, 15, 30, 45, 15, 30, ...MIN5]), hh = pm ? h + 12 : h, right = phrase(h, m), dig = `${pad(hh)}:${pad(m)}`;
+  return { topic: 'KLOCKAN MED ORD', board: { big: dig, lines: ['HUR SÄGER MAN DET MED ORD?'], after: right.toUpperCase() }, say: `Klockan är ${dig}. Hur säger man det med ord?`, ans: right, opts: shuffle([right, ...clockWrong(h, m, right)]).map((p) => ({ label: p, value: p })),
+    hint: (pm ? `${pad(hh)} är på eftermiddagen. Dra bort 12 så får du timmen på urtavlan: ${hh} − 12 = ${h}. ` : '') + (m === 30 ? 'Halv betyder halvvägs till NÄSTA timme.' : m > 30 ? 'Efter halv räknar man hur mycket som är KVAR till nästa timme: kvart i, tio i, fem i …' : 'Före halv räknar man minuterna ÖVER timmen: fem över, tio över, kvart över …'), done: `${dig} är ${right}.` };
+}
+function omStund() {   // klockan är … vad är den om en kvart, en halvtimme, en timme?
+  const [d, ord] = pick([[15, 'en kvart'], [30, 'en halvtimme'], [60, 'en timme'], [30, 'en halvtimme']]), h = rnd(1, 12), m = pick([0, 15, 30, 45]);
+  const t = h * 60 + m + d, h2 = Math.floor(t / 60), m2 = t % 60, now = phrase(h, m), right = phrase(h2, m2);
+  const wrong = [...new Set([now, phrase(h2, (m2 + 15) % 60), phrase(h2 + 1, m2), phrase(h2 - 1, m2)].filter((p) => p !== right))].slice(0, 2);
+  return { topic: 'OM EN STUND', question: `KLOCKAN ÄR ${now.toUpperCase()}. VAD ÄR KLOCKAN OM ${ord.toUpperCase()}?`, say: `Klockan är ${now}. Vad är klockan om ${ord}?`, visual: { clock: [h, m] }, ans: right, opts: shuffle([right, ...wrong]).map((p) => ({ label: p, value: p })),
+    hint: d === 60 ? 'En timme senare har den korta visaren gått fram en siffra. Den långa visaren står på samma ställe.' : d === 30 ? 'En halvtimme är 30 minuter: den långa visaren går ett halvt varv.' : 'En kvart är 15 minuter: den långa visaren går ett kvarts varv, tre siffror.', done: `${cap(now)} och ${ord} till blir ${right}.` };
+}
 function digital() {
   const h = rnd(1, 10), m = pick([0, 15, 30, 45]), pm = Math.random() < 0.6, hh = pm ? h + 12 : h, right = `${pad(hh)}:${pad(m)}`;
   return { topic: 'DIGITAL TID', input: 'time', accept: [hh * 60 + m], question: pm ? 'PÅ EFTERMIDDAGEN - SKRIV DIGITALT' : 'PÅ FÖRMIDDAGEN - SKRIV DIGITALT', prompt: 'Digitalt?', say: `Klockan är ${phrase(h, m)} på ${pm ? 'eftermiddagen' : 'förmiddagen'}. Skriv det digitalt.`, ans: right, visual: { clock: [h, m] }, hint: pm ? 'På eftermiddagen lägger man till 12 på timmen: ett blir 13, två blir 14 …' : 'På förmiddagen är timmen samma som på urtavlan.', done: `${cap(phrase(h, m))} på ${pm ? 'eftermiddagen' : 'förmiddagen'} är ${right}.` };
@@ -277,7 +305,9 @@ export const LEVELS = {
     { name: 'Stapeldiagram', gen: diagram }, { name: 'Bråk: halv, tredjedel, fjärdedel', gen: brak }, { name: 'Tabellerna 2, 5 och 10', gen: tabell2510 },
     { name: 'Uppställning: plus', gen: () => gridAdd(false, true) }, { name: 'Uppställning: minus', gen: () => gridSub(false, true) },
   ],
-  klocka: [{ name: 'Hel och halv', gen: () => klocka(1) }, { name: 'Kvart över och kvart i', gen: () => klocka(2) }, { name: 'Fem minuter i taget', gen: () => klocka(3) }, { name: 'Digital tid', gen: digital }],
+  klocka: [{ name: 'Hel och halv', gen: () => klocka(1) }, { name: 'Kvart över och kvart i', gen: () => klocka(2) }, { name: 'Fem minuter i taget', gen: () => klocka(3) }, { name: 'Digital tid', gen: digital },
+    { name: 'Ställ klockan: hel och halv', gen: () => stallKlockan(1) }, { name: 'Ställ klockan: kvart', gen: () => stallKlockan(2) }, { name: 'Klockan med ord', gen: medOrd },
+    { name: 'Om en stund', gen: omStund }, { name: 'Ställ klockan: fem minuter', gen: () => stallKlockan(3) }],
   svenska: [
     { name: 'Rim', gen: rim }, { name: 'Motsatsord', gen: motsats }, { name: 'Alfabetisk ordning', gen: alfa }, { name: 'Sammansatta ord', gen: sammansatt },
     { name: 'Långa och korta vokaler', gen: vokal }, { name: 'Dubbelteckning', gen: dubbel }, { name: 'Stavning: sj-, tj- och j-ljud', gen: sjtj }, { name: 'Stavning: ng och nk', gen: ngnk },

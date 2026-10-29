@@ -5,7 +5,7 @@
 // svenska med stavning, ordklasser, böjningar och läsförståelse; engelska; NO och SO.
 // Samma format som uppgifter.js. Svar med tal skrivs med siffror på tavlan (input 'num'), klockslag med
 // 'time' och vissa ord med 'word'.
-import { rnd, pick, shuffle, textOpts, quiz, cap, pad, ctx, phrase, klocka, former, diagram, dubbel, sjtj, slut, storBokstav, ordklass, sammansatt, las, engelska, diktamen, EN, TRAFIK, ARSTID, MATRATT, gridAdd, gridSub } from './uppgifter.js';
+import { rnd, pick, shuffle, textOpts, quiz, cap, pad, ctx, phrase, klocka, former, diagram, dubbel, sjtj, slut, storBokstav, ordklass, sammansatt, las, engelska, diktamen, EN, TRAFIK, ARSTID, MATRATT, gridAdd, gridSub, stallKlockan } from './uppgifter.js';
 
 const N = (q) => ({ input: 'num', ...q });
 const names = () => { const c = ctx(); return shuffle(c.kids.map((k) => String(k).trim().split(/\s+/)[0].toUpperCase()).filter(Boolean)); };
@@ -181,6 +181,41 @@ function tidSen() {
   const s = 60 * rnd(7, 18) + 5 * rnd(0, 11), d = pick([15, 20, 25, 30, 40, 45, 50, 60, 90]), e = s + d;
   return { topic: 'VAD ÄR KLOCKAN SEDAN?', input: 'time', accept: [e], board: { lines: [`KLOCKAN ÄR ${tid(s)}.`, `VAD ÄR KLOCKAN OM ${d} MINUTER?`] }, say: `Klockan är ${tid(s)}. Vad är klockan om ${d} minuter?`, ans: tid(e), hint: 'Lägg till minuterna. Blir det 60 minuter eller mer blir det en timme till.', done: `${tid(s)} + ${d} minuter = ${tid(e)}.` };
 }
+// ---------- mer klockan (Carl 2026-10-29: "ännu mer klockan") ----------
+const dig = (t) => `${pad(Math.floor(t / 60) % 24)}:${pad(t % 60)}`;
+function tidFor() {   // för en stund sedan: räkna baklänges
+  const s = 60 * rnd(8, 18) + 5 * rnd(0, 11), d = pick([10, 15, 20, 25, 30, 40, 45, 50]), e = s - d;
+  return { topic: 'FÖR EN STUND SEDAN', input: 'time', accept: [e], board: { lines: [`KLOCKAN ÄR ${tid(s)}.`, `VAD VAR KLOCKAN FÖR ${d} MINUTER SEDAN?`] }, say: `Klockan är ${tid(s)}. Vad var klockan för ${d} minuter sedan?`, ans: tid(e),
+    hint: 'Räkna baklänges. Räcker inte minuterna går du tillbaka till förra hela timmen. En timme är 60 minuter.', done: `${tid(s)} − ${d} minuter = ${tid(e)}.` };
+}
+const AKTIV = [['FILMEN', 'filmen'], ['MATCHEN', 'matchen'], ['SIMLEKTIONEN', 'simlektionen'], ['BAKNINGEN', 'bakningen'], ['UTFLYKTEN', 'utflykten'], ['KALASET', 'kalaset'], ['TRÄNINGEN', 'träningen']];
+function tvaKlockor() {   // två urtavlor: när det börjar och när det slutar
+  const [A, a] = pick(AKTIV), s = 60 * rnd(1, 10) + 5 * rnd(0, 11), d = 5 * rnd(3, 18), e = s + d, c = (t) => [Math.floor(t / 60) % 12 || 12, t % 60];
+  return N({ topic: 'TVÅ KLOCKOR', board: { lines: [`KLOCKORNA VISAR NÄR ${A} BÖRJAR OCH SLUTAR.`, 'HUR MÅNGA MINUTER HÅLLER DEN PÅ?'], after: `${d} MINUTER` }, visual: { clocks: [c(s), c(e)] },
+    say: `Klockorna visar när ${a} börjar och när den slutar. Hur många minuter håller den på?`, ans: d, hint: 'Läs av båda klockorna. Räkna fram till nästa hela timme först och sedan resten. En timme är 60 minuter.', done: `Från ${tid(s)} till ${tid(e)} är det ${d} minuter.` });
+}
+const LANGT = [['EN HALVTIMME OCH EN KVART', 'en halvtimme och en kvart', 45], ['EN TIMME OCH EN KVART', 'en timme och en kvart', 75], ['TRE KVART', 'tre kvart', 45], ['TVÅ OCH EN HALV TIMME', 'två och en halv timme', 150], ['EN OCH EN HALV TIMME', 'en och en halv timme', 90], ['FYRA KVART', 'fyra kvart', 60], ['EN HALVTIMME OCH TIO MINUTER', 'en halvtimme och tio minuter', 40]];
+function timMin() {   // timmar och minuter
+  const r = rnd(0, 3);
+  if (r === 0) { const h = rnd(1, 3), m = 5 * rnd(1, 11), T = h > 1 ? 'TIMMAR' : 'TIMME'; return N({ topic: 'TIMMAR OCH MINUTER', board: { lines: [`${h} ${T} OCH ${m} MINUTER`], big: '= ? MINUTER' }, say: `${h} ${T.toLowerCase()} och ${m} minuter. Hur många minuter är det?`, ans: 60 * h + m, hint: `En timme är 60 minuter.${h > 1 ? ` ${h} timmar är ${h} · 60 = ${60 * h} minuter.` : ''} Lägg till ${m}.`, done: `${60 * h} + ${m} = ${60 * h + m} minuter.` }); }
+  let t; do { t = 5 * rnd(13, 44); } while (t % 60 === 0);
+  const h = Math.floor(t / 60), T = h > 1 ? 'TIMMAR' : 'TIMME';
+  if (r === 1) return N({ topic: 'TIMMAR OCH MINUTER', board: { big: `${t} MINUTER`, lines: ['HUR MÅNGA HELA TIMMAR ÄR DET?'], after: `${h} ${T} OCH ${t % 60} MINUTER` }, say: `${t} minuter. Hur många hela timmar är det?`, ans: h, hint: `En timme är 60 minuter. Hur många gånger får 60 plats i ${t}?`, done: `${t} minuter är ${h} ${T.toLowerCase()} och ${t % 60} minuter.` });
+  if (r === 2) return N({ topic: 'TIMMAR OCH MINUTER', board: { lines: [`${t} MINUTER = ${h} ${T} OCH ? MINUTER`] }, say: `${t} minuter är ${h} ${T.toLowerCase()} och hur många minuter?`, ans: t % 60, hint: `${h} ${T.toLowerCase()} är ${60 * h} minuter. Hur mycket är kvar upp till ${t}?`, done: `${t} − ${60 * h} = ${t % 60}.` });
+  const [W, w, mins] = pick(LANGT);
+  return N({ topic: 'TIMMAR OCH MINUTER', board: { lines: [W], big: '= ? MINUTER' }, say: `Hur många minuter är ${w}?`, ans: mins, hint: 'En kvart är 15 minuter, en halvtimme är 30 och en timme är 60.', done: `${cap(w)} är ${mins} minuter.` });
+}
+const LINJER = [['TORGET', 'SKOLAN', 'SIMHALLEN'], ['STATIONEN', 'BIBLIOTEKET', 'GALLERIAN'], ['PARKEN', 'SKOLAN', 'IDROTTSHALLEN'], ['HAMNEN', 'TORGET', 'ZOO']];
+function tidtabell() {   // busstidtabellen: läsa av tider i 24-timmarsformat
+  const stops = pick(LINJER), every = pick([20, 30]), first = 60 * rnd(7, 15) + 5 * rnd(0, 3), d1 = pick([6, 8, 10, 12]), d2 = d1 + pick([5, 7, 9, 11]), off = [0, d1, d2];
+  const rows = stops.map((s, i) => [s, ...[0, 1, 2].map((k) => dig(first + k * every + off[i]))]), [S0, S1, S2] = stops.map((s) => cap(s.toLowerCase()));
+  const vis = { table: { head: `BUSS ${rnd(2, 9)} - AVGÅNGAR`, rows } }, r = rnd(0, 3);
+  const T = (q, say, ans, hint, done) => ({ topic: 'BUSSTIDTABELLEN', input: 'time', accept: [ans], board: { lines: [q] }, visual: vis, say, ans: dig(ans), hint, done });
+  if (r === 0) return T(`NÄR GÅR DEN FÖRSTA BUSSEN FRÅN ${stops[0]}?`, `När går den första bussen från ${S0}?`, first, `Titta på raden ${stops[0]} i tabellen. Den första tiden står längst till vänster.`, `Den första bussen från ${S0} går ${dig(first)}.`);
+  if (r === 1) { const come = first + rnd(2, every - 2); return T(`DU KOMMER TILL ${stops[0]} ${dig(come)}. NÄR GÅR NÄSTA BUSS?`, `Du kommer till ${S0} ${dig(come)}. När går nästa buss?`, first + every, `Bussen ${dig(first)} har redan gått. Leta efter den första tiden som är senare än ${dig(come)}.`, `Nästa buss går ${dig(first + every)}.`); }
+  if (r === 2) return N({ topic: 'BUSSTIDTABELLEN', board: { lines: [`HUR MÅNGA MINUTER TAR BUSSEN FRÅN ${stops[0]} TILL ${stops[2]}?`] }, visual: vis, say: `Hur många minuter tar bussen från ${S0} till ${S2}?`, ans: d2, hint: `Följ en kolumn: när går bussen från ${S0} och när är den vid ${S2}? Räkna skillnaden.`, done: `${dig(first)} till ${dig(first + d2)} är ${d2} minuter.` });
+  return T(`BUSSEN SOM GÅR FRÅN ${stops[0]} ${dig(first + every)} - NÄR ÄR DEN VID ${stops[1]}?`, `Bussen som går från ${S0} ${dig(first + every)}. När är den vid ${S1}?`, first + every + d1, `Leta upp ${dig(first + every)} på raden ${stops[0]} och följ kolumnen neråt till ${stops[1]}.`, `Den är vid ${S1} ${dig(first + every + d1)}.`);
+}
 const KALENDER = [['Hur många dagar har en vecka?', '7'], ['Hur många timmar har ett dygn?', '24'], ['Hur många minuter är en timme?', '60'], ['Hur många minuter är en kvart?', '15'], ['Hur många minuter är en halvtimme?', '30'],
   ['Hur många sekunder är en minut?', '60'], ['Hur många månader har ett år?', '12'], ['Hur många dagar är 2 veckor?', '14'], ['Hur många dagar är 3 veckor?', '21'], ['Hur många dagar har januari?', '31'],
   ['Hur många dagar har april?', '30'], ['Hur många dagar har ett vanligt år?', '365'], ['Hur många timmar är 2 dygn?', '48'], ['Hur många minuter är två timmar?', '120'], ['Hur många veckor har ett år ungefär?', '52']];
@@ -324,6 +359,8 @@ export const LEVELS3 = {
   klocka: [
     { name: 'Fem minuter i taget', gen: () => klocka(3) }, { name: 'Skriv tiden med siffror', gen: klockaMin }, { name: '24-timmarsklockan', gen: digital24 },
     { name: 'Hur lång tid?', gen: tidSkillnad }, { name: 'Vad är klockan sedan?', gen: tidSen }, { name: 'Tid och kalender', gen: quiz('TID OCH KALENDER', KALENDER) },
+    { name: 'Ställ klockan', gen: () => stallKlockan(3, true) }, { name: 'För en stund sedan', gen: tidFor }, { name: 'Två klockor: hur lång tid?', gen: tvaKlockor },
+    { name: 'Timmar och minuter', gen: timMin }, { name: 'Busstidtabellen', gen: tidtabell },
   ],
   svenska: [
     { name: 'Alfabetisk ordning', gen: alfa3 }, { name: 'Synonymer', gen: synonym }, { name: 'Skriv motsatsen', gen: motsats3 }, { name: 'Sammansatta ord', gen: sammansatt },

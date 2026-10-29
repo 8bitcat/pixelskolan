@@ -61,6 +61,13 @@ export const WARDROBE_ACC = [
   { id: 'hat-dinobeanie', slot: 'hat', look: { hat: 'dinoBeanie' }, name: 'Dino­mössa', price: 200, dept: 'unisex', icon: '🦖', colors: { cap: '#5cc070' } },
   { id: 'hat-unibeanie', slot: 'hat', look: { hat: 'uniBeanie' }, name: 'Enhörnings­mössa', price: 220, dept: 'unisex', icon: '🦄', colors: { cap: '#f4f1ea' } },
   { id: 'hat-cablebeanie', slot: 'hat', look: { hat: 'cableBeanie' }, name: 'Flät­mössa', price: 190, dept: 'unisex', icon: '🧶', colors: { cap: '#e8dcc8' } },
+  // ---- Pixelskolans cheerleading (butiken HEJA HEJA, Carl 2026-10-29) ----
+  { id: 'hat-cheerbow', slot: 'hat', look: { hat: 'cheerBow' }, name: 'Cheer­rosett', price: 149, dept: 'unisex', icon: '🎀', colors: { cap: '#e0457e' } },
+  { id: 'hat-starband', slot: 'hat', look: { hat: 'starBand' }, name: 'Stjärn­diadem', price: 179, dept: 'unisex', icon: '⭐', colors: { cap: '#1d51a0' } },
+  { id: 'hat-heartband', slot: 'hat', look: { hat: 'heartBand' }, name: 'Hjärt­diadem', price: 159, dept: 'unisex', icon: '💕', colors: { cap: '#e0457e' } },
+  { id: 'hat-glitterband', slot: 'hat', look: { hat: 'glitterBand' }, name: 'Glitter­diadem', price: 129, dept: 'unisex', icon: '✨', colors: { cap: '#b07ae0' } },
+  { id: 'hat-hearttiara', slot: 'hat', look: { hat: 'heartTiara' }, name: 'Hjärt­tiara', price: 690, dept: 'unisex', icon: '💗' },
+  { id: 'hat-startiara', slot: 'hat', look: { hat: 'starTiara' }, name: 'Stjärn­tiara', price: 790, dept: 'unisex', icon: '🌟' },
 
   // ---- glasögon ----
   { id: 'glasses-round', slot: 'glasses', look: { glasses: 'round' }, name: 'Runda glasögon', price: 150, dept: 'unisex', icon: '👓', legacy: 'glasses:round' },

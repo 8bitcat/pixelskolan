@@ -1164,6 +1164,32 @@ function tunicHem(R) { // broderi längs tunikans fåll
 }
 
 Object.assign(TOP_REG, TOPS_NEW);
+// ---- Pixelskolans cheerleading (butiken HEJA HEJA, Carl 2026-10-29: "dräkt, överdel, underdel eller hel dräkt … olika
+// symboler på magen för de olika klubbarna, hjärtan, stjärnor, blixtar") ----
+// Ärmlös topp med kant i detaljfärgen vid axelbanden och v-ringningen och en rand nertill. Klubbens symbol är överdelens
+// tryck (topPrint) och hamnar mitt på magen mellan ringningen och randen.
+TOP_REG.cheer = {
+  label: 'Cheer­topp', group: 'Sport', sleeve: 'none',
+  front(R) {
+    const { put, rect, skin, shirt, acc, ty0, ty1, K } = R, a = xl(R), b = xr(R), sL = Math.max(9, a + 2), sR = 23 - sL;
+    skinRow(R, ty0, a + 1, b - 1); put(sL, ty0, acc.base); put(sR, ty0, acc.lo);   // bara axlar, axelbanden kantade
+    put(a, ty0 + 1, skin.hi); put(b, ty0 + 1, skin.lo);   // ärmhålen
+    if (!K) { put(a + 1, ty0 + 1, acc.base); put(b - 1, ty0 + 1, acc.lo); put(sL + 1, ty0 + 1, acc.base); put(sR - 1, ty0 + 1, acc.lo); put(11, ty0 + 1, skin.lo); put(12, ty0 + 1, skin.lo); }   // v-ringningen
+    rect(a + 1, ty1 - 1, b - a - 1, 1, acc.base); put(a + 1, ty1 - 1, acc.hi);   // randen nertill
+    if (!K) rect(a + 1, ty1 - 2, b - a - 1, 1, shirt.lo);
+  },
+  back(R) {
+    const { put, rect, skin, acc, ty0, ty1, K } = R, a = xl(R), b = xr(R), sL = Math.max(9, a + 2), sR = 23 - sL;
+    skinRow(R, ty0, a + 1, b - 1); put(sL, ty0, acc.base); put(sR, ty0, acc.lo);
+    put(a, ty0 + 1, skin.hi); put(b, ty0 + 1, skin.lo); if (!K) { put(11, ty0 + 1, acc.base); put(12, ty0 + 1, acc.lo); }
+    rect(a + 1, ty1 - 1, b - a - 1, 1, acc.base);
+  },
+  side(R) {
+    const { rect, put, skin, shirt, acc, torsoTop, ty1 } = R;
+    rect(10, torsoTop, 6, 1, skin.base); put(15, torsoTop, skin.hi); put(12, torsoTop, acc.base); put(10, torsoTop, skin.lo);
+    put(15, torsoTop + 1, acc.lo); put(14, torsoTop + 1, shirt.base); rect(9, ty1 - 1, 7, 1, acc.base); put(15, ty1 - 1, acc.hi);
+  },
+};
 
 // ---------- tryck/mönster på överdelen (look.topPrint, färg look.print2 → R.print) ----------
 // Ritas direkt efter bålens grundyta och FÖRE plaggets detaljer (krage, dragkedja …),
@@ -1269,3 +1295,12 @@ export const TOP_PRINT_REG = {
   num23: numberPrint('Nummer 23', '23'),
   num99: numberPrint('Nummer 99', '99'),
 };
+// klubbarnas symboler i HEJA HEJA (Pixelskolan): hjärta, stjärna, blixt, krona och tass finns redan ovan
+Object.assign(TOP_PRINT_REG, {
+  moon: motif('Måne', ['.xxx', 'xx..', 'x...', 'xx..', '.xxx'], ['.xxx', 'xx..', 'xx..', '.xxx']),
+  flame: motif('Flamma', ['..x..', '..xx.', '.xxx.', 'xxyxx', '.xyx.'], ['..x..', '.xxx.', 'xxyxx', '.xyx.']),
+  diamond: motif('Diamant', ['.wxx.', 'xxxxx', 'oxxxo', '.oxo.', '..o..'], ['.wxx.', 'xxxxx', '.xxo.', '..o..']),
+  flower: motif('Blomma', ['.x.x.', 'xxyxx', '.xxx.', '..g..', '.gg..'], ['.x.x.', 'xxyxx', '.xxx.', '..g..']),
+  butterfly: motif('Fjäril', ['xx.xx', 'xxkxx', '.xkx.', 'xxkxx', 'x...x'], ['xx.xx', 'xxkxx', '.xkx.', 'xx.xx']),
+  rainbowArc: motif('Regnbåge', ['.rrr.', 'ryyyr', 'ygggy', 'gb.bg', 'b...b'], ['.rrr.', 'ryyyr', 'yg.gy', 'g...g'], { hint: 'r' }),
+});

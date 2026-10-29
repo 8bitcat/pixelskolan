@@ -109,6 +109,9 @@ export const WARDROBE_BOTTOMS = [
   { id: 'bottom-skiPants', slot: 'bottom', look: { bottom: 'skiPants' }, name: 'Täckbyxor', price: 599, dept: 'unisex', icon: '⛷️', colors: { pants: '#2d3a5c' } },
   { id: 'bottom-coverall', slot: 'bottom', look: { bottom: 'coverall' }, name: 'Overall', price: 699, dept: 'unisex', icon: '🔧', colors: { pants: '#e07a2e' } },
   { id: 'bottom-snowsuit', slot: 'bottom', look: { bottom: 'snowsuit' }, name: 'Vinter\u00adoverall', price: 899, dept: 'unisex', icon: '❄️', colors: { pants: '#c9323a' } },
+  // ---- Pixelskolans cheerleading (butiken HEJA HEJA) ----
+  { id: 'bottom-cheerSkirt', slot: 'bottom', look: { bottom: 'cheerSkirt' }, name: 'Cheer­kjol', price: 199, dept: 'unisex', icon: '📣', colors: { pants: '#e0457e', pants2: '#f4f1ea' } },
+  { id: 'bottom-cheerDress', slot: 'bottom', look: { bottom: 'cheerDress' }, name: 'Hel cheer­dräkt', price: 449, dept: 'unisex', icon: '📣', colors: { shirt: '#e0457e', accent: '#f4f1ea' } },
 ];
 
 export const WARDROBE_SHOES = [
@@ -155,4 +158,5 @@ export const WARDROBE_SHOES = [
   // ---- kul ----
   { id: 'shoes-platforms', slot: 'shoes', look: { shoeType: 'platforms' }, name: 'Platå\u00adskor', price: 699, dept: 'tjej', icon: '👟', colors: { shoes: '#2b2b30', shoes2: '#f4f1ea' } },
   { id: 'shoes-clownShoes', slot: 'shoes', look: { shoeType: 'clownShoes' }, name: 'Clownskor', price: 349, dept: 'unisex', icon: '🤡', colors: { shoes: '#c9323a', shoes2: '#f0b429' } },
+  { id: 'shoes-cheerShoes', slot: 'shoes', look: { shoeType: 'cheerShoes' }, name: 'Cheer­skor', price: 299, dept: 'unisex', icon: '👟', colors: { shoes: '#f4f1ea', shoes2: '#e0457e' } },
 ];

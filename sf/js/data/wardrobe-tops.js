@@ -158,4 +158,17 @@ export const WARDROBE_TOPS = [
   { id: 'top-santa', slot: 'top', look: { top: 'santa' }, name: 'Tomte\u00adjacka', price: 690, dept: 'unisex', icon: '🎅', colors: { shirt: '#c9323a' } },
   { id: 'top-lucia', slot: 'top', look: { top: 'lucia' }, name: 'Luciasärk', price: 490, dept: 'tjej', icon: '🕯️', colors: { shirt: '#f4f1ea', accent: '#c9323a' } },
   { id: 'top-folk', slot: 'top', look: { top: 'folk' }, name: 'Folk\u00addräkts\u00adliv', price: 1490, dept: 'tjej', icon: '🌼', colors: { shirt: '#2f5aa0', accent: '#c9323a' } },
+  // ---- Pixelskolans cheerleading (butiken HEJA HEJA): toppen utan symbol och klubbarnas toppar (symbolen = topPrint) ----
+  { id: 'top-cheer', slot: 'top', look: { top: 'cheer' }, name: 'Cheer­topp', price: 199, dept: 'unisex', icon: '📣', colors: { shirt: '#e0457e', accent: '#f4f1ea' }, group: 'Cheerleading' },
+  { id: 'top-cheer-heart', slot: 'top', look: { top: 'cheer', topPrint: 'heart' }, name: 'Cheer­topp Hjärtana', price: 249, dept: 'unisex', icon: '💖', colors: { shirt: '#e0457e', accent: '#f4f1ea', print2: '#f4f1ea' }, group: 'Cheerleading' },
+  { id: 'top-cheer-star', slot: 'top', look: { top: 'cheer', topPrint: 'star' }, name: 'Cheer­topp Stjärnorna', price: 249, dept: 'unisex', icon: '⭐', colors: { shirt: '#1d51a0', accent: '#f6d02f', print2: '#f6d02f' }, group: 'Cheerleading' },
+  { id: 'top-cheer-bolt', slot: 'top', look: { top: 'cheer', topPrint: 'bolt' }, name: 'Cheer­topp Blixtarna', price: 249, dept: 'unisex', icon: '⚡', colors: { shirt: '#2b2a33', accent: '#f6d02f', print2: '#f6d02f' }, group: 'Cheerleading' },
+  { id: 'top-cheer-crown', slot: 'top', look: { top: 'cheer', topPrint: 'crown' }, name: 'Cheer­topp Kronorna', price: 249, dept: 'unisex', icon: '👑', colors: { shirt: '#8e5bd1', accent: '#f0b429', print2: '#f0b429' }, group: 'Cheerleading' },
+  { id: 'top-cheer-paw', slot: 'top', look: { top: 'cheer', topPrint: 'paw' }, name: 'Cheer­topp Tassarna', price: 249, dept: 'unisex', icon: '🐾', colors: { shirt: '#d9433b', accent: '#f4f1ea', print2: '#f4f1ea' }, group: 'Cheerleading' },
+  { id: 'top-cheer-moon', slot: 'top', look: { top: 'cheer', topPrint: 'moon' }, name: 'Cheer­topp Månarna', price: 249, dept: 'unisex', icon: '🌙', colors: { shirt: '#2d3a5c', accent: '#c4c9d4', print2: '#f6e7a0' }, group: 'Cheerleading' },
+  { id: 'top-cheer-flame', slot: 'top', look: { top: 'cheer', topPrint: 'flame' }, name: 'Cheer­topp Flammorna', price: 249, dept: 'unisex', icon: '🔥', colors: { shirt: '#e07a2e', accent: '#2b2a33', print2: '#d83a3a' }, group: 'Cheerleading' },
+  { id: 'top-cheer-diamond', slot: 'top', look: { top: 'cheer', topPrint: 'diamond' }, name: 'Cheer­topp Diamanterna', price: 249, dept: 'unisex', icon: '💎', colors: { shirt: '#2aa39a', accent: '#f4f1ea', print2: '#bfe6f6' }, group: 'Cheerleading' },
+  { id: 'top-cheer-flower', slot: 'top', look: { top: 'cheer', topPrint: 'flower' }, name: 'Cheer­topp Blommorna', price: 249, dept: 'unisex', icon: '🌸', colors: { shirt: '#f2d680', accent: '#46a35a', print2: '#f07ab0' }, group: 'Cheerleading' },
+  { id: 'top-cheer-butterfly', slot: 'top', look: { top: 'cheer', topPrint: 'butterfly' }, name: 'Cheer­topp Fjärilarna', price: 249, dept: 'unisex', icon: '🦋', colors: { shirt: '#6fb4e8', accent: '#f4f1ea', print2: '#f07ab0' }, group: 'Cheerleading' },
+  { id: 'top-cheer-rainbowarc', slot: 'top', look: { top: 'cheer', topPrint: 'rainbowArc' }, name: 'Cheer­topp Regnbågarna', price: 249, dept: 'unisex', icon: '🌈', colors: { shirt: '#f4f1ea', accent: '#3a7bd5', print2: '#f4f1ea' }, group: 'Cheerleading' },
 ];

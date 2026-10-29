@@ -681,6 +681,65 @@ function render(L0, dir, frame) {
 // look.mobil = [skalets färg, berlock, berlock, mobilbandets färg | null]: mobilen i handen när figuren står still
 // framifrån (går man ligger den i fickan).
 const PATCH_TAGS = { top: [TAG.torso, TAG.top], bottom: [TAG.pants], bag: [TAG.bag] };
+// ---------- saker i händerna (Pixelskolan, butiken HEJA HEJA, Carl 2026-10-29: "pom poms … massa saker man kan
+// köpa att hålla i händerna") ----------
+// look.hand = [sort, färg 1, färg 2]. Pompomerna och lysstavarna sitter i båda händerna, resten i bärarens högra
+// hand (till vänster i bild framifrån, till höger bakifrån, närmaste handen från sidan). Sakerna följer händerna
+// när man går; sitter man, äter eller bär något ligger de undan. Mallarna: a/A/q = färg 1 (bas, ljus, mörk),
+// b/B = färg 2, w/W vitt, s/S/z silver, g/G/y guld, t stjärngult, k svart, n hud (fingrarna runt skaftet).
+// Mallens ankare [ax, ay] hamnar på handens vänstra, nedersta pixel. f = framifrån (spegelvänds bakifrån), s = från sidan.
+export const HAND_ITEMS = {
+  pompoms: { label: 'Pompomer', two: true },
+  megafon: { label: 'Megafon', f: [3, 0, ['...wq', '..aaq', '.aaa.', 'aaAq.', 'wwW..']], s: [0, 0, ['qa...', 'qaaa.', '.aAaa', '..wwW']] },
+  stav: { label: 'Twirl­stav', f: [0, 4, ['W', 'w', 's', 'S', 's', 's', 's', 'z', 'W', 'w']], s: [1, 4, ['W', 'w', 's', 'S', 's', 's', 's', 'z', 'W', 'w']] },
+  flagga: { label: 'Flagga', f: [4, 8, ['aaaAy', 'aaaay', 'bbbby', 'bbbby', '....y', '....y', '....y', '....y', '....y', '....y']], s: [1, 8, ['.yaaaA', '.yaaaa', '.ybbbb', '.ybbbb', '.y....', '.y....', '.y....', '.y....', '.y....', '.y....']] },
+  skylt: { label: 'Hjärt­skylt', f: [3, 7, ['www.www', 'wAawaaw', 'waaaaaw', '.waaaw.', '..wyw..', '...y...', '...y...', '...y...']], s: [3, 7, ['www.www', 'wAawaaw', 'waaaaaw', '.waaaw.', '..wyw..', '...y...', '...y...', '...y...']] },
+  band: { label: 'Gymnastik­band', f: [3, 3, ['.aas', 'a..s', 'a..s', '.a.s', '..a.', '.a..', 'a...', '.a..']], s: [0, 3, ['saa.', 's..a', 's..a', 's.a.', '.a..', '..a.', '...a', '..a.']] },
+  ballong: { label: 'Hjärt­ballong', f: [3, 11, ['.aa.aa.', 'aAaaaaa', 'aaaaaaq', '.aaaaq.', '..aaq..', '...q...', '...k...', '....k..', '...k...', '...k...', '....k..', '...k...']], s: [3, 11, ['.aa.aa.', 'aAaaaaa', 'aaaaaaq', '.aaaaq.', '..aaq..', '...q...', '...k...', '..k....', '...k...', '...k...', '..k....', '...k...']] },
+  trollstav: { label: 'Stjärn­stav', f: [2, 5, ['..t..', 'ttGtt', '.ttt.', '.t.t.', '..y..', '..y..', '..y..']], s: [1, 5, ['.t.', 'tGt', '.t.', '.y.', '.y.', '.y.', '.y.']] },
+  skumhand: { label: 'Skum­hand', cover: true, f: [1, 3, ['..A..', '..a..', '.aaaq', 'aaaaq', '.aaq.']], s: [1, 3, ['..A..', '..a..', '.aaaq', '.aaaq', '..aq.']] },
+  pokal: { label: 'Pokal', f: [2, 3, ['GgggG', 'gGggy', '.ggy.', '..y..', '.gggy']], s: [2, 3, ['GgggG', 'gGggy', '.ggy.', '..y..', '.gggy']] },
+  lysstavar: { label: 'Lys­stavar', two: true },
+  flaska: { label: 'Vatten­flaska', f: [1, 1, ['.w.', 'aaa', 'aAa', 'aaa', 'aaq']], s: [1, 1, ['.w.', 'aaa', 'aAa', 'aaa', 'aaq']] },
+};
+function drawHeld(L, R, view, put) {
+  const H = HAND_ITEMS[L.hand[0]];
+  if (!H || R.sit || R.carry || R.eat) return;
+  const c1 = ramp(toInt(L.hand[1], 0xf07ab0)), c2 = ramp(toInt(L.hand[2], 0xffffff));
+  const P = { a: c1.base, A: c1.hi, q: c1.lo, b: c2.base, B: c2.hi, w: 0xf4f1ea, W: 0xd2cdc0, s: 0xc4c9d4, S: 0xf4f6fa, z: 0x80879a, g: 0xe8b830, G: 0xfff0a0, y: 0xa87a1c, t: 0xf8d860, k: 0x2a2630, n: R.skin.base };
+  const { torsoTop: t, tw, armLen, walkA, walkB, has } = R;
+  const hand = (left) => {   // samma geometri som motorns armar (och acc.js handAt)
+    if (view !== 'side') return { x: left ? 12 - tw - 2 : 12 + tw, y: t + armLen + (left ? 1 : -1) * (walkA ? 1 : walkB ? -1 : 0) };
+    return { x: 11 + (walkA ? -3 : walkB ? 3 : 0), y: t + armLen };
+  };
+  R.tag = TAG.extra;
+  const stampAt = (rows, x0, y0, behind) => rows.forEach((r, j) => [...r].forEach((ch, i) => { const c = P[ch]; if (c !== undefined && (!behind || !has(x0 + i, y0 + j))) put(x0 + i, y0 + j, c); }));
+  if (H.two) {   // båda händerna
+    const pts = view === 'side' ? [{ ...hand(), far: false }, { x: 11 + (walkA ? 3 : walkB ? -3 : 0), y: t + armLen, far: true }] : [hand(true), hand(false)];
+    for (const h of pts) {
+      if (h.far && !walkA && !walkB) continue;
+      const cx = h.x + (view === 'side' ? 1 : 0), cy = h.y - 1, ph = (R.frame + h.x) & 1;
+      if (L.hand[0] === 'lysstavar') { for (let j = -3; j <= 1; j++) { put(cx, cy + j, j === -3 ? 0xffffff : mix(j & 1 ? c1.hi : c1.base, 0xffffff, 0.25)); } put(cx + 1, cy - 1, mix(c2.base, 0xffffff, 0.2)); put(cx + 1, cy - 2, c2.hi); continue; }
+      const K = R.K ? 3 : 4;   // pompomens radie: ragglig boll av band i två färger med glans
+      for (let y = -K; y <= K; y++) for (let x = -K; x <= K + 1; x++) {
+        const d = (x - 0.5) ** 2 + y * y;
+        if (d > K * K + 0.5 + (((x * 7 + y * 13 + ph) & 3) === 0 ? 2.2 : 0)) continue;
+        const X = cx + x, Y = cy + y; if (h.far && has(X, Y)) continue;
+        const band = ((x * 2 + y * 3 + ph) % 3 + 3) % 3, c = band === 0 ? c2 : c1;
+        put(X, Y, (x + y + ph) % 5 === 0 ? mix(c.hi, 0xffffff, 0.55) : y < 0 && x < 1 ? c.hi : y > 1 ? c.lo : c.base);
+      }
+    }
+  } else if (view === 'side') {
+    const h = hand(), [ax, ay, rows] = H.s;
+    stampAt(rows, h.x + 1 - ax, h.y - 1 - ay);
+    if (!H.cover) { put(h.x + 1, h.y - 1, R.skin.base); put(h.x + 2, h.y - 1, R.skin.lo); }   // handen runt skaftet
+  } else {
+    const left = view === 'front', h = hand(left), [ax, ay, rows0] = H.f;
+    const rows = left ? rows0 : rows0.map((r) => [...r].reverse().join('')), w = rows0[0].length;
+    stampAt(rows, left ? h.x - ax : h.x + 1 - (w - 1 - ax), h.y - 1 - ay);
+    if (!H.cover) { put(h.x, h.y - 1, left ? R.skin.hi : R.skin.base); put(h.x + 1, h.y - 1, left ? R.skin.base : R.skin.lo); }
+  }
+}
 function decorate(L, R, view, each, put) {
   if (Array.isArray(L.beads) && L.beads.length && L.neck === 'pearls') {
     const px = []; each(TAG.neck, (x, y) => px.push([x, y]));
@@ -688,7 +747,8 @@ function decorate(L, R, view, each, put) {
     R.tag = TAG.neck;
     px.forEach(([x, y], i) => put(x, y, toInt(L.beads[Math.floor((i * L.beads.length) / px.length)], 0xffffff)));
   }
-  if (Array.isArray(L.mobil) && L.mobil[0] && view === 'front' && !R.sit && !R.carry && !R.eat && !R.walkA && !R.walkB) {
+  if (Array.isArray(L.hand) && HAND_ITEMS[L.hand[0]]) drawHeld(L, R, view, put);
+  else if (Array.isArray(L.mobil) && L.mobil[0] && view === 'front' && !R.sit && !R.carry && !R.eat && !R.walkA && !R.walkB) {
     const c = L.mobil.map((h) => toInt(h, -1)), x0 = 12 + R.tw - 1, y1 = R.torsoTop + R.armLen;
     R.tag = TAG.extra;
     for (let j = 0; j < 4; j++) for (let i = 0; i < 3; i++) put(x0 + i, y1 - 3 + j, i === 2 || j === 3 ? mul(c[0], 0.72) : c[0]);

@@ -394,6 +394,35 @@ export const HAT_REG = {
     f: [7, ['4.2w4.', '3.wWww3.', '2.h4ol2.', '.hodoodol.', 'hodoodoodl', 'hoodoodool', 'ldldldldld', '10l']],
     s: [8, ['3.2w4.', '2.wWw4.', '2.h3ol2.', '.hodoodol', 'hodoodool', 'hoodoodol', 'ldldldldl', '9l']],
   }),
+  // ---- Pixelskolans cheerleading (butiken HEJA HEJA, Carl 2026-10-29: "tiara att ha på huvudet … massa saker att ha på
+  // huvudet"): den stora cheerrosetten, diademen och två tiaror. Bara mössans färg (look.cap) och fasta färger. ----
+  cheerBow: tpl('Cheer­rosett', 'Hårband & rosetter', (R) => topOf(R, [10, 13], R.h0 - 2, R.h0) - (R.back ? 1 : 3), {
+    f: [7, ['ho......ol', 'hoo....ool', 'hoooddoool', '.ool..loo.']],
+    b: [7, ['ho......ol', 'hoo....ool', 'hoooddoool', '.ool..loo.', '...l..l...', '..l....l..']],
+    s: [6, ['.ho..', 'hool.', 'hddo.', '.ool.', '.l.l.']],
+  }, capPal),
+  starBand: tpl('Stjärn­diadem', 'Hårband & rosetter', (R) => topOf(R, R.side ? [11, 14] : [9, 14], R.h0 - 2, R.h0) - 4, {
+    f: [7, ['....tt....', '.t.tGGt.t.', 'tGt.tt.tGt', '.t.t..t.t.', 'hooooooool']],
+    s: [9, ['..tt..', '.tGGt.', '..tt..', '......', 'hooool']],
+  }, capPal),
+  heartBand: tpl('Hjärt­diadem', 'Hårband & rosetter', (R) => topOf(R, R.side ? [11, 14] : [9, 14], R.h0 - 2, R.h0) - 6, {
+    f: [6, ['pp.pp..pp.pp', 'ppppP..ppppP', '.ppP....ppP.', '..P......P..', '..k......k..', '...k....k...', '..hoooooool.']],
+    s: [9, ['pp.pp.', 'ppppP.', '.ppP..', '..P...', '..k...', '...k..', 'hooool']],
+  }, (R) => pal(R.cap, null, { p: 0xf2a0b8, P: 0xe0607a })),
+  glitterBand: tpl('Glitter­diadem', 'Hårband & rosetter', (R) => topOf(R, R.side ? [11, 14] : [9, 14], R.h0 - 2, R.h0) - 1, {
+    f: [7, ['hSoSoSoSol']],
+    s: [9, ['hSoSol']],
+  }, capPal),
+  heartTiara: tpl('Hjärt­tiara', 'Fest', (R) => topOf(R, R.side ? [11, 14] : [10, 13], R.h0 - 3, R.h0) - 4, {
+    f: [9, ['.pp.pp.', 'sppppPs', 's.ppP.s', 'S..P..s', 'Ssssssz']],
+    b: [9, ['.......', 's.....s', 's.....s', 'S.....s', 'Ssssssz']],
+    s: [11, ['.pp..', 'pppP.', '.pPs.', 'Sssz.']],
+  }, () => ({ ...FIX, p: 0xf2a0b8, P: 0xe0607a })),
+  starTiara: tpl('Stjärn­tiara', 'Fest', (R) => topOf(R, R.side ? [11, 14] : [10, 13], R.h0 - 3, R.h0) - 4, {
+    f: [9, ['...t...', '.ttGtt.', 's.ttt.s', 'S.t.t.s', 'Ssssssz']],
+    b: [9, ['.......', '.......', 's.....s', 'S.....s', 'Ssssssz']],
+    s: [11, ['.t...', 'tGt..', '.t.s.', 'Sssz.']],
+  }, () => FIX),
 };
 
 // ---------- glasögon (look.glasses; false = inga, gamla true ⇒ 'square') ----------

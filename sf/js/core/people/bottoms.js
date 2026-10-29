@@ -28,7 +28,7 @@
 //
 // Ändra inte de gamla posterna (jeans, pants, shorts, skirt, dress, none, normal) – de är
 // pixellåsta av tools/people-regress.mjs.
-import { TAG, mix, ramp } from './util.js';
+import { TAG, mix, ramp, toneOf } from './util.js';
 
 // ---------- färger som inte kommer ur looken ----------
 const GOLD = 0xc9b27a;      // knappar/spännen (samma som motorns bältesspänne)
@@ -1444,4 +1444,50 @@ export const SHOE_REG = {
       if (!s.far) R.put(x + 1, y, sRamp(R, s, R.shoe2).base);
     },
   },
+};
+
+// ---- Pixelskolans cheerleading (butiken HEJA HEJA, Carl 2026-10-29) ----
+// Cheerkjolen: kort och veckad med veck i kontrastfärgen (pants2) som syns när kjolen svänger, linning i kjolens färg.
+// Hel dräkt: samma kjol i tröjans färg sydd ihop med toppen (randen i midjan försvinner), glitter, veck i detaljfärgen.
+const cheerPleats = (R, P) => {
+  const p = R.pants, [y0, y1] = skirtRows(R), sw = R.walkA || R.walkB;
+  R.rect(R.side ? 9 : 12 - R.tw, y0, R.side ? 7 : R.tw * 2, 1, p.lo);
+  flare(R, R.skirtLen - 1, 1);
+  R.pattern(TAG.pants, (x, y, c) => {
+    if (y <= y0 || y >= y1) return null;
+    const k = ((x + (sw ? 1 : 0)) % 3 + 3) % 3;   // vecken: var tredje kolumn i kontrastfärgen, de vänder när man går
+    if (y >= y1 - 2 && k === 1) return y === y1 - 1 ? P.base : P.hi;
+    if (k === 2 && c !== p.lo) return p.lo;
+    return null;
+  });
+};
+Object.assign(BOTTOM_REG, {
+  cheerSkirt: {
+    label: 'Cheer­kjol', group: 'Kjolar', skirt: (R) => (R.K ? 3 : 4), bareFrom: 1, crotch: false, uses: ['pants2'],
+    front(R) { cheerPleats(R, R.pants2); },
+    back(R) { this.front(R); },
+    side(R) { this.front(R); },
+  },
+  cheerDress: { ...DRESS,
+    label: 'Cheer­dräkt', group: 'Klänningar', skirt: (R) => (R.K ? 3 : 4), bareFrom: 1, uses: ['accent'],
+    front(R) { cheerPleats(R, R.acc); R.pattern(TAG.pants, (x, y) => (y > R.hy ? sparkle(R, x, y, 13) : null)); },
+    back(R) { this.front(R); },
+    side(R) { this.front(R); },
+    afterTorso(R) {   // ett helt plagg: randen i midjan blir tröjans färg, glitter på livet
+      R.pattern(TAG.torso, (x, y, c) => (y === R.hy - 1 && toneOf(c, R.acc) != null ? R.shirt.lo : null));
+      R.pattern(TAG.top, (x, y, c) => (y === R.hy - 1 && toneOf(c, R.acc) != null ? R.shirt.lo : null));
+      R.pattern(TAG.torso, (x, y) => sparkle(R, x, y, 17));
+    },
+  },
+});
+// Cheerskorna: vita sneakers med sula och snörning i kontrastfärgen (shoes2) och vita sockor vid fotleden.
+const anklet = (R, s) => {
+  const r = s.rows && s.rows[s.rows.length - 1];
+  if (r && R.tagAt(r.x + 1, r.y) === TAG.skin) withTag(R, TAG.extra, () => { R.rect(r.x, r.y, r.w, 1, 0xf4f1ea); R.put(r.x + r.w - 1, r.y, 0xd2cdc0); });
+};
+SHOE_REG.cheerShoes = {
+  label: 'Cheer­skor', group: 'Sneakers', uses: ['shoes2'],
+  front(R, s) { anklet(R, s); footFB(R, s, R.shoe, R.shoe2.base); R.put(lace(R, s), s.y, R.shoe2.hi); },
+  back(R, s) { anklet(R, s); footFB(R, s, R.shoe, R.shoe2.base); },
+  side(R, s) { anklet(R, s); const c = sRamp(R, s, R.shoe2); footSide(R, s, R.shoe, c.base); R.put(s.x + 1, s.y, c.hi); },
 };

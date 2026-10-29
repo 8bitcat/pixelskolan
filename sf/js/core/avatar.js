@@ -12,7 +12,7 @@
 import {
   makeLook, drawPerson, portrait, FIRST_NAMES,
   SKIN, HAIR, SHIRT, PANTS, SHOES, PHONE_COLORS, BAG_COLORS,
-  HAIR_STYLES, BUILDS, LOOK_FIELDS, LOOK_COLORS, idOf, valueOf, isValid, entryOf, listOf,
+  HAIR_STYLES, BUILDS, LOOK_FIELDS, LOOK_COLORS, idOf, valueOf, isValid, entryOf, listOf, HAND_ITEMS,
 } from './people.js';
 import { EYE_COLORS, LIP_COLORS, SHADOW_COLORS, MARK_COLORS } from './people/face.js';
 import {
@@ -79,6 +79,8 @@ function cleanName(v) {
 // Egna pärlor och strykmärken (Pixelskolans butik DREAM LAND, ritas i people.js decorate) – bara med när de finns.
 const cleanBeads = (v) => { if (!Array.isArray(v)) return {}; const b = v.map((c) => col(c, null)).filter(Boolean).slice(0, 32); return b.length ? { beads: b } : {}; };
 const cleanMobil = (v) => (Array.isArray(v) && col(v[0], null) ? { mobil: [0, 1, 2, 3].map((i) => col(v[i], null)) } : {});
+// det man håller i händerna (butiken HEJA HEJA): [sort, färg 1, färg 2]
+const cleanHand = (v) => (Array.isArray(v) && typeof v[0] === 'string' && Object.hasOwn(HAND_ITEMS, v[0]) ? { hand: [v[0], col(v[1], null), col(v[2], null)] } : {});
 const PATCH_AREAS = ['top', 'bottom', 'bag'];
 const num01 = (v) => (v != null && Number.isFinite(+v) ? Math.max(0, Math.min(1, Math.round(+v * 100) / 100)) : null);
 function cleanPatches(v) {
@@ -127,7 +129,7 @@ export function cleanLook(raw) {
     neck: reg('neck', L.neck, 'none'), neckColor: col(L.neckColor, null), jewel: reg('jewel', L.jewel, 'none'),
     // ryggnumret på fotbollströjan (lagets spelare) – bara med när det finns, så att andra figurer är oförändrade
     ...(Number.isInteger(L.shirtNum) && L.shirtNum >= 0 && L.shirtNum <= 99 ? { shirtNum: L.shirtNum } : {}),
-    ...cleanBeads(L.beads), ...cleanPatches(L.patches), ...cleanMobil(L.mobil),
+    ...cleanBeads(L.beads), ...cleanPatches(L.patches), ...cleanMobil(L.mobil), ...cleanHand(L.hand),
   };
 }
 

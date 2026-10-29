@@ -2,7 +2,8 @@
 // (Carl 2026-10-07: "det kan vara affärer vägg i vägg … mängder av detaljer"). Man går inte in i dem,
 // men expediten står bakom disken och svarar när man klickar. Målade med Snabbfilens penna
 // (floor-pix.js); expediterna är spelets figurer (people.js).
-// DRÖMLAND (bling.js, hette BLING BLING och DREAM LAND) är den enda man går in i: fasaden ritas här, butiken är en egen scen (UNITS.bling.shop).
+// DRÖMLAND (bling.js, hette BLING BLING och DREAM LAND) och HEJA HEJA (cheer.js) är de man går in i: fasaden ritas här, butiken
+// är en egen scen (UNITS.<id>.shop).
 // Varje butik har en bakre bild (rummet bakom glaset, målas in i gallerians vägg), en expedit som
 // ritas levande och en främre bild (disken, glaset med reflexer och det som står ute på golvet).
 import { Pix, SMALL, BIG, textW, text as pixText, mix, mul, hash, bayer } from './sf/js/core/floor-pix.js';
@@ -18,6 +19,8 @@ export const UNITS = {
     lines: ['PLOCKGODIS PÅ LÖRDAG!', 'MIN FAVORIT ÄR SURA REMMAR. VAD GILLAR DU?', 'KOM IHÅG ATT BORSTA TÄNDERNA SEN!'] },
   bling: { label: 'DRÖMLAND', sign: 'DRÖMLAND', col: 0xb48ae6, edge: 0xd8559a, ink: 0xffffff, wall: 0xf7dce8, flo: 0xf6eef2, door: 54, keeper: 101, shop: 'bling', sparkle: true,
     lines: ['VÄLKOMMEN IN!', 'HOS OSS TRÄR DU HALSBAND PÄRLA FÖR PÄRLA!', 'STRYK MÄRKEN PÅ DIN VÄSKA ELLER TRÖJA!'] },
+  cheer: { label: 'HEJA HEJA', sign: 'HEJA HEJA', col: 0xe0457e, edge: 0x1d51a0, ink: 0xffffff, wall: 0xdce9f8, flo: 0xe2c088, door: 54, keeper: 101, shop: 'cheer',
+    lines: ['HEJA HEJA! KOM IN!', 'VILKEN KLUBB HEJAR DU PÅ?', 'POMPOMER I ALLA FÄRGER!'] },
   foto: { label: 'FOTOAUTOMATEN', booth: true, lines: ['BLIXT! FYRA BILDER.', 'LE STORT!'] },
   bankomat: { label: 'BANKOMATEN', atm: true },
 };
@@ -299,6 +302,72 @@ function blingSign(P, u, d, g) {   // ovanpå den vanliga skylten: diamanter i �
   for (let x = u.x + 4; x < u.x + u.w - 4; x += 6) P.px(x, top + 12, GOLD);
 }
 
+// ---------- HEJA HEJA: dräkter och pompomer till vänster, kassan till höger (butiken inne: cheer.js) ----------
+const CPINK = 0xe0457e, CPINKL = 0xf5a3c7, CBLUE = 0x1d51a0, CBLUED = 0x0e2f66, CYEL = 0xf6d02f, CWHITE = 0xf8f6f0;
+function pom(P, cx, cy, r, c1, c2, seed) {
+  for (let y = -r; y <= r; y++) for (let x = -r; x <= r; x++) {
+    if (x * x + y * y > r * r + (hash(x, y, seed) > 0.7 ? 2 : 0)) continue;
+    const c = ((x * 2 + y * 3 + seed) % 3 + 3) % 3 === 0 ? c2 : c1;
+    P.px(cx + x, cy + y, (x + y + seed) % 5 === 0 ? mix(c, 0xffffff, 0.5) : y > 1 ? mul(c, 0.82) : c);
+  }
+}
+function hanger(P, x, y, sh, ac) {   // en liten dräkt på galge (7 × 13)
+  P.px(x + 3, y, 0x8a929c); P.hl(x + 1, y + 1, 5, 0x8a929c);
+  for (let j = 0; j < 6; j++) for (let i = 0; i < 7; i++) if (!(j === 0 && i > 1 && i < 5)) P.px(x + i, y + 2 + j, i === 0 ? mix(sh, 0xffffff, 0.2) : sh);
+  P.hl(x, y + 7, 7, ac); P.px(x + 3, y + 4, ac);
+  for (let j = 0; j < 4; j++) for (let i = -(j >> 1); i < 7 + (j >> 1); i++) P.px(x + i, y + 8 + j, j > 1 && (i % 3 + 3) % 3 === 1 ? ac : sh);
+}
+function cheerBack(P, u, d, g) {
+  const x0 = u.x + 3, x1 = u.x + u.w - 3, it = g - UNIT_H + 16, fl = g - 9;
+  for (let y = it + 2; y < fl; y++) for (let x = x0; x < x1; x++) if ((x - x0) % 8 < 4) P.px(x, y, 0xcfe0f4);   // väggen: ljusblå lodränder
+  for (let x = x0; x < x1; x++) { P.px(x, fl - 8, CWHITE); P.px(x, fl - 7, CYEL); for (let y = fl - 6; y < fl; y++) P.px(x, y, (x - x0) % 12 === 0 ? 0xa82a5a : CPINK); }   // den rosa panelen
+  for (let x = x0 + 1, k = 0; x < x1 - 4; x += 6, k++) { const c = [CPINK, CYEL, CBLUE, CWHITE][k % 4]; for (let j = 0; j < 4; j++) for (let i = j >> 1; i < 5 - (j >> 1); i++) P.px(x + i, it + 4 + j, c); P.hl(x, it + 3, 6, 0x6a5a7a); }   // vimplarna
+  // vänster: klädstången med dräkter och en hylla med pompomer under
+  P.hl(x0 + 2, it + 10, 46, 0xc4c9d4); P.hl(x0 + 2, it + 11, 46, 0x80879a);
+  [[CPINK, CWHITE], [CBLUE, CYEL], [0x2b2a33, CYEL], [0x8e5bd1, 0xf0b429], [0x2aa39a, CWHITE], [0xd9433b, CWHITE]].forEach(([sh, ac], k) => hanger(P, x0 + 4 + Math.round(k * 7.5), it + 11, sh, ac));
+  P.rect(x0 + 2, fl - 14, 46, 2, CWHITE); P.hl(x0 + 2, fl - 12, 46, 0xa8b0bc);
+  [[CPINK, CWHITE], [CYEL, CBLUE], [CBLUE, CWHITE], [0x8e5bd1, CYEL], [0xd9433b, CWHITE], [0x46a35a, CWHITE]].forEach(([a, b], k) => pom(P, x0 + 6 + k * 8, fl - 17, 3, a, b, k));
+  // genom dörren: spegeln längst in
+  const mx = u.x + d.door + 5;
+  P.rect(mx, it + 12, 10, fl - it - 18, CYEL); P.rect(mx + 1, it + 13, 8, fl - it - 20, 0xd8eef8);
+  for (let y = it + 14; y < fl - 8; y++) if ((y + mx) % 9 < 2) P.px(mx + 2 + ((y - it) % 5), y, 0xffffff);
+  // höger: megafoner och flaggor på väggen bakom kassan
+  for (let k = 0; k < 3; k++) {
+    const mx2 = u.x + 80 + k * 13, my = it + 11, mc = [CPINK, CBLUE, CYEL][k];
+    P.rect(mx2, my + 2, 3, 3, mc); P.rect(mx2 + 3, my + 1, 3, 5, mc); P.vl(mx2 + 6, my, 7, CWHITE);
+    P.vl(mx2 + 2, my + 10, 9, 0xa87a1c); P.rect(mx2 + 3, my + 10, 6, 2, [CBLUE, CPINK, CBLUE][k]); P.rect(mx2 + 3, my + 12, 6, 2, [CYEL, CWHITE, CPINK][k]);
+  }
+}
+function cheerFront(P, u, d, g) {
+  // vänster skyltfönster: en låg podie med två stora pompomer och en megafon
+  const cx0 = u.x + 7, cw = 42;
+  P.rect(cx0, g - 10, cw, 7, CWHITE); P.box(cx0, g - 10, cw, 7, CBLUED); P.hl(cx0 + 1, g - 9, cw - 2, CYEL);
+  for (let x = cx0 + 3; x < cx0 + cw - 3; x += 6) P.px(x, g - 6, CPINK);
+  pom(P, cx0 + 9, g - 15, 5, CPINK, CWHITE, 2); pom(P, cx0 + 31, g - 15, 5, CYEL, CBLUE, 5);
+  P.rect(cx0 + 17, g - 16, 3, 4, CBLUE); P.rect(cx0 + 20, g - 18, 3, 7, CBLUE); P.vl(cx0 + 23, g - 19, 9, CWHITE); P.px(cx0 + 18, g - 15, CYEL);
+  // höger: disken (rosa med vita stjärnor) och kassan
+  const kx = u.x + 82, kw = 38;
+  P.rect(kx, g - 22, kw, 3, CWHITE); P.hl(kx, g - 20, kw, CYEL);
+  for (let y = g - 19; y < g - 3; y++) for (let x = kx; x < kx + kw; x++) P.px(x, y, x === kx || x === kx + kw - 1 ? 0xa82a5a : CPINK);
+  P.hl(kx + 1, g - 18, kw - 2, CPINKL);
+  for (let x = kx + 5; x < kx + kw - 3; x += 9) { P.px(x, g - 11, CWHITE); P.px(x - 1, g - 11, CWHITE); P.px(x + 1, g - 11, CWHITE); P.px(x, g - 12, CWHITE); P.px(x, g - 10, CWHITE); }
+  P.rect(kx + 27, g - 26, 8, 4, 0x2b2a33); P.rect(kx + 28, g - 25, 6, 1, 0x7ad07a);
+  pom(P, kx + 8, g - 25, 3, CYEL, CBLUE, 3);
+}
+function cheerOut(P, u, g) {
+  const dx = u.x + 54;   // mattan framför dörren: blå med en rosa stjärna
+  for (let y = 0; y < 7; y++) for (let x = -2 - y; x < 22 + y; x++) P.px(dx + x, g + y, y === 0 || y === 6 || x === -2 - y || x === 21 + y ? CWHITE : CBLUE);
+  for (const [i, j] of [[9, 2], [10, 2], [8, 3], [9, 3], [10, 3], [11, 3], [9, 4], [10, 4]]) P.px(dx + i, g + j, CPINK);
+  const bx = u.x + 28;   // en skylt på staffli: en pompom och HEJA!
+  P.line(bx, g, bx + 3, g - 17, CBLUED); P.line(bx + 16, g, bx + 13, g - 17, CBLUED); P.line(bx + 8, g - 4, bx + 8, g - 17, CBLUED);
+  P.rect(bx, g - 24, 17, 16, CBLUE); P.box(bx, g - 24, 17, 16, CYEL);
+  pom(P, bx + 8, g - 19, 3, CPINK, CWHITE, 4); pixText(P, SMALL, 'HEJA', bx + 2, g - 14, CWHITE);
+}
+function cheerSign(P, u, d, g) {   // pompomer i skyltens ändar
+  const top = g - UNIT_H;
+  pom(P, u.x + 9, top + 7, 4, CYEL, CWHITE, 1); pom(P, u.x + u.w - 10, top + 7, 4, CBLUE, CWHITE, 6);
+}
+
 // ---------- fotoautomaten och bankomaten ----------
 function fotoBack(P, u, g) {
   const x0 = u.x, w = u.w, top = g - 60;
@@ -324,9 +393,10 @@ function atmBack(P, u, g) {
   P.line(x0 + 2, top + 12, x0 + 6, top + 10, 0x6a727a); P.line(x0 + w - 3, top + 12, x0 + w - 7, top + 10, 0x6a727a);   // insynsskyddet
 }
 
-const THEME = { blommor: [blommorBack, blommorFront, blommorOut], kiosk: [kioskBack, kioskFront, kioskOut], godis: [godisBack, godisFront, godisOut], bling: [blingBack, blingFront, blingOut] };
-// DRÖMLANDs expedit är samma person som står i kassan inne i butiken (bling.js)
-const KEEPER = { bling: () => ({ ...makeLookRich(), hair: '#ecd489', style: 'bun', top: 'tee', shirt: '#f07ab0', kid: false, bottom: 'skirt', pants: '#2b2a33', neck: 'pearls', jewel: 'hoops' }) };
+const THEME = { blommor: [blommorBack, blommorFront, blommorOut], kiosk: [kioskBack, kioskFront, kioskOut], godis: [godisBack, godisFront, godisOut], bling: [blingBack, blingFront, blingOut], cheer: [cheerBack, cheerFront, cheerOut] };
+// DRÖMLANDs och HEJA HEJAs expediter är samma personer som står i kassan inne i butikerna (bling.js, cheer.js)
+const KEEPER = { bling: () => ({ ...makeLookRich(), hair: '#ecd489', style: 'bun', top: 'tee', shirt: '#f07ab0', kid: false, bottom: 'skirt', pants: '#2b2a33', neck: 'pearls', jewel: 'hoops' }),
+  cheer: () => ({ ...makeLookRich(), kid: false, build: 5, hair: '#3b2619', style: 'ponytail', top: 'cheer', topPrint: 'star', shirt: '#1d51a0', accent: '#f6d02f', print2: '#f6d02f', bottom: 'cheerSkirt', pants: '#1d51a0', pants2: '#f6d02f', hat: 'cheerBow', cap: '#f6d02f', hand: ['pompoms', '#f6d02f', '#1d51a0'] }) };
 
 // bygger butikens bilder (en gång): { back, front, ox, keeper, blocks }
 export function makeUnit(u, g) {
@@ -337,14 +407,14 @@ export function makeUnit(u, g) {
   else if (d.atm) atmBack(B, u, g);
   else {
     const [back, front, outside] = THEME[u.id];
-    room(B, u, d, g); back(B, u, d, g); fascia(B, u, d, g); if (u.id === 'bling') blingSign(B, u, d, g);
+    room(B, u, d, g); back(B, u, d, g); fascia(B, u, d, g); if (u.id === 'bling') blingSign(B, u, d, g); if (u.id === 'cheer') cheerSign(B, u, d, g);
     front(F, u, d, g); glassFront(F, u, d, g); outside(F, u, g);
     U.keeper = { x: u.x + d.keeper, look: KEEPER[u.id] ? KEEPER[u.id]() : makeLookRich() };
     U.spot = [u.x + d.door + 10, g + 8];
     if (u.id === 'blommor') U.blocks.push([u.x + 42, g - 2, u.x + 76, g + 2]);
     if (u.id === 'kiosk') U.blocks.push([u.x + 28, g - 2, u.x + 42, g + 1], [u.x + 58, g - 2, u.x + 80, g + 1]);
     if (u.id === 'godis') U.blocks.push([u.x + 4, g - 2, u.x + 12, g + 1]);
-    if (u.id === 'bling') U.blocks.push([u.x + 28, g - 2, u.x + 44, g + 1]);
+    if (u.id === 'bling' || u.id === 'cheer') U.blocks.push([u.x + 28, g - 2, u.x + 46, g + 1]);
   }
   U.back = B.flush(); U.front = F.flush();
   return U;
