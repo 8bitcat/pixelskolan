@@ -111,6 +111,7 @@ export const WARDROBE_BOTTOMS = [
   { id: 'bottom-snowsuit', slot: 'bottom', look: { bottom: 'snowsuit' }, name: 'Vinter\u00adoverall', price: 899, dept: 'unisex', icon: '❄️', colors: { pants: '#c9323a' } },
   // ---- Pixelskolans cheerleading (butiken HEJA HEJA) ----
   { id: 'bottom-cheerSkirt', slot: 'bottom', look: { bottom: 'cheerSkirt' }, name: 'Cheer­kjol', price: 199, dept: 'unisex', icon: '📣', colors: { pants: '#e0457e', pants2: '#f4f1ea' } },
+  { id: 'bottom-cheerStripe', slot: 'bottom', look: { bottom: 'cheerStripe' }, name: 'Randig cheer­kjol', price: 229, dept: 'unisex', icon: '📣', colors: { pants: '#1d51a0', pants2: '#f6d02f' } },
   { id: 'bottom-cheerDress', slot: 'bottom', look: { bottom: 'cheerDress' }, name: 'Hel cheer­dräkt', price: 449, dept: 'unisex', icon: '📣', colors: { shirt: '#e0457e', accent: '#f4f1ea' } },
 ];
 

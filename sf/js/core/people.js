@@ -4,6 +4,7 @@
 //
 // frame: 0 stå · 1/2 gångsteg · 3 mellansteg (kroppen upp 1 px) · 4 andas in · 5 sitter
 //        6 sitter och äter · 7/8 bär (gångsteg) · 9 bär (står)
+//        10/11 hejar: armarna rakt upp i ett V (11 = kroppen upp 1 px) – Pixelskolans cheerleading (HEJA HEJA)
 //
 // Det här är MOTORN: lagerordning, ramper, kontur, cache, drawPerson/portrait/makeLook.
 // Själva utseendena (frisyrer, ansikten, plagg, accessoarer) ligger i register i
@@ -341,9 +342,9 @@ function render(L0, dir, frame) {
   const shirtR = ramp(toInt(L.shirt, 0x3a7bd5)), accR = ramp(toInt(L.accent, 0xf4f1ea));
 
   // ---------- rörelse + proportioner ----------
-  const eat = frame === 6, carry = frame >= 7;
+  const eat = frame === 6, carry = frame >= 7 && frame <= 9, cheerUp = frame === 10 || frame === 11;
   const walkA = frame === 1 || frame === 7, walkB = frame === 2 || frame === 8, sit = frame === 5 || eat;
-  const bob = sit ? 1 : (frame === 3 || frame === 4) ? -1 : 0;
+  const bob = sit ? 1 : (frame === 3 || frame === 4 || frame === 11) ? -1 : 0;
   const shoeTop = 37, legLen = K ? 5 : 8, hipH = K ? 1 : 2, torsoH = K ? 6 : 9, headH = K ? 11 : 12;
   const legTop = shoeTop - legLen, hipTop = legTop - hipH;
   const torsoTop = hipTop - torsoH + bob, headTop = hipTop - torsoH - headH + bob;
@@ -371,7 +372,7 @@ function render(L0, dir, frame) {
     sole: (toInt(L.shoes, 0) === 0xf2f2f2 || E.bottom.darkSole) ? 0xd9d6cc : 0xe9e6dc,
     darkShoe: L.shoes === '#1c1c1c' || L.shoes === '#2f2f36',
     // rörelse
-    sit, eat, carry, walkA, walkB, bob,
+    sit, eat, carry, walkA, walkB, bob, cheerUp,
     // mått
     shoeTop, legLen, hipH, torsoH, headH, legTop, hipTop, torsoTop, headTop, h0: headTop, eyeRow, tw, lw, armLen,
     ty0: torsoTop, ty1: hy, hy,
@@ -494,6 +495,19 @@ function render(L0, dir, frame) {
         put(left ? 11 : 12, torsoTop - 1, skin.lo); put(left ? 10 : 13, torsoTop - 1, skin.base);   // händerna vid munnen
         R.tag = TAG.sleeve;
         put(left ? x0 + 1 : x0, torsoTop, shirt.base);
+        return;
+      }
+      if (cheerUp) {   // hejar: armen snett upp och ut, handen överst (HEJA HEJA)
+        const len = armLen, sleeve = noSleeve ? 0 : longSleeve ? len - 2 : Math.min(3, len - 2);
+        for (let j = 0; j < len; j++) {
+          const y = torsoTop - j, dx = Math.round(j * 0.6), x = left ? x0 - dx : x0 + dx;
+          const isHand = j >= len - 2, cloth = !isHand && j < sleeve;
+          const c = isHand ? skin : cloth ? ((T.sleeveAt && T.sleeveAt(R, j)) || shirt) : skin;
+          R.tag = cloth ? TAG.sleeve : TAG.skin;
+          put(x, y, left ? c.hi : c.base); put(x + 1, y, left ? c.base : c.lo);
+        }
+        R.tag = TAG.sleeve;
+        put(left ? x0 + 1 : x0, torsoTop, shirt.base); put(left ? x0 + 1 : x0, torsoTop + 1, shirt.base);
         return;
       }
       if (carry) {   // bär tallriken: armarna framåt, händerna ihop framför magen
@@ -709,6 +723,7 @@ function drawHeld(L, R, view, put) {
   const P = { a: c1.base, A: c1.hi, q: c1.lo, b: c2.base, B: c2.hi, w: 0xf4f1ea, W: 0xd2cdc0, s: 0xc4c9d4, S: 0xf4f6fa, z: 0x80879a, g: 0xe8b830, G: 0xfff0a0, y: 0xa87a1c, t: 0xf8d860, k: 0x2a2630, n: R.skin.base };
   const { torsoTop: t, tw, armLen, walkA, walkB, has } = R;
   const hand = (left) => {   // samma geometri som motorns armar (och acc.js handAt)
+    if (R.cheerUp && view !== 'side') { const dx = Math.round((armLen - 1) * 0.6); return { x: left ? 12 - tw - 2 - dx : 12 + tw + dx, y: t - armLen + 2 }; }
     if (view !== 'side') return { x: left ? 12 - tw - 2 : 12 + tw, y: t + armLen + (left ? 1 : -1) * (walkA ? 1 : walkB ? -1 : 0) };
     return { x: 11 + (walkA ? -3 : walkB ? 3 : 0), y: t + armLen };
   };
@@ -748,7 +763,7 @@ function decorate(L, R, view, each, put) {
     px.forEach(([x, y], i) => put(x, y, toInt(L.beads[Math.floor((i * L.beads.length) / px.length)], 0xffffff)));
   }
   if (Array.isArray(L.hand) && HAND_ITEMS[L.hand[0]]) drawHeld(L, R, view, put);
-  else if (Array.isArray(L.mobil) && L.mobil[0] && view === 'front' && !R.sit && !R.carry && !R.eat && !R.walkA && !R.walkB) {
+  else if (Array.isArray(L.mobil) && L.mobil[0] && view === 'front' && !R.sit && !R.carry && !R.eat && !R.cheerUp && !R.walkA && !R.walkB) {
     const c = L.mobil.map((h) => toInt(h, -1)), x0 = 12 + R.tw - 1, y1 = R.torsoTop + R.armLen;
     R.tag = TAG.extra;
     for (let j = 0; j < 4; j++) for (let i = 0; i < 3; i++) put(x0 + i, y1 - 3 + j, i === 2 || j === 3 ? mul(c[0], 0.72) : c[0]);
@@ -761,6 +776,7 @@ function decorate(L, R, view, each, put) {
     for (const a of ['bottom', 'top', 'bag']) {
       const list = L.patches.filter((p) => p && p.a === a);
       if (!list.length || (a !== 'bag' && view !== 'front')) continue;
+      if ((a === 'top' && /^cheer/.test(L.top)) || (a === 'bottom' && /^cheer/.test(L.bottom))) continue;   // cheerdräkten (HEJA HEJA) visas utan märken – de ligger kvar till de vanliga kläderna
       const pts = []; for (const t of PATCH_TAGS[a]) each(t, (x, y) => pts.push([x, y]));
       if (pts.length < 6) continue;
       let x0 = SW, x1 = -1, y0 = SH, y1 = -1;
@@ -791,14 +807,14 @@ function spriteFor(look, dir, frame) {
 export function personSprite(look, dir = 'down', frame = 0) {
   if (!['down', 'up', 'left', 'right'].includes(dir)) dir = 'down';
   frame = frame | 0;
-  return spriteFor(look, dir, frame < 0 || frame > 9 ? 0 : frame);
+  return spriteFor(look, dir, frame < 0 || frame > 11 ? 0 : frame);
 }
 
 // dir: 'down' | 'up' | 'left' | 'right'; frame: se överst
 export function drawPerson(ctx, fx, fy, L, dir = 'down', frame = 0) {
   if (!['down', 'up', 'left', 'right'].includes(dir)) dir = 'down';
   frame = frame | 0;
-  if (frame < 0 || frame > 9) frame = 0;
+  if (frame < 0 || frame > 11) frame = 0;
   const x = Math.round(fx), y = Math.round(fy);
   // skugga
   ctx.fillStyle = 'rgba(20,12,30,.28)';

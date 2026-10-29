@@ -1177,6 +1177,7 @@ TOP_REG.cheer = {
     if (!K) { put(a + 1, ty0 + 1, acc.base); put(b - 1, ty0 + 1, acc.lo); put(sL + 1, ty0 + 1, acc.base); put(sR - 1, ty0 + 1, acc.lo); put(11, ty0 + 1, skin.lo); put(12, ty0 + 1, skin.lo); }   // v-ringningen
     rect(a + 1, ty1 - 1, b - a - 1, 1, acc.base); put(a + 1, ty1 - 1, acc.hi);   // randen nertill
     if (!K) rect(a + 1, ty1 - 2, b - a - 1, 1, shirt.lo);
+    for (let y = ty0 + 2; y < ty1 - 1; y++) { put(a, y, acc.lo); put(b, y, acc.lo); }   // sidopanelerna (Carl 2026-10-29: "fler detaljer")
   },
   back(R) {
     const { put, rect, skin, acc, ty0, ty1, K } = R, a = xl(R), b = xr(R), sL = Math.max(9, a + 2), sR = 23 - sL;
@@ -1188,6 +1189,47 @@ TOP_REG.cheer = {
     const { rect, put, skin, shirt, acc, torsoTop, ty1 } = R;
     rect(10, torsoTop, 6, 1, skin.base); put(15, torsoTop, skin.hi); put(12, torsoTop, acc.base); put(10, torsoTop, skin.lo);
     put(15, torsoTop + 1, acc.lo); put(14, torsoTop + 1, shirt.base); rect(9, ty1 - 1, 7, 1, acc.base); put(15, ty1 - 1, acc.hi);
+  },
+};
+// Långärmad cheertröja: v-ringning med kant, två ränder på ärmarna, kantade muddar och randen nertill.
+TOP_REG.cheerLong = {
+  label: 'Lång­ärmad cheer­tröja', group: 'Sport', sleeve: 'long',
+  sleeveAt(R, j) { return !R.side && (j === 1 || j === 2) ? (j === 1 ? R.acc : R.shirt) : R.side && j === 1 ? R.acc : undefined; },
+  front(R) {
+    const { put, rect, skin, shirt, acc, ty0, ty1, K } = R, a = xl(R), b = xr(R);
+    put(10, ty0, acc.base); put(13, ty0, acc.lo); put(11, ty0, skin.lo); put(12, ty0, skin.lo);   // v-ringningen med kant
+    if (!K) { put(10, ty0 + 1, acc.base); put(13, ty0 + 1, acc.lo); put(11, ty0 + 1, acc.base); put(12, ty0 + 1, acc.lo); }
+    rect(a + 1, ty1 - 1, b - a - 1, 1, acc.base); put(a + 1, ty1 - 1, acc.hi);
+    if (!K) rect(a + 1, ty1 - 2, b - a - 1, 1, shirt.lo);
+    for (let y = ty0 + 1; y < ty1 - 1; y++) { put(a, y, shirt.hi); put(b, y, acc.lo); }
+  },
+  back(R) { const { put, rect, acc, ty0, ty1 } = R, a = xl(R), b = xr(R); rect(10, ty0, 4, 1, acc.base); put(a + 1, ty0, R.shirt.lo); rect(a + 1, ty1 - 1, b - a - 1, 1, acc.base); },
+  side(R) { const { rect, put, skin, acc, torsoTop, ty1 } = R; put(15, torsoTop, skin.lo); put(14, torsoTop, acc.base); put(15, torsoTop + 1, acc.lo); rect(9, ty1 - 1, 7, 1, acc.base); },
+  afterArms(R) { cuffs(R, R.acc); },
+};
+// Kort cheertopp: axelband som cheertoppen, kort så att en bit av magen syns, kantad nertill i sidorna.
+TOP_REG.cheerCrop = {
+  label: 'Kort cheer­topp', group: 'Sport', sleeve: 'none',
+  front(R) {
+    const { put, skin, acc, ty0, ty1, K } = R, a = xl(R), b = xr(R), sL = Math.max(9, a + 2), sR = 23 - sL, n = K ? 1 : 2;
+    skinRow(R, ty0, a + 1, b - 1); put(sL, ty0, acc.base); put(sR, ty0, acc.lo);
+    put(a, ty0 + 1, skin.hi); put(b, ty0 + 1, skin.lo);
+    if (!K) { put(11, ty0 + 1, skin.lo); put(12, ty0 + 1, skin.lo); put(10, ty0 + 1, acc.base); put(13, ty0 + 1, acc.lo); }
+    for (let y = ty1 - n; y < ty1; y++) skinRow(R, y, a, b);   // magen
+    if (!K) put(11, ty1 - 1, skin.lo);
+    const e = ty1 - n - 1; put(a, e, acc.base); put(a + 1, e, acc.hi); put(b - 1, e, acc.base); put(b, e, acc.lo);   // kanten nertill (symbolen får vara kvar i mitten)
+  },
+  back(R) {
+    const { rect, put, skin, acc, ty0, ty1, K } = R, a = xl(R), b = xr(R), sL = Math.max(9, a + 2), sR = 23 - sL, n = K ? 1 : 2;
+    skinRow(R, ty0, a + 1, b - 1); put(sL, ty0, acc.base); put(sR, ty0, acc.lo); put(a, ty0 + 1, skin.hi); put(b, ty0 + 1, skin.lo);
+    for (let y = ty1 - n; y < ty1; y++) skinRow(R, y, a, b);
+    rect(a + 1, ty1 - n - 1, b - a - 1, 1, acc.base);
+  },
+  side(R) {
+    const { rect, put, skin, acc, torsoTop, ty1, K } = R, n = K ? 1 : 2;
+    rect(10, torsoTop, 6, 1, skin.base); put(12, torsoTop, acc.base); put(15, torsoTop + 1, acc.lo);
+    for (let y = ty1 - n; y < ty1; y++) { rect(9, y, 7, 1, skin.base); put(9, y, skin.lo); put(15, y, skin.hi); }
+    rect(9, ty1 - n - 1, 7, 1, acc.base);
   },
 };
 

@@ -27,7 +27,7 @@ const OUT = 'ch-' + DEV + '-';
   await page.evaluate(() => window.SF.scene._debug.walk(500, 130)); await page.waitForTimeout(4500); await page.locator('#room').screenshot({ path: OUT + 'inne-h.png' }); await page.evaluate(() => window.SF.scene._debug.walk(192, 110)); await page.waitForTimeout(4500);
   const S = () => page.evaluate(() => window.SF.scene);
   // bordet DESIGNA DRÄKT via scenens debug-punkter: klicka i skärmkoordinater
-  const clickW = async (x, y) => { if (x > 300) { await page.evaluate(([x]) => window.SF.scene._debug.walk(x, 130), [x]); await page.waitForTimeout(3500); } const cam = await page.evaluate(() => window.SF.scene._debug.cam()); const box = await (await page.$('#room')).boundingBox(); await page.mouse.click(box.x + (x - cam) * box.width / 384, box.y + y * box.height / 216); };
+  const clickW = async (x, y) => { { const c0 = await page.evaluate(() => window.SF.scene._debug.cam()); if (x - c0 < 12 || x - c0 > 372) { await page.evaluate(([x]) => window.SF.scene._debug.walk(x, 130), [x]); await page.waitForTimeout(4500); } } const cam = await page.evaluate(() => window.SF.scene._debug.cam()); const box = await (await page.$('#room')).boundingBox(); await page.mouse.click(box.x + (x - cam) * box.width / 384, box.y + y * box.height / 216); };
   await clickW(75, 200); await page.waitForTimeout(3500);
   log('dialog', await page.evaluate(() => document.querySelector('#modal .dlg-head h2')?.textContent));
   await page.screenshot({ path: OUT + 'designa.png' });
@@ -72,7 +72,7 @@ const OUT = 'ch-' + DEV + '-';
   await page.evaluate(() => window.__ps.enterShop('cheer')); await page.waitForTimeout(600);
   log('efter omladdning', await page.evaluate(() => { const L = window.SF.avatar.look; return { top: L.top, topPrint: L.topPrint, bottom: L.bottom, hand: L.hand, hat: L.hat }; }));
   await page.evaluate(() => window.SF.scene._debug.walk(160, 98)); await page.waitForTimeout(2500);
-  await clickW(160, 60); await page.waitForTimeout(2500);
+  await clickW(160, 60); await page.waitForTimeout(3500);
   log('spegeln', await page.evaluate(() => ({ drakter: document.querySelectorAll('#modal [data-dr]').length, hander: document.querySelectorAll('#modal [data-hd]').length, klader: document.querySelectorAll('#modal [data-own]').length })));
   await page.evaluate(() => document.querySelector('#modal [data-hd="-1"]')?.click()); await page.waitForTimeout(300);
   log('lade ner', await page.evaluate(() => window.SF.avatar.look.hand));

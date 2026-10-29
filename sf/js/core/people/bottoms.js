@@ -1468,6 +1468,17 @@ Object.assign(BOTTOM_REG, {
     back(R) { this.front(R); },
     side(R) { this.front(R); },
   },
+  cheerStripe: {   // randig cheerkjol: slät och utsvängd med två ränder i kontrastfärgen och glans nertill
+    label: 'Randig cheer­kjol', group: 'Kjolar', skirt: (R) => (R.K ? 3 : 4), bareFrom: 1, crotch: false, uses: ['pants2'],
+    front(R) {
+      const p = R.pants, Q = R.pants2, [y0, y1] = skirtRows(R);
+      R.rect(R.side ? 9 : 12 - R.tw, y0, R.side ? 7 : R.tw * 2, 1, p.lo);
+      flare(R, R.skirtLen - 1, 1); if (!R.K) flare(R, R.skirtLen - 2, 1);
+      R.pattern(TAG.pants, (x, y) => (y <= y0 || y >= y1 ? null : y === y1 - 2 ? Q.base : y === y1 - 1 ? ((x + R.frame) % 4 === 0 ? mix(Q.hi, 0xffffff, 0.5) : Q.lo) : null));
+    },
+    back(R) { this.front(R); },
+    side(R) { this.front(R); },
+  },
   cheerDress: { ...DRESS,
     label: 'Cheer­dräkt', group: 'Klänningar', skirt: (R) => (R.K ? 3 : 4), bareFrom: 1, uses: ['accent'],
     front(R) { cheerPleats(R, R.acc); R.pattern(TAG.pants, (x, y) => (y > R.hy ? sparkle(R, x, y, 13) : null)); },

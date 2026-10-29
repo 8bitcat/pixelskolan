@@ -1463,7 +1463,7 @@ window.SF = A;   // Snabbfilens moduler läser spelet härifrån (musiken välje
 const musicScene = () => { if (!SHOP) A.sceneName = P.scene === 'galleria' ? 'mat' : 'room'; };
 const BLING_STORE = { list: () => BLING, add(d) { BLING.push(d); if (BLING.length > 40) BLING.shift(); save(); } };
 const HEJA_STORE = { list: () => HEJA, add(d) { HEJA.push(d); if (HEJA.length > 40) HEJA.shift(); save(); } };
-const SHOP_OPTS = { bling: () => ({ store: BLING_STORE }), cheer: () => ({ store: HEJA_STORE }) };
+const SHOP_OPTS = { bling: () => ({ store: BLING_STORE }), cheer: () => ({ store: HEJA_STORE, onLook: (look) => { ME = cleanAvatar({ ...ME, look }); save(); } }) };
 const SHOP_MUSIC = { bling: 'klader', cheer: 'leksaker' };   // DRÖMLAND spelar klädaffärens låt, HEJA HEJA leksaksaffärens
 function enterShop(id) {
   if (!SHOPLIB?.make[id]) return;
